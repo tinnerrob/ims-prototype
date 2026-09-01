@@ -27,6 +27,7 @@ const App = {
   ccTab: "customers",
   contractFilter: "active",
   invFilter: "all",
+  woFilter: "all",
   kitTab: "kits",
   catType: "serialized",
   contractId: "CT-2024-001",

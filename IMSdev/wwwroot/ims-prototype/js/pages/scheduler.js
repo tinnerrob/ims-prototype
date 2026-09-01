@@ -8,26 +8,12 @@
    STAGE 2 — CONTRACT MANAGEMENT & SCHEDULER
    ========================================================= */
 
-function updateStageSummary(){
-  const s = $("#stageResource"), sum = $("#stageSummary");
-  if (!s || !sum) return;
-  const sel = s.value;
-  if (!sel) { sum.textContent = "Pick a resource, then enter qty (units) or labor hours."; return; }
-  const [type, ref] = sel.split("|");
-  const r = getResource({ type, refId: ref });
-  if (!r) return;
-  if (type === "serialized") sum.innerHTML = `<span class="tag">${r.id}</span> ${r.make} ${r.model} — ${statusBadge(r.status)} · base ${fmtMoney(r.baseDaily)}/d`;
-  else if (type === "bulk") sum.innerHTML = `<span class="tag">${r.sku}</span> ${r.name} — ${fmtInt(r.qtyAvailable)} available`;
-  else if (type === "consumable") sum.innerHTML = `<span class="tag">${r.sku}</span> ${r.name} — retail ${fmtMoney(r.retailPrice)} · ${fmtInt(r.qtyOnHand)} on hand`;
-  else sum.innerHTML = `<span class="tag">${r.empId}</span> ${r.name} (${r.role}) — billable ${fmtMoney(r.hourlyBillable)}/hr`;
-}
 
 /* ---- weekly timeline helpers ---- */
 const mondayOf = d => { const x = new Date(d); x.setDate(x.getDate() - ((x.getDay() + 6) % 7)); x.setHours(0,0,0,0); return x; };
 const weekDates = ws => [0,1,2,3,4,5,6].map(i => { const d = new Date(ws); d.setDate(d.getDate() + i); return d; });
 const dayDates = d => [new Date(d)];
 const fmtWeekday = d => d.toLocaleDateString("en-US", { weekday:"short" });
-const dayIndexInWeek = (date, ws) => Math.round((date - ws) / 86400000);
 /* Current timeline anchor + day-count based on the active view (day / week / month). */
 function schedAnchor(){
   if (App.schedView === "month") return App.schedMonth;
@@ -44,7 +30,6 @@ function schedCols(){
 /* Milliseconds per scheduling block: 15 min in day view, otherwise 1 day. */
 function blockMs(){ return App.schedView === "day" ? 900000 : 86400000; }
 
-function atBlock(block){ const a = schedAnchor(); return new Date(a.getTime() + block * blockMs()); }
 /* Position a bar within the current view (day = by time-of-day, week/month = by day). */
 function tlGeom(startISO, endISO){
   if (App.schedView === "day") return dayGeom(startISO, endISO, schedAnchor());
@@ -164,10 +149,6 @@ function renderScheduler(){
   bindDnD();
 }
 
-function handleGlobalSelect(v){
-  if (v.startsWith("res:")) { const [, type, ref] = v.split(":"); renderInspectorResource(type, ref); return; }
-  if (getContract(v)) { App.contractId = v; renderSchedQueue(); renderTimeline(); renderInspector(getContract(v)); }
-}
 function resCard(type, ref, label, sub, unavailable){
   return `<div class="res-card ${unavailable ? "inactive" : ""}" draggable="true" data-resource-id="${ref}" data-resource-type="${type}" title="${unavailable ? "Unavailable" : "Drag to a contract block"}">
     <div class="res-card-head"><span class="type-chip tc-${type}">${TYPE_LABEL[type] || type}</span>${unavailable ? `<span class="badge-status st-out"><i class="bi bi-ban"></i>Unavailable</span>` : ""}</div>
@@ -198,7 +179,7 @@ function renderSchedQueue(){
     <div class="text-muted2" style="font-size:11px">${c.customer}</div>
     <div class="text-muted2" style="font-size:10.5px">${fmtDate(c.startDate)} → ${fmtDate(c.endDate)}</div>
   </div>`).join("") || `<p class="text-muted2 py-2">No active contracts.</p>`;
-  const poolTabs = [{ key:"serialized", label:"Serialized Equipment" }, { key:"bulk", label:"Bulk Resources" }, { key:"consumable", label:"Consumables" }, { key:"labor", label:"Labor / Employees" }, { key:"parts", label:"Stock Inventory" }, { key:"kits", label:"Kits" }, { key:"attachments", label:"Attachments" }];
+  const poolTabs = [{ key:"serialized", label:"Serialized Equipment" }, { key:"bulk", label:"Bulk Resources" }, { key:"consumable", label:"Consumables" }, { key:"parts", label:"Stock Inventory" }, { key:"labor", label:"Labor / Employees" }, { key:"kits", label:"Kits" }, { key:"attachments", label:"Attachments" }];
   box.innerHTML = `
     <div class="card mb-3">
       <div class="card-header"><span class="card-title"><i class="bi bi-briefcase"></i> Active Contracts</span>
@@ -442,12 +423,6 @@ function initTlTooltips(){
   window.__tlTips = $$("#tlWeek .tl-block[title]").map(el => new bootstrap.Tooltip(el, { trigger: "hover", container: "body", html: true }));
 }
 
-function inspAssets(c){
-  if (!c.lineItems || !c.lineItems.length) return `<p class="text-muted2">No resources allocated yet — drag cards onto the block.</p>`;
-  return `<table class="table" style="font-size:11.5px"><thead><tr><th>Item</th><th class="num">Qty</th><th class="num">Total</th><th></th></tr></thead><tbody>` +
-    c.lineItems.map(li => `<tr><td><span class="type-chip tc-${li.type}">${li.type}</span> ${itemLabel(li)}</td><td class="num">${li.qty}</td><td class="num">${fmtMoney(computeLineTotal(li, c))}</td><td class="text-end"><button class="remove" data-remli="${li.id}"><i class="bi bi-x-circle"></i></button></td></tr>`).join("") +
-  `</tbody></table>`;
-}
 
 /* All resources booked on two+ active contracts with overlapping windows.
    serialized/labor = hard conflict; quantity = conflict only when overbooked (sum booked
@@ -513,23 +488,6 @@ function renderInspector(c){
     <div class="conflict-list">${rows || `<p class="text-muted2 py-3">No scheduling conflicts.</p>`}</div>`;
 }
 
-function renderInspectorResource(type, ref){
-  const box = $("#schedInspector");
-  const r = getResource({ type, refId: ref });
-  if (!r) return;
-  const name = itemLabel({ type, refId: ref });
-  const onContracts = IMS.contracts.filter(c => (c.lineItems || []).some(li => li.type === type && li.refId === ref));
-  box.innerHTML = `
-    <div class="strong mb-1"><i class="bi bi-info-circle me-1"></i>${name}</div>
-    <div class="insp-list">
-      <div class="list-line"><span class="l">Type</span><span class="r">${type}</span></div>
-      <div class="list-line"><span class="l">Status</span><span class="r">${type === "serialized" ? statusBadge(r.status) : (recActive(r) ? "Active" : "Inactive")}</span></div>
-      <div class="list-line"><span class="l">Allocated to</span><span class="r">${onContracts.length} contract(s)</span></div>
-    </div>
-    <div class="divider"></div>
-    <div class="strong mb-1">Allocation</div>
-    ${onContracts.map(c => `<div class="list-line"><span class="l">${c.contractId}</span><span class="r">${fmtMoney(computeLineTotal(c.lineItems.find(li => li.type === type && li.refId === ref), c))}</span></div>`).join("") || `<p class="text-muted2">Not allocated to any contract.</p>`}`;
-}
 
 /* ---- quantity-aware availability & collision ---- */
 
@@ -767,15 +725,6 @@ function commitBarDates(c, liId, s, en){
   return { sStr, eStr, s, en };
 }
 
-function resizeToDates(c, liId, mode, d){
-  const sD = liId ? parseDT(liStart(c.lineItems.find(x => x.id === liId), c)) : parseDT(c.startDate);
-  const eD = liId ? parseDT(liEnd(c.lineItems.find(x => x.id === liId), c)) : parseDT(c.endDate);
-  let s = new Date(sD), en = new Date(eD);
-  if (mode === "left"){ s.setDate(s.getDate() + d); if (s > en) s = new Date(en); }
-  else if (mode === "right"){ en.setDate(en.getDate() + d); if (en < s) en = new Date(s); }
-  else { s.setDate(s.getDate() + d); en.setDate(en.getDate() + d); }
-  return commitBarDates(c, liId, s, en);
-}
 
 function onSchedDragMove(e){
   if (!schedDrag) return;
@@ -992,142 +941,10 @@ function renderOhFinance(root, tmpContract){
 }
 
 
-function stageResource(){
-  const sel = $("#stageResource").value;
-  if (!sel) return;
-  const [type, ref] = sel.split("|");
-  const qty = Math.max(1, parseInt($("#stageQty").value, 10) || 1);
-  const c = getContract(App.contractId);
-  if (!c) return;
-  c.lineItems.push({ id:"LI-" + Date.now(), type, refId:ref, qty, startDate: c.startDate, endDate: c.endDate,
-    pricingMatrix: type === "labor" ? "flat" : "standard",
-    weekendPolicy:"bill", riskPremium:"standard", flatTotal:0 });
-  syncInventoryOnStage(type, ref, qty, true, c);
-  renderScheduler();
-}
 
 
-function unstageLineItem(liId){
-  const c = getContract(App.contractId);
-  const li = (c.lineItems || []).find(x => x.id === liId);
-  if (!li) return;
-  c.lineItems = c.lineItems.filter(x => x.id !== liId);
-  const r = getResource(li);
-  if (li.type === "serialized" && r) {
-    r.status = r.contractId === c.contractId ? "Available" : r.status;
-    r.contractId = null;
-  } else {
-    syncInventoryOnStage(li.type, li.refId, li.qty, false, c);
-  }
-  renderScheduler();
-}
 
-function selOpts(field, cur){
-  if (field === "pricingMatrix") return `<option value="standard" ${cur==="standard"?"selected":""}>Standard (D/W/M)</option><option value="min" ${cur==="min"?"selected":""}>Daily Min Met</option><option value="flat" ${cur==="flat"?"selected":""}>Flat Rate</option>`;
-  if (field === "weekendPolicy") return `<option value="bill" ${cur==="bill"?"selected":""}>Bill Weekends 1.0x</option><option value="skip" ${cur==="skip"?"selected":""}>Skip Weekends 0.0x</option><option value="overtime" ${cur==="overtime"?"selected":""}>Shift/Overtime 1.5x</option>`;
-  if (field === "riskPremium")   return `<option value="standard" ${cur==="standard"?"selected":""}>Std +0%</option><option value="coastal" ${cur==="coastal"?"selected":""}>Coastal +15%</option><option value="hazmat" ${cur==="hazmat"?"selected":""}>Hazmat +25%</option>`;
-  return "";
-}
 
-function schedRowHTML(li, c){
-  const total = computeLineTotal(li, c);
-  const chip = `<span class="type-chip tc-${li.type}">${li.type}</span>`;
-  const label = `<span class="strong">${itemLabel(li)}</span>`;
-  const qtyInput = `<input type="number" min="1" style="width:58px" data-li="${li.id}" data-field="qty" value="${li.qty}" title="${li.type === "labor" ? "Hours" : "Qty"}">`;
-  let basis = "", controls = "";
-  if (li.type === "labor") {
-    const r = getResource(li);
-    basis = `<span class="text-muted2">${fmtInt(li.qty)} hr × ${fmtMoney(r.hourlyBillable)}</span>`;
-  } else if (li.type === "consumable") {
-    const r = getResource(li);
-    basis = `<span class="text-muted2">${fmtInt(li.qty)} × ${fmtMoney(r.retailPrice)}</span>`;
-  } else {
-    const rb = rateBasis(li, c);
-    basis = `<span class="text-muted2">${rb.basis} ${fmtMoney(rb.rate)} × ${li.type === "serialized" ? 1 : li.qty}</span>`;
-    controls = `
-      <select data-li="${li.id}" data-field="pricingMatrix" title="Pricing Matrix">${selOpts("pricingMatrix", li.pricingMatrix)}</select>
-      <select data-li="${li.id}" data-field="weekendPolicy" title="Weekend Policy">${selOpts("weekendPolicy", li.weekendPolicy)}</select>
-      <select data-li="${li.id}" data-field="riskPremium" title="Risk Premium">${selOpts("riskPremium", li.riskPremium)}</select>
-      ${li.pricingMatrix === "flat" ? `<input type="number" style="width:82px" data-li="${li.id}" data-field="flatTotal" value="${li.flatTotal || 0}" placeholder="Flat $">` : ""}`;
-  }
-  return `<div class="sched-row">
-    <div>
-      <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">${chip}${label}</div>
-      <div style="display:flex;align-items:center;gap:8px;margin-top:6px;flex-wrap:wrap">
-        ${qtyInput}<span class="text-muted2" style="font-size:11.5px">${li.type === "labor" ? "hrs" : "qty"}</span>
-        <span style="margin-left:6px">${basis}</span>
-        <div class="li-controls">${controls}</div>
-      </div>
-    </div>
-    <div style="text-align:right">
-      <div class="strong" data-total="${li.id}">${fmtMoney(total)}</div>
-      <button class="remove" data-remove="${li.id}" title="Remove line"><i class="bi bi-x-circle"></i></button>
-    </div>
-  </div>`;
-}
 
-function renderSchedGrid(){
-  const c = getContract(App.contractId);
-  if (!c) { $("#schedGrid").innerHTML = "<p class='text-muted2'>No contract selected.</p>"; return; }
-  const groups = [
-    { key:"serialized", title:"Serialized Equipment", icon:"bi-truck-front" },
-    { key:"bulk", title:"Bulk Resources", icon:"bi-boxes" },
-    { key:"consumable", title:"Consumables (Sales Stock)", icon:"bi-capsule" },
-    { key:"labor", title:"Labor / Employees", icon:"bi-person-badge" }
-  ];
-  let html = "";
-  groups.forEach(g => {
-    const items = c.lineItems.filter(li => li.type === g.key);
-    if (!items.length) return;
-    html += `<div style="font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.6px;color:var(--slate-600);margin:10px 0 4px"><i class="bi ${g.icon} me-1"></i>${g.title}</div>`;
-    items.forEach(li => html += schedRowHTML(li, c));
-  });
-  $("#schedGrid").innerHTML = html || `<p class="text-muted2 py-3 text-center">No resources staged yet. Add equipment, bulk, consumables or labor from the staging panel.</p>`;
-}
-
-function bindSchedGrid(){
-  const g = $("#schedGrid");
-  if (!g) return;
-  g.addEventListener("change", e => {
-    const t = e.target;
-    if (!t.dataset || !t.dataset.li) return;
-    const c = getContract(App.contractId);
-    const li = (c.lineItems || []).find(x => x.id === t.dataset.li);
-    if (!li) return;
-    const f = t.dataset.field;
-    if (f === "qty" || f === "flatTotal") li[f] = parseFloat(t.value) || 0;
-    else li[f] = t.value;
-    if (f === "pricingMatrix") renderSchedGrid();
-    const td = $("[data-total=\"" + li.id + "\"]", g);
-    if (td) td.textContent = fmtMoney(computeLineTotal(li, c));
-    renderSchedProfit();
-  });
-  g.addEventListener("click", e => {
-    const b = e.target.closest("[data-remove]");
-    if (b) unstageLineItem(b.dataset.remove);
-  });
-}
-
-function renderSchedProfit(){
-  const c = getContract(App.contractId);
-  const t = contractTotals(c);
-  $("#schedProfit").innerHTML = `
-    <table class="totals-table">
-      <tr><td>Equipment Rental Gross</td><td>${fmtMoney(t.equipmentGross)}</td></tr>
-      <tr><td>Overhead &amp; Service Billable</td><td>${fmtMoney(t.overheadRetail)}</td></tr>
-      <tr class="grand"><td>Total Gross Revenue</td><td>${fmtMoney(t.gross)}</td></tr>
-      <tr><td>− Direct Labor Costs</td><td>${fmtMoney(t.laborCost)}</td></tr>
-      <tr><td>− Consumable Costs</td><td>${fmtMoney(t.consumableCost)}</td></tr>
-      <tr><td>− Asset Depreciation Factor (10% ann.)</td><td>${fmtMoney(t.depreciation)}</td></tr>
-      <tr><td>− Overhead Pass-Through Cost</td><td>${fmtMoney(t.overheadCost)}</td></tr>
-      <tr class="grand"><td>Estimated Net Profit</td><td>${fmtMoney(t.net)}</td></tr>
-    </table>
-    <div class="divider"></div>
-    <div class="profit-panel">
-      <div class="label">Estimated Net Profit Margin</div>
-      <div class="value">${fmtPct(t.margin)}</div>
-      <div style="font-size:11px;color:#166534;margin-top:4px">Net ${fmtMoney(t.net)} over a ${t.days}-day contract · Operating Cost ${fmtMoney(t.operatingCost)}</div>
-    </div>`;
-}
 
 

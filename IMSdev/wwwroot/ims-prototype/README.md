@@ -45,7 +45,7 @@ wwwroot/ims-prototype/
     ├── router.js       # Nav router (TITLES/RENDER/showView) + init() bootstrap
     └── pages/          # One file per page/view
         ├── dashboard.js     # Executive KPIs & dashboards
-        ├── inventory.js     # Serialized/bulk/consumable/labor/parts + kits & attachments
+        ├── inventory.js     # 7 resource types: serialized, bulk, consumables, parts, labor, kits, attachments
         ├── scheduler.js     # Contract queue, resource pool, timeline, booking, conflicts
         ├── contracts.js     # Customers & contracts (header management)
         ├── geo.js           # GPS telemetry simulation + geofence monitoring
@@ -84,7 +84,7 @@ wwwroot/ims-prototype/
 | # | View (nav key)    | File                 | What it does |
 |---|-------------------|----------------------|--------------|
 | 1 | Dashboard         | `dashboard.js`       | Fleet book value, physical utilization, geofence alert count, annualized revenue run-rate; active-contract profitability table; reorder warnings; recent alerts; fleet status & bulk-out summary |
-| 2 | Inventory & Assets| `inventory.js`       | Master lists & CRUD for serialized equipment, bulk resources, consumables, labor, parts, **kits** and **attachments**; detail views & editing |
+| 2 | Inventory & Assets| `inventory.js`       | Master lists & CRUD for 7 separate resource types — Serialized Equipment, Bulk Resources, Consumables, Stock Inventory, Labor/Employees, Attachments, Kits — in that order; detail views & editing |
 | 3 | Scheduler         | `scheduler.js`       | 3-column booking board: Active Contracts queue, Resource Pool, and a Day/Week/Month timeline; drag-and-drop + quantity booking; **conflict detection**; bar resize |
 | 4 | Customers & Contracts | `contracts.js`   | Customer records (with per-customer billing cadence) and contract header management |
 | 5 | Geo Asset Tracking| `geo.js`             | Live fleet telemetry simulation, map with geofences, breach/re-entry alert log, asset status table |

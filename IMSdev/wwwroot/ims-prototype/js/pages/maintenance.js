@@ -20,12 +20,22 @@ function woComputed(w){
 }
 
 function renderMaintenance(){
-  const woRows = IMS.workOrders.map(w => ({ ...w, ...woComputed(w), asset: IMS.serializedAssets.find(a => a.id === w.assetId) }));
+  const woRows = IMS.workOrders
+    .filter(w => App.woFilter === "all" || w.status === App.woFilter)
+    .map(w => ({ ...w, ...woComputed(w), asset: IMS.serializedAssets.find(a => a.id === w.assetId) }));
   $("#content").innerHTML = `
     <div class="page-head"></div>
     <div class="card">
       <div class="card-header"><span class="card-title"><i class="bi bi-tools"></i> Work Order Grid</span>
-        <button class="btn btn-ims btn-sm2" id="newWoBtn"><i class="bi bi-plus-lg"></i> New Work Order</button></div>
+        <div class="d-flex align-items-center gap-2">
+          <select class="form-select form-select-sm" id="woFilter" style="width:auto">
+            <option value="all" ${App.woFilter === "all" ? "selected" : ""}>All</option>
+            <option value="In Progress" ${App.woFilter === "In Progress" ? "selected" : ""}>In Progress</option>
+            <option value="Completed" ${App.woFilter === "Completed" ? "selected" : ""}>Completed</option>
+            <option value="Scheduled" ${App.woFilter === "Scheduled" ? "selected" : ""}>Scheduled</option>
+          </select>
+          <button class="btn btn-ims btn-sm2" id="newWoBtn"><i class="bi bi-plus-lg"></i> New Work Order</button>
+        </div></div>
       <div class="card-body table-wrap">
         <table class="table"><thead><tr>
           <th>WO #</th><th>Asset</th><th>Service Type</th><th class="num">Meter Reading</th><th>Status</th>
@@ -43,10 +53,12 @@ function renderMaintenance(){
             <td class="num">${fmtMoney(w.laborCost)}</td>
             <td class="num strong">${fmtMoney(w.total)}</td>
             <td class="mono text-muted2">${fmtDate(w.date)}</td>
-          </tr>`).join("")}
+          </tr>`).join("") || emptyRow(11)}
         </tbody></table>
       </div>
     </div>`;
+  const woF = $("#woFilter");
+  if (woF) woF.addEventListener("change", e => { App.woFilter = e.target.value; renderMaintenance(); });
   $("#newWoBtn").addEventListener("click", workOrderModal);
   /* Clicking a work order row opens the edit modal. */
   $$("#content tr[data-edit]").forEach(tr => tr.addEventListener("click", e => {

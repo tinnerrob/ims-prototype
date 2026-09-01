@@ -13,21 +13,23 @@ function invAddLabel(){
     case "serialized": return "New Equipment";
     case "bulk": return "New Bulk Resource";
     case "consumable": return "New Consumable";
-    case "labor": return "New Labor Item";
     case "parts": return "New Part";
-    case "kits": return App.kitTab === "attach" ? "New Attachment" : "New Kit";
+    case "labor": return "New Labor Item";
+    case "kits": return "New Kit";
+    case "attachments": return "New Attachment";
     default: return "Add Record";
   }
 }
 
 function renderInventory(){
   const tabs = [
-    { key:"serialized", label:"Serialized Equipment", icon:"bi-truck-front", count: IMS.serializedAssets.length },
-    { key:"bulk",       label:"Bulk Resources",       icon:"bi-boxes",       count: IMS.bulkResources.length },
-    { key:"consumable", label:"Consumables",          icon:"bi-capsule",     count: IMS.consumables.length },
-    { key:"labor",      label:"Labor / Employees",    icon:"bi-person-badge",count: IMS.labor.length },
-    { key:"parts",      label:"Stock Inventory",      icon:"bi-wrench-adjustable", count: IMS.parts.length },
-    { key:"kits",       label:"Kits & Attachments",   icon:"bi-puzzle",      count: IMS.kits.length + IMS.attachments.length }
+    { key:"serialized",  label:"Serialized Equipment", icon:"bi-truck-front", count: IMS.serializedAssets.length },
+    { key:"bulk",        label:"Bulk Resources",       icon:"bi-boxes",       count: IMS.bulkResources.length },
+    { key:"consumable",  label:"Consumables",          icon:"bi-capsule",     count: IMS.consumables.length },
+    { key:"parts",       label:"Stock Inventory",      icon:"bi-wrench-adjustable", count: IMS.parts.length },
+    { key:"labor",       label:"Labor / Employees",    icon:"bi-person-badge", count: IMS.labor.length },
+    { key:"attachments", label:"Attachments",          icon:"bi-paperclip",   count: IMS.attachments.length },
+    { key:"kits",        label:"Kits",                 icon:"bi-puzzle",      count: IMS.kits.length }
   ];
   $("#content").innerHTML = `
     <div class="page-head"></div>
@@ -51,38 +53,30 @@ function renderInvPanel(){
   if (App.invTab === "serialized") p.innerHTML = serializedTable();
   else if (App.invTab === "bulk") p.innerHTML = bulkTable();
   else if (App.invTab === "consumable") p.innerHTML = consumableTable();
-  else if (App.invTab === "labor") p.innerHTML = laborTable();
   else if (App.invTab === "parts") p.innerHTML = partsTable();
+  else if (App.invTab === "labor") p.innerHTML = laborTable();
   else if (App.invTab === "kits") { renderInvKitsPanel(); return; }
+  else if (App.invTab === "attachments") { renderInvAttachmentsPanel(); return; }
   bindInvActions();
 }
 
 function renderInvKitsPanel(){
-  const tabs = [
-    { key:"kits", label:"Kits / Assemblies", icon:"bi-puzzle", count: IMS.kits.length },
-    { key:"attach", label:"Attachments Matrix", icon:"bi-paperclip", count: IMS.attachments.length }
-  ];
-  $("#invPanel").innerHTML = `
-    <div class="subtabs" id="kitSubTabs" style="border-bottom:1px solid var(--slate-200);margin-bottom:14px">
-      ${tabs.map(t => `<button class="subtab ${t.key === App.kitTab ? "active" : ""}" data-tab="${t.key}">
-        <i class="bi ${t.icon}"></i>${t.label}<span class="count-pill">${t.count}</span></button>`).join("")}
-    </div>
-    <div id="kitSubPanel"></div>`;
-  $$("#kitSubTabs .subtab").forEach(b => b.addEventListener("click", () => { App.kitTab = b.dataset.tab; renderInvKitsPanel(); }));
-  renderKitSubContent();
+  const p = $("#invPanel");
+  p.innerHTML = kitsList();
+  $$("[data-kedit]").forEach(b => b.addEventListener("click", () => kitModal(IMS.kits.find(x => x.kitId === b.dataset.kedit))));
+  $$("#invPanel [data-edit]").forEach(el => el.addEventListener("click", e => {
+    if (e.target.closest("button, a, input, select, label, .form-check")) return;
+    kitModal(IMS.kits.find(x => x.kitId === el.dataset.edit));
+  }));
 }
 
-function renderKitSubContent(){
-  const p = $("#kitSubPanel");
-  p.innerHTML = App.kitTab === "kits" ? kitsList() : attachmentsTable();
-  $$("[data-kedit]").forEach(b => b.addEventListener("click", () => kitModal(IMS.kits.find(x => x.kitId === b.dataset.kedit))));
+function renderInvAttachmentsPanel(){
+  const p = $("#invPanel");
+  p.innerHTML = attachmentsTable();
   $$("[data-aedit]").forEach(b => b.addEventListener("click", () => attachmentModal(IMS.attachments.find(x => x.accId === b.dataset.aedit))));
-  /* Clicking a kit card or attachment row opens the edit modal (ignores the action buttons). */
-  $$("#kitSubPanel [data-edit]").forEach(el => el.addEventListener("click", e => {
+  $$("#invPanel [data-edit]").forEach(el => el.addEventListener("click", e => {
     if (e.target.closest("button, a, input, select, label, .form-check")) return;
-    const id = el.dataset.edit;
-    if (App.kitTab === "kits") kitModal(IMS.kits.find(x => x.kitId === id));
-    else attachmentModal(IMS.attachments.find(x => x.accId === id));
+    attachmentModal(IMS.attachments.find(x => x.accId === el.dataset.edit));
   }));
 }
 
@@ -387,7 +381,8 @@ function openAddModal(tab){
   else if (tab === "consumable") consumableModal();
   else if (tab === "labor") laborModal();
   else if (tab === "parts") partsModal();
-  else if (tab === "kits") { App.kitTab === "kits" ? kitModal(null) : attachmentModal(null); }
+  else if (tab === "kits") kitModal(null);
+  else if (tab === "attachments") attachmentModal(null);
 }
 
 function serializedFields(e){

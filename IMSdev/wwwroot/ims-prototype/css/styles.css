@@ -373,7 +373,7 @@ body {
 }
 .table tbody tr:hover { background: #f8fafc; }
 .table tbody tr[data-edit] { cursor: pointer; }
-#kitSubPanel [data-edit] { cursor: pointer; }
+#invPanel [data-edit] { cursor: pointer; }
 .table .num { font-variant-numeric: tabular-nums; text-align: right; }
 .mono { font-family: "SF Mono", "Cascadia Code", Consolas, monospace; font-size: 12.5px; }
 .text-muted2 { color: var(--slate-600); }
