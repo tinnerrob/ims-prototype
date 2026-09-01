@@ -115,13 +115,13 @@ function bindCcActions(){
   }));
   $$("#ccFilter [data-f]").forEach(b => b.addEventListener("click", () => { App.contractFilter = b.dataset.f; renderCcPanel(); }));
   /* Clicking a row opens the edit modal (ignores the action buttons/controls). */
-  $$("#ccPanel tr[data-edit]").forEach(tr => tr.addEventListener("click", e => {
+  delegate($("#ccPanel"), "click", "tr[data-edit]", (el, e) => {
     if (e.target.closest("button, a, input, select, label, .form-check")) return;
-    const id = tr.dataset.edit;
+    const id = el.dataset.edit;
     const cust = getCustomer(id), con = getContract(id);
     if (cust) customerModal(cust, true);
     else if (con) contractEditModal(con);
-  }));
+  });
 }
 
 function nextCustId(){

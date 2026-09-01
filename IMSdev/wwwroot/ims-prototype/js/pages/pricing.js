@@ -73,19 +73,24 @@ const US_FALLBACK = {
 };
 const escQ = s => String(s).replace(/'/g, "''");
 
-/* Fetch all pages (OpenDataSoft total_count drives pagination), in parallel. */
+/* Fetch all pages (OpenDataSoft total_count drives pagination), in parallel.
+   @param {string} url - API URL with query params
+   @returns {Promise<Object[]>} flattened row records */
 async function fetchAll(url){
   const LIMIT = 100;
-  const first = await (await fetch(url + "&limit=" + LIMIT + "&offset=0")).json();
+  /* Fetch one page and return its parsed JSON body. @param {number} offset @returns {Promise<Object>} */
+  const fetchPage = async offset => {
+    const res = await fetch(url + "&limit=" + LIMIT + "&offset=" + offset);
+    return await res.json();
+  };
+  const first = await fetchPage(0);
   const rows0 = first.results || [];
   const total = Number(first.total_count) || rows0.length;
   const pages = Math.ceil(total / LIMIT);
-  const tasks = [];
-  for (let i = 1; i < pages; i++) {
-    tasks.push(fetch(url + "&limit=" + LIMIT + "&offset=" + (i * LIMIT)).then(r => r.json()).then(j => j.results || []));
-  }
-  const rest = await Promise.all(tasks);
-  return rows0.concat(rest.flat());
+  const rest = await Promise.all(
+    Array.from({ length: Math.max(0, pages - 1) }, (_, i) => fetchPage((i + 1) * LIMIT))
+  );
+  return rows0.concat(rest.flatMap(j => j.results || []));
 }
 
 const COUNTY_CACHE = {};
@@ -106,12 +111,15 @@ async function getCounties(stateName){
 const CITY_CACHE = {};
 async function getStatePlaces(stateName){
   if (CITY_CACHE[stateName]) return CITY_CACHE[stateName];
-  const url = ODS_PLACE + "?where=" + encodeURIComponent("ste_name='" + escQ(stateName) + "'") + "&select=ste_name,coty_name,pla_name";
-  const rows = await fetchAll(url);
-  const places = rows.map(r => ({
-    name: (Array.isArray(r.pla_name) ? r.pla_name[0] : r.pla_name),
-    counties: (Array.isArray(r.coty_name) ? r.coty_name : [r.coty_name]).filter(Boolean)
-  })).filter(p => p.name);
+  let places = [];
+  try {
+    const url = ODS_PLACE + "?where=" + encodeURIComponent("ste_name='" + escQ(stateName) + "'") + "&select=ste_name,coty_name,pla_name";
+    const rows = await fetchAll(url);
+    places = rows.map(r => ({
+      name: (Array.isArray(r.pla_name) ? r.pla_name[0] : r.pla_name),
+      counties: (Array.isArray(r.coty_name) ? r.coty_name : [r.coty_name]).filter(Boolean)
+    })).filter(p => p.name);
+  } catch (_) {}
   CITY_CACHE[stateName] = places;
   return places;
 }

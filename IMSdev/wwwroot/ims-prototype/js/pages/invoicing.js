@@ -172,11 +172,11 @@ function renderInvoicing(){
     renderInvoicing();
   });
   /* Clicking an invoice row opens the detail breakdown. */
-  $$("#content tr[data-edit]").forEach(tr => tr.addEventListener("click", e => {
+  delegate($("#content"), "click", "tr[data-edit]", (el, e) => {
     if (e.target.closest("button, a, input, select, label, .form-check")) return;
-    const inv = IMS.invoices.find(x => x.invId === tr.dataset.edit);
+    const inv = IMS.invoices.find(x => x.invId === el.dataset.edit);
     if (inv) invoiceDetailModal(inv);
-  }));
+  });
 }
 
 /* Build a CSV string of detailed invoice items (line items + fees/fuel/waiver/tax). */

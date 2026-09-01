@@ -61,7 +61,7 @@ wwwroot/ims-prototype/
 ```
 
 ### `js/common.js` contents (shared by every page)
-- DOM helpers `$` / `$$`, formatting helpers (`fmtMoney`, `fmtDate`, `fmtPct`, …).
+- DOM helpers `$` / `$$` + event-delegation helper `delegate(parent, event, selector, handler)` (one listener per container instead of per element), formatting helpers (`fmtMoney`, `fmtDate`, `fmtPct`, …).
 - Global `App` state object (active view, filters, scheduler position, sim timer).
 - Date/duration helpers (`parseDT`, `daysBetween`, `countWeekdays`, `addDays`, `dayOffset`).
 - **Pricing rules engine**: `rateBasis`, `computeLineTotal`, `computeLineCost`,

@@ -64,20 +64,20 @@ function renderInvKitsPanel(){
   const p = $("#invPanel");
   p.innerHTML = kitsList();
   $$("[data-kedit]").forEach(b => b.addEventListener("click", () => kitModal(IMS.kits.find(x => x.kitId === b.dataset.kedit))));
-  $$("#invPanel [data-edit]").forEach(el => el.addEventListener("click", e => {
+  delegate(p, "click", "[data-edit]", (el, e) => {
     if (e.target.closest("button, a, input, select, label, .form-check")) return;
     kitModal(IMS.kits.find(x => x.kitId === el.dataset.edit));
-  }));
+  });
 }
 
 function renderInvAttachmentsPanel(){
   const p = $("#invPanel");
   p.innerHTML = attachmentsTable();
   $$("[data-aedit]").forEach(b => b.addEventListener("click", () => attachmentModal(IMS.attachments.find(x => x.accId === b.dataset.aedit))));
-  $$("#invPanel [data-edit]").forEach(el => el.addEventListener("click", e => {
+  delegate(p, "click", "[data-edit]", (el, e) => {
     if (e.target.closest("button, a, input, select, label, .form-check")) return;
     attachmentModal(IMS.attachments.find(x => x.accId === el.dataset.edit));
-  }));
+  });
 }
 
 function serializedTable(){
@@ -188,15 +188,15 @@ function bindInvActions(){
     else if (App.invTab === "parts") partsModal(getPart(id));
   }));
   /* Clicking a row opens the edit modal (ignores the action buttons/controls). */
-  $$("#invPanel tr[data-edit]").forEach(tr => tr.addEventListener("click", e => {
+  delegate($("#invPanel"), "click", "tr[data-edit]", (el, e) => {
     if (e.target.closest("button, a, input, select, label, .form-check")) return;
-    const id = tr.dataset.edit;
+    const id = el.dataset.edit;
     if (App.invTab === "serialized") serializedModal(getAsset(id));
     else if (App.invTab === "bulk") bulkModal(getBulk(id));
     else if (App.invTab === "consumable") consumableModal(getConsumable(id));
     else if (App.invTab === "labor") laborModal(getLabor(id));
     else if (App.invTab === "parts") partsModal(getPart(id));
-  }));
+  });
 }
 
 

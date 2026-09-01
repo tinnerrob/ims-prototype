@@ -113,11 +113,11 @@ function renderInspLog(){
     </tr>`;
   }).join("") || `<tr><td colspan="9" class="text-center text-muted2 py-3">No inspections logged.</td></tr>`;
   /* Clicking an inspection row opens the edit modal. */
-  $$("#inspTbody tr[data-edit]").forEach(tr => tr.addEventListener("click", e => {
+  delegate($("#inspTbody"), "click", "tr[data-edit]", (el, e) => {
     if (e.target.closest("button, a, input, select, label, .form-check")) return;
-    const insp = IMS.inspections.find(x => x.inspId === tr.dataset.edit);
+    const insp = IMS.inspections.find(x => x.inspId === el.dataset.edit);
     if (insp) inspectionModal(insp);
-  }));
+  });
 }
 
 /* Edit an inspection log record. */

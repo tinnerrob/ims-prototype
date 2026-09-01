@@ -61,11 +61,11 @@ function renderMaintenance(){
   if (woF) woF.addEventListener("change", e => { App.woFilter = e.target.value; renderMaintenance(); });
   $("#newWoBtn").addEventListener("click", workOrderModal);
   /* Clicking a work order row opens the edit modal. */
-  $$("#content tr[data-edit]").forEach(tr => tr.addEventListener("click", e => {
+  delegate($("#content"), "click", "tr[data-edit]", (el, e) => {
     if (e.target.closest("button, a, input, select, label, .form-check")) return;
-    const wo = IMS.workOrders.find(x => x.woId === tr.dataset.edit);
+    const wo = IMS.workOrders.find(x => x.woId === el.dataset.edit);
     if (wo) workOrderModal(wo);
-  }));
+  });
 }
 
 function nextWoId(){
