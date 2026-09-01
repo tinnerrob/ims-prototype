@@ -23,6 +23,8 @@ const fmtMoney = n => "$" + Number(n || 0).toLocaleString("en-US", { minimumFrac
 const fmtInt = n => Number(n || 0).toLocaleString("en-US");
 const fmtPct = n => (Number(n) || 0).toFixed(1) + "%";
 const pad2 = n => String(n).padStart(2, "0");
+/* Round to 2 decimal places (money). @param {number} n @returns {number} */
+const round2 = n => Math.round(n * 100) / 100;
 
 /* ---------- app state ---------- */
 const App = {
@@ -197,9 +199,9 @@ function computeLineTotal(item, contract){
   const r = getResource(item);
   if (!r) return 0;
 
-  if (item.type === "labor")      return Math.round(r.hourlyBillable * item.qty * 100) / 100;
-  if (item.type === "consumable") return Math.round(r.retailPrice * item.qty * 100) / 100;
-  if (item.type === "part")       return Math.round(r.costPrice * item.qty * 100) / 100;
+  if (item.type === "labor")      return round2(r.hourlyBillable * item.qty);
+  if (item.type === "consumable") return round2(r.retailPrice * item.qty);
+  if (item.type === "part")       return round2(r.costPrice * item.qty);
 
   /* kits + attachments (daily rate billing) */
   if (item.type === "kit" || item.type === "attachment") {
@@ -212,7 +214,7 @@ function computeLineTotal(item, contract){
       else if (item.weekendPolicy === "overtime")   billed = days * 1.5;
       perUnit = rate * billed;
     }
-    return Math.round(perUnit * item.qty * (1 + premium) * 100) / 100;
+    return round2(perUnit * item.qty * (1 + premium));
   }
 
   /* equipment (serialized + bulk) */
@@ -235,16 +237,16 @@ function computeLineTotal(item, contract){
     else if (item.weekendPolicy === "overtime")   billed = days * 1.5;
     perUnit = r.baseDaily * billed;
   }
-  return Math.round(perUnit * item.qty * (1 + premium) * 100) / 100;
+  return round2(perUnit * item.qty * (1 + premium));
 }
 
 /* Direct cost for a contract line item. */
 function computeLineCost(item){
   const r = getResource(item);
   if (!r) return 0;
-  if (item.type === "labor")      return Math.round(r.hourlyCost * item.qty * 100) / 100;
-  if (item.type === "consumable") return Math.round(r.costPrice * item.qty * 100) / 100;
-  if (item.type === "part")       return Math.round(r.costPrice * item.qty * 100) / 100;
+  if (item.type === "labor")      return round2(r.hourlyCost * item.qty);
+  if (item.type === "consumable") return round2(r.costPrice * item.qty);
+  if (item.type === "part")       return round2(r.costPrice * item.qty);
   return 0;
 }
 
@@ -253,7 +255,7 @@ function computeDepreciation(item, contract){
   const r = getResource(item);
   if (!r || item.type !== "serialized") return 0;
   const days = liDays(item, contract);
-  return Math.round(r.purchaseValue * (days / 365) * 0.10 * item.qty * 100) / 100;
+  return round2(r.purchaseValue * (days / 365) * 0.10 * item.qty);
 }
 
 /* Equipment (serialized + bulk) rental gross, used as % overhead base. */
@@ -293,7 +295,7 @@ function overheadCalc(oh, contract){
     retail = (oh.retail || 0) * qty;
     cost = (oh.cost || 0) * qty;
   }
-  return { retail: Math.round(retail * 100) / 100, cost: Math.round(cost * 100) / 100 };
+  return { retail: round2(retail), cost: round2(cost) };
 }
 
 /* Full financial roll-up for a contract (resources + overheads). */
@@ -309,23 +311,23 @@ function contractTotals(contract){
     consumableCost += (li.type === "consumable") ? computeLineCost(li) : 0;
     depreciation   += computeDepreciation(li, contract);
   });
-  gross = Math.round(gross * 100) / 100;
-  laborCost = Math.round(laborCost * 100) / 100;
-  consumableCost = Math.round(consumableCost * 100) / 100;
-  depreciation = Math.round(depreciation * 100) / 100;
+  gross = round2(gross);
+  laborCost = round2(laborCost);
+  consumableCost = round2(consumableCost);
+  depreciation = round2(depreciation);
 
   const overheads = (contract.overheads !== undefined) ? contract.overheads : defaultOverheads();
   let overheadRetail = 0, overheadCost = 0;
   overheads.forEach(oh => { const c = overheadCalc(oh, contract); overheadRetail += c.retail; overheadCost += c.cost; });
-  overheadRetail = Math.round(overheadRetail * 100) / 100;
-  overheadCost = Math.round(overheadCost * 100) / 100;
+  overheadRetail = round2(overheadRetail);
+  overheadCost = round2(overheadCost);
 
-  const grossTotal = Math.round((gross + overheadRetail) * 100) / 100;
-  const operatingCost = Math.round((laborCost + consumableCost + depreciation + overheadCost) * 100) / 100;
-  const net = Math.round((grossTotal - operatingCost) * 100) / 100;
+  const grossTotal = round2((gross + overheadRetail));
+  const operatingCost = round2((laborCost + consumableCost + depreciation + overheadCost));
+  const net = round2((grossTotal - operatingCost));
   const margin = grossTotal > 0 ? (net / grossTotal) * 100 : 0;
   return {
-    equipmentGross: gross, equipBase: Math.round(contractEquipBase(contract) * 100) / 100,
+    equipmentGross: gross, equipBase: round2(contractEquipBase(contract)),
     overheadRetail, overheadCost, operatingCost,
     gross: grossTotal, laborCost, consumableCost, depreciation, net, margin,
     days: daysBetween(contract.startDate, contract.endDate)

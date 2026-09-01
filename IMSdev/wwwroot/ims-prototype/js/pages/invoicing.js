@@ -66,17 +66,17 @@ function liAmountForPeriod(li, c, pStartISO, pEndISO){
   const startsHere = liS.getTime() >= pS.getTime() && liS.getTime() < pE.getTime();
 
   /* one-time charges: billed once, in the period that contains the rental start */
-  if (li.type === "labor")       return startsHere ? Math.round(qty * (r.hourlyBillable || 0) * 100) / 100 : 0;
-  if (li.type === "consumable")  return startsHere ? Math.round(qty * (r.retailPrice || 0) * 100) / 100 : 0;
-  if (li.type === "part")        return startsHere ? Math.round(qty * (r.costPrice || 0) * 100) / 100 : 0;
-  if (li.pricingMatrix === "flat") return startsHere ? Math.round((Number(li.flatTotal) || 0) * qty * (1 + premium) * 100) / 100 : 0;
+  if (li.type === "labor")       return startsHere ? round2(qty * (r.hourlyBillable || 0)) : 0;
+  if (li.type === "consumable")  return startsHere ? round2(qty * (r.retailPrice || 0)) : 0;
+  if (li.type === "part")        return startsHere ? round2(qty * (r.costPrice || 0)) : 0;
+  if (li.pricingMatrix === "flat") return startsHere ? round2((Number(li.flatTotal) || 0) * qty * (1 + premium)) : 0;
 
   /* kits + attachments (daily rate billing) */
   if (li.type === "kit" || li.type === "attachment"){
     const rate = li.type === "kit" ? (r.baseRate || 0) : (r.daily || 0);
     let days = billableDays(li, c, s, e);
     if (li.pricingMatrix === "min") days = Math.max(days, 3);
-    return Math.round(rate * days * qty * (1 + premium) * 100) / 100;
+    return round2(rate * days * qty * (1 + premium));
   }
 
   /* equipment (serialized + bulk) */
@@ -90,16 +90,16 @@ function liAmountForPeriod(li, c, pStartISO, pEndISO){
   const pELast = dayOffset(liS, pE) - (endHasTime ? 0 : 1);
   const liELast = dayOffset(liS, liE); /* contract end is inclusive */
   const eDay = Math.max(sDay, Math.min(pELast, liELast, totalDays - 1));
-  if (totalDays >= 28) return Math.round(wholeUnitsBilled(liS, sDay, eDay, 28, totalDays) * (r.baseMonthly || 0) * qty * (1 + premium) * 100) / 100;
-  if (totalDays >= 7)  return Math.round(wholeUnitsBilled(liS, sDay, eDay, 7, totalDays)  * (r.baseWeekly || 0) * qty * (1 + premium) * 100) / 100;
+  if (totalDays >= 28) return round2(wholeUnitsBilled(liS, sDay, eDay, 28, totalDays) * (r.baseMonthly || 0) * qty * (1 + premium));
+  if (totalDays >= 7)  return round2(wholeUnitsBilled(liS, sDay, eDay, 7, totalDays)  * (r.baseWeekly || 0) * qty * (1 + premium));
   let days = billableDays(li, c, s, e);
   if (li.pricingMatrix === "min") days = Math.max(days, 3);
-  return Math.round((r.baseDaily || 0) * days * qty * (1 + premium) * 100) / 100;
+  return round2((r.baseDaily || 0) * days * qty * (1 + premium));
 }
 
 /* Equipment rental gross actually billed during a period (whole units + one-time items). */
 function contractRentalForPeriod(c, startISO, endISO){
-  return Math.round(((c.lineItems || []).reduce((sum, li) => sum + liAmountForPeriod(li, c, startISO, endISO), 0)) * 100) / 100;
+  return round2(((c.lineItems || []).reduce((sum, li) => sum + liAmountForPeriod(li, c, startISO, endISO), 0)));
 }
 
 function invTaxRate(inv){ return inv.taxRate != null ? inv.taxRate : (IMS.settings.taxSchedules[0] ? IMS.settings.taxSchedules[0].rate : 0); }
@@ -107,11 +107,11 @@ function invTaxRate(inv){ return inv.taxRate != null ? inv.taxRate : (IMS.settin
 function invoiceCompute(inv){
   const con = getContract(inv.contractId);
   const base = inv.baseAmount != null ? inv.baseAmount : (con ? contractTotals(con).equipmentGross : 0);
-  const envFee = Math.round(base * (inv.envFeePct || IMS.settings.pricing.envFeePct) / 100 * 100) / 100;
-  const waiver = inv.damageWaiver ? Math.round(base * 0.03 * 100) / 100 : 0;
+  const envFee = round2(base * (inv.envFeePct || IMS.settings.pricing.envFeePct) / 100);
+  const waiver = inv.damageWaiver ? round2(base * 0.03) : 0;
   const fuel = inv.fuelCharge || 0;
-  const tax = Math.round((base + envFee + fuel + waiver) * invTaxRate(inv) * 100) / 100;
-  const total = Math.round((base + envFee + fuel + waiver + tax) * 100) / 100;
+  const tax = round2((base + envFee + fuel + waiver) * invTaxRate(inv));
+  const total = round2((base + envFee + fuel + waiver + tax));
   return { base, envFee, waiver, fuel, tax, total };
 }
 
@@ -220,7 +220,8 @@ function downloadCSV(filename, csv){
   URL.revokeObjectURL(url);
 }
 
-/* Detailed invoice breakdown: who was invoiced and for what. */
+/* Detailed invoice breakdown: who was invoiced and for what.
+   @param {Object} inv - invoice record */
 function invoiceDetailModal(inv){
   const con = getContract(inv.contractId);
   const t = invoiceCompute(inv);

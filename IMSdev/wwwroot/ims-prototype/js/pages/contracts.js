@@ -24,7 +24,7 @@ function renderCustomersContracts(){
       </div>
       <div id="ccPanel"></div>
     </div></div>`;
-  $$("#ccTabs .subtab").forEach(b => b.addEventListener("click", () => { App.ccTab = b.dataset.tab; renderCustomersContracts(); }));
+  delegate($("#content"), "click", "#ccTabs .subtab", b => { App.ccTab = b.dataset.tab; renderCustomersContracts(); });
   $("#ccAddBtn").addEventListener("click", () => { App.ccTab === "customers" ? customerNewModal() : contractModal(); });
   renderCcPanel();
 }
@@ -95,25 +95,25 @@ function contractsTable(filtered){
 }
 
 function bindCcActions(){
-  $$("[data-cview]").forEach(b => b.addEventListener("click", () => {
+  delegate($("#ccPanel"), "click", "[data-cview]", b => {
     const id = b.dataset.cview;
     const cust = getCustomer(id), con = getContract(id);
     if (cust) customerModal(cust, false);
     else if (con) contractDetailModal(con);
-  }));
-  $$("[data-cedit]").forEach(b => b.addEventListener("click", () => {
+  });
+  delegate($("#ccPanel"), "click", "[data-cedit]", b => {
     const id = b.dataset.cedit;
     const cust = getCustomer(id), con = getContract(id);
     if (cust) customerModal(cust, true);
     else if (con) contractEditModal(con);
-  }));
-  $$("[data-cstatus]").forEach(b => b.addEventListener("change", () => {
+  });
+  delegate($("#ccPanel"), "change", "[data-cstatus]", b => {
     const c = getContract(b.dataset.cstatus);
     if (!c) return;
     c.status = b.checked ? "active" : "closed";
     renderCcPanel();
-  }));
-  $$("#ccFilter [data-f]").forEach(b => b.addEventListener("click", () => { App.contractFilter = b.dataset.f; renderCcPanel(); }));
+  });
+  delegate($("#ccPanel"), "click", "#ccFilter [data-f]", b => { App.contractFilter = b.dataset.f; renderCcPanel(); });
   /* Clicking a row opens the edit modal (ignores the action buttons/controls). */
   delegate($("#ccPanel"), "click", "tr[data-edit]", (el, e) => {
     if (e.target.closest("button, a, input, select, label, .form-check")) return;

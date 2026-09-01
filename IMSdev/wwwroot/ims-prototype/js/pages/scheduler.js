@@ -127,7 +127,7 @@ function renderScheduler(){
       <aside class="sched-inspector" id="schedInspector"></aside>
     </div>`;
 
-  $$("#viewToggle [data-view]").forEach(b => b.addEventListener("click", () => { App.schedView = b.dataset.view; renderScheduler(); }));
+  delegate($("#content"), "click", "#viewToggle [data-view]", b => { App.schedView = b.dataset.view; renderScheduler(); });
   $("#wkPrev").addEventListener("click", () => {
     const a = schedAnchor();
     if (App.schedView === "month") App.schedMonth = new Date(a.getFullYear(), a.getMonth() - 1, 1);
@@ -203,7 +203,7 @@ function renderSchedQueue(){
     const b = $("#addPoolResBtn");
     if (b) b.innerHTML = `<i class="bi bi-plus-lg"></i> ${poolAddLabel()}`;
   });
-  $$("[data-qcid]").forEach(b => b.addEventListener("click", () => focusContract(b.dataset.qcid)));
+  delegate($("#schedQueue"), "click", "[data-qcid]", b => focusContract(b.dataset.qcid));
   $("#addContractBtn").addEventListener("click", () => contractModal());
   $("#addPoolResBtn").addEventListener("click", addPoolResource);
   renderPoolList();

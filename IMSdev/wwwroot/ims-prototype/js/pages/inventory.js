@@ -43,7 +43,7 @@ function renderInventory(){
       </div>
       <div id="invPanel"></div>
     </div></div>`;
-  $$("#invTabs .subtab").forEach(b => b.addEventListener("click", () => { App.invTab = b.dataset.tab; renderInventory(); }));
+  delegate($("#content"), "click", "#invTabs .subtab", b => { App.invTab = b.dataset.tab; renderInventory(); });
   $("#invAddBtn").addEventListener("click", () => openAddModal(App.invTab));
   renderInvPanel();
 }
@@ -171,22 +171,22 @@ function laborTable(){
 }
 
 function bindInvActions(){
-  $$("[data-iview]").forEach(b => b.addEventListener("click", () => {
+  delegate($("#invPanel"), "click", "[data-iview]", b => {
     const id = b.dataset.iview;
     if (App.invTab === "serialized") serializedView(getAsset(id));
     else if (App.invTab === "bulk") bulkView(getBulk(id));
     else if (App.invTab === "consumable") consumableView(getConsumable(id));
     else if (App.invTab === "labor") laborView(getLabor(id));
     else if (App.invTab === "parts") partsView(getPart(id));
-  }));
-  $$("[data-iedit]").forEach(b => b.addEventListener("click", () => {
+  });
+  delegate($("#invPanel"), "click", "[data-iedit]", b => {
     const id = b.dataset.iedit;
     if (App.invTab === "serialized") serializedModal(getAsset(id));
     else if (App.invTab === "bulk") bulkModal(getBulk(id));
     else if (App.invTab === "consumable") consumableModal(getConsumable(id));
     else if (App.invTab === "labor") laborModal(getLabor(id));
     else if (App.invTab === "parts") partsModal(getPart(id));
-  }));
+  });
   /* Clicking a row opens the edit modal (ignores the action buttons/controls). */
   delegate($("#invPanel"), "click", "tr[data-edit]", (el, e) => {
     if (e.target.closest("button, a, input, select, label, .form-check")) return;

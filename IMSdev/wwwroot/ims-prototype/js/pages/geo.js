@@ -136,32 +136,37 @@ function initSim(){
 }
 
 function geoSimTick(){
-  App.tick++;
-  const t = App.tick;
-  IMS.serializedAssets.forEach(a => {
-    const s = a._sim || { ampLat: 0.00006, ampLng: 0.00006, sp: 0.4 };
-    a.lat = a._baseLat + s.ampLat * Math.sin(t * s.sp * 0.4);
-    a.lng = a._baseLng + s.ampLng * Math.cos(t * s.sp * 0.33);
-    a.lastReported = new Date().toISOString().slice(0, 19);
-    if (a.contractId) {
-      const c = getContract(a.contractId);
-      if (!c) return;
-      const d = haversineMeters(a.lat, a.lng, c.siteLat, c.siteLng);
-      if (d > c.geofenceRadius && !a._breached) { a._breached = true; addBreach(a, c); }
-      else if (d <= c.geofenceRadius && a._breached) { a._breached = false; addReentry(a, c); }
-    }
-  });
-  if (App.view === "geo") { renderGeoTable(); renderGeoMap(); renderGeoAlerts(); }
-  updateBadges();
+  try {
+    App.tick++;
+    const t = App.tick;
+    IMS.serializedAssets.forEach(a => {
+      const s = a._sim || { ampLat: 0.00006, ampLng: 0.00006, sp: 0.4 };
+      a.lat = a._baseLat + s.ampLat * Math.sin(t * s.sp * 0.4);
+      a.lng = a._baseLng + s.ampLng * Math.cos(t * s.sp * 0.33);
+      a.lastReported = new Date().toISOString().slice(0, 19);
+      if (a.contractId) {
+        const c = getContract(a.contractId);
+        if (!c) return;
+        const d = haversineMeters(a.lat, a.lng, c.siteLat, c.siteLng);
+        if (d > c.geofenceRadius && !a._breached) { a._breached = true; addBreach(a, c); }
+        else if (d <= c.geofenceRadius && a._breached) { a._breached = false; addReentry(a, c); }
+      }
+    });
+    if (App.view === "geo") { renderGeoTable(); renderGeoMap(); renderGeoAlerts(); }
+    updateBadges();
+  } catch (err) { console.error("geoSimTick", err); }
 }
 
+/* Append a geo alert, capping the log length. @param {Object} a @returns {void} */
 function pushAlert(a){ App.breachAlerts.push(a); if (App.breachAlerts.length > 40) App.breachAlerts.shift(); }
 
+/* Log a geofence breach alert. @param {Object} asset @param {Object} contract */
 function addBreach(asset, contract){
   const d = Math.round(haversineMeters(asset.lat, asset.lng, contract.siteLat, contract.siteLng));
   pushAlert({ kind:"breach", ts: timeNow(), msg:`ALERT: Asset ${asset.id} exited Geofence boundary at Job Site: ${contract.projectName} (${d}m out)` });
 }
 
+/* Log a geofence re-entry alert. @param {Object} asset @param {Object} contract */
 function addReentry(asset, contract){
   pushAlert({ kind:"info", ts: timeNow(), msg:`Asset ${asset.id} re-entered Geofence at ${contract.projectName}` });
 }

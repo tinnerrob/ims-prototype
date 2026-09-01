@@ -63,7 +63,7 @@ function categoryTable(){
 }
 
 function bindCategoryManager(){
-  $$("#catTabs .subtab").forEach(b => b.addEventListener("click", () => { App.catType = b.dataset.type; renderCategories(); }));
+  delegate($("#content"), "click", "#catTabs .subtab", b => { App.catType = b.dataset.type; renderCategories(); });
   const addBtn = $("#catAddBtn");
   if (addBtn) addBtn.addEventListener("click", addCategoryModal);
   const panel = $("#catPanel");
