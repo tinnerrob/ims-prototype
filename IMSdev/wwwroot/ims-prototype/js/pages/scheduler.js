@@ -173,11 +173,23 @@ function renderScheduler(){
   bindDnD();
 }
 
-function resCard(type, ref, label, sub, unavailable){
-  return `<div class="res-card ${unavailable ? "inactive" : ""}" draggable="true" data-resource-id="${ref}" data-resource-type="${type}" title="${unavailable ? "Unavailable" : "Drag to a contract block"}">
-    <div class="res-card-head"><span class="type-chip tc-${type}">${TYPE_LABEL[type] || type}</span>${unavailable ? `<span class="badge-status st-out"><i class="bi bi-ban"></i>Unavailable</span>` : ""}</div>
+/* Render a resource card in the scheduler resource pool.
+   @param {string} type @param {string} ref
+   @param {string} label @param {string} sub
+   @param {{key:string, badge:string, note:string}} avail
+     key   - 'free' | 'partial' | 'busy' | 'inactive' (drives styling / draggability)
+     badge - optional header badge html
+     note  - optional extra muted line (busy-date details) */
+function resCard(type, ref, label, sub, avail){
+  const a = avail || { key:"free", badge:"", note:"" };
+  const blocked = a.key === "busy" || a.key === "inactive";
+  const note = a.note ? `<div class="res-note">${a.note}</div>` : "";
+  const title = blocked ? "Booked for the whole visible period — free at other times" : "Drag to a contract block";
+  return `<div class="res-card res-${a.key}${blocked ? " inactive" : ""}" draggable="true" data-resource-id="${ref}" data-resource-type="${type}" title="${title}">
+    <div class="res-card-head"><span class="type-chip tc-${type}">${TYPE_LABEL[type] || type}</span>${a.badge || ""}</div>
     <div class="strong" style="font-size:12px">${label}</div>
     <div class="text-muted2" style="font-size:10.5px">${sub}</div>
+    ${note}
   </div>`;
 }
 
@@ -217,6 +229,7 @@ function renderSchedQueue(){
         <span class="text-muted2" style="font-size:11px">drag to a block</span></div>
       <div class="card-body">
         <select class="form-select mb-2" id="poolFilter">${poolTabs.map(t => `<option value="${t.key}" ${App.schedPoolTab === t.key ? "selected" : ""}>${t.label}</option>`).join("")}</select>
+        <div class="text-muted2 mb-2 pool-scope" style="font-size:10.5px"><i class="bi bi-calendar-range me-1"></i>Availability for ${viewScopeLabel()}</div>
         <div class="queue-scroll" id="poolList"></div>
         <button class="btn btn-ims btn-sm2 w-100 mt-2" id="addPoolResBtn" type="button"><i class="bi bi-plus-lg"></i> ${poolAddLabel()}</button>
       </div>
@@ -257,14 +270,15 @@ function addPoolResource(){
 function renderPoolList(){
   const box = $("#poolList");
   const t = App.schedPoolTab;
+  const plain = { key: "free", badge: "", note: "" };
   let html = "";
-  if (t === "serialized") html = byCode(IMS.serializedAssets.filter(a => recActive(a)), "id").map(a => resCard("serialized", a.id, `${a.id} · ${a.make} ${a.model}`, `${a.status} · ${fmtMoney(a.baseDaily)}/d`, a.status === "In Shop" || a.status === "On Rent")).join("");
-  else if (t === "bulk") html = byCode(IMS.bulkResources.filter(b => recActive(b)), "sku").map(b => resCard("bulk", b.sku, `${b.sku} · ${b.name}`, `${fmtInt(b.qtyAvailable)} avail · ${fmtInt(globalBookedQty("bulk", b.sku))} booked · ${fmtMoney(b.baseDaily)}/u`)).join("");
-  else if (t === "consumable") html = byCode(IMS.consumables.filter(c => recActive(c)), "sku").map(c => resCard("consumable", c.sku, `${c.sku} · ${c.name}`, `${fmtInt(c.qtyOnHand)} on hand · ${fmtInt(globalBookedQty("consumable", c.sku))} booked · ${fmtMoney(c.retailPrice)}`)).join("");
-  else if (t === "labor") html = byCode(IMS.labor.filter(e => recActive(e)), "empId").map(e => resCard("labor", e.empId, `${e.empId} · ${e.name}`, `${e.role} · ${fmtMoney(e.hourlyBillable)}/hr`)).join("");
-  else if (t === "parts") html = byCode(IMS.parts.filter(p => recActive(p)), "partId").map(p => resCard("part", p.partId, `${p.partId} · ${p.description}`, `${p.bin} · ${fmtInt(p.qtyOnHand)} on hand · ${fmtInt(globalBookedQty("part", p.partId))} booked · ${fmtMoney(p.costPrice)}`)).join("");
-  else if (t === "kits") html = byCode(IMS.kits.filter(k => recActive(k)), "kitId").map(k => resCard("kit", k.kitId, `${k.kitId} · ${k.name}`, `${fmtInt(k.qtyOwned || 1)} owned · ${fmtInt(globalBookedQty("kit", k.kitId))} booked · ${fmtMoney(k.baseRate)}/d`)).join("");
-  else if (t === "attachments") html = byCode(IMS.attachments.filter(a => recActive(a)), "accId").map(a => resCard("attachment", a.accId, `${a.accId} · ${a.name}`, `${a.category} · ${fmtInt(a.qtyOwned || 1)} owned · ${fmtInt(globalBookedQty("attachment", a.accId))} booked · ${fmtMoney(a.daily)}/d`)).join("");
+  if (t === "serialized") html = byCode(IMS.serializedAssets.filter(a => recActive(a)), "id").map(a => resCard("serialized", a.id, `${a.id} · ${a.make} ${a.model}`, `${a.category} · ${fmtMoney(a.baseDaily)}/d`, capAvailUI("serialized", a.id, a.status === "In Shop"))).join("");
+  else if (t === "bulk") html = byCode(IMS.bulkResources.filter(b => recActive(b)), "sku").map(b => resCard("bulk", b.sku, `${b.sku} · ${b.name}`, `${fmtInt(b.qtyAvailable)} avail · ${fmtInt(bookedQtyInView("bulk", b.sku))} booked · ${fmtMoney(b.baseDaily)}/u`, plain)).join("");
+  else if (t === "consumable") html = byCode(IMS.consumables.filter(c => recActive(c)), "sku").map(c => resCard("consumable", c.sku, `${c.sku} · ${c.name}`, `${fmtInt(c.qtyOnHand)} on hand · ${fmtInt(bookedQtyInView("consumable", c.sku))} booked · ${fmtMoney(c.retailPrice)}`, plain)).join("");
+  else if (t === "labor") html = byCode(IMS.labor.filter(e => recActive(e)), "empId").map(e => resCard("labor", e.empId, `${e.empId} · ${e.name}`, `${e.role} · ${fmtMoney(e.hourlyBillable)}/hr`, capAvailUI("labor", e.empId, false))).join("");
+  else if (t === "parts") html = byCode(IMS.parts.filter(p => recActive(p)), "partId").map(p => resCard("part", p.partId, `${p.partId} · ${p.description}`, `${p.bin} · ${fmtInt(p.qtyOnHand)} on hand · ${fmtInt(bookedQtyInView("part", p.partId))} booked · ${fmtMoney(p.costPrice)}`, plain)).join("");
+  else if (t === "kits") html = byCode(IMS.kits.filter(k => recActive(k)), "kitId").map(k => resCard("kit", k.kitId, `${k.kitId} · ${k.name}`, `${fmtInt(k.qtyOwned || 1)} owned · ${fmtInt(bookedQtyInView("kit", k.kitId))} booked · ${fmtMoney(k.baseRate)}/d`, plain)).join("");
+  else if (t === "attachments") html = byCode(IMS.attachments.filter(a => recActive(a)), "accId").map(a => resCard("attachment", a.accId, `${a.accId} · ${a.name}`, `${a.category} · ${fmtInt(a.qtyOwned || 1)} owned · ${fmtInt(bookedQtyInView("attachment", a.accId))} booked · ${fmtMoney(a.daily)}/d`, plain)).join("");
   box.innerHTML = html || `<p class="text-muted2 py-2">No resources in this pool.</p>`;
 }
 
@@ -536,6 +550,124 @@ function bookedQtyOnWindow(type, ref, startISO, endISO, excludeId){
 function globalBookedQty(type, ref){
   return IMS.contracts.filter(c => c.status === "active").reduce((sum, c) =>
     sum + (c.lineItems || []).filter(li => li.type === type && li.refId === ref).reduce((x, li) => x + (li.qty || 1), 0), 0);
+}
+
+/* =====================================================================
+   Scope-aware resource-pool availability.
+   The pool shows availability relative to the visible period (day / week /
+   calendar month) instead of a stale static status. A unique (cap-1)
+   resource is:
+     free    - no booking in the visible period
+     partial - busy some days but free others (still draggable; the drop is
+               validated against the exact contract window)
+     busy    - booked for the whole visible period (droppable only if the
+               target contract avoids the busy days)
+   The busy *dates* are always surfaced so the user can see exactly when a
+   partially-booked unit is taken.
+   ===================================================================== */
+
+/* Visible time window for the current view, as local-midnight [start, end).
+   day = the shown day; week = Mon..Sun; month = the shown calendar month. */
+function viewWindow(){
+  const a = schedAnchor();
+  const start = new Date(a); start.setHours(0, 0, 0, 0);
+  const end = new Date(start);
+  if (App.schedView === "month") end.setMonth(end.getMonth() + 1);
+  else if (App.schedView === "week") end.setDate(end.getDate() + 7);
+  else end.setDate(end.getDate() + 1); // day view
+  return { start, end, days: Math.round((end - start) / 86400000) };
+}
+
+/* Short noun for the visible period, used in badge text. */
+function viewNoun(){
+  if (App.schedView === "month") return "this month";
+  if (App.schedView === "week") return "this week";
+  return "today";
+}
+
+/* Human label for the visible period, used as a pool caption. */
+function viewScopeLabel(){
+  const a = schedAnchor();
+  if (App.schedView === "month") return a.toLocaleDateString("en-US", { month:"long", year:"numeric" });
+  if (App.schedView === "week") return "week of " + a.toLocaleDateString("en-US", { month:"short", day:"numeric" });
+  return a.toLocaleDateString("en-US", { weekday:"long", month:"short", day:"numeric" });
+}
+
+/* All active bookings (contract, line item) that reference (type, ref). */
+function resourceBookings(type, ref){
+  const out = [];
+  for (const c of IMS.contracts){
+    if (c.status !== "active") continue;
+    for (const li of (c.lineItems || [])){
+      if (li.type === type && li.refId === ref) out.push({ contractId: c.contractId, s: parseDT(liStart(li, c)), e: parseDT(liEnd(li, c)) });
+    }
+  }
+  return out;
+}
+
+/* Does booking b occupy the calendar day that `dayStart` (local midnight) begins?
+   Booking end date is treated as inclusive (occupies through end of that day). */
+const bookingCoversDay = (b, dayStart) => {
+  const eEx = new Date(b.e); eEx.setDate(eEx.getDate() + 1); // exclusive upper bound
+  return dayStart >= b.s && dayStart < eEx;
+};
+
+const daySerial = d => Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()) / 86400000;
+
+/* Classify a unique (cap-1) resource's availability across the visible window.
+   Returns { state:'free'|'partial'|'busy', busy:[{from:Date,to:Date},...] }. */
+function viewAvailability(type, ref){
+  const w = viewWindow();
+  const bookings = resourceBookings(type, ref);
+  const busyDates = [];
+  const day = new Date(w.start);
+  while (day < w.end){
+    if (bookings.some(b => bookingCoversDay(b, day))) busyDates.push(new Date(day));
+    day.setDate(day.getDate() + 1);
+  }
+  if (!busyDates.length) return { state: "free", busy: [] };
+  const ranges = [];
+  for (const d of busyDates){
+    const last = ranges[ranges.length - 1];
+    if (last && daySerial(d) === daySerial(last.to) + 1) last.to = new Date(d);
+    else ranges.push({ from: new Date(d), to: new Date(d) });
+  }
+  return { state: busyDates.length >= w.days ? "busy" : "partial", busy: ranges };
+}
+
+/* Compress busy ranges to a short date list, e.g. "08/20" or "08/20–08/31". */
+function busyRangeText(ranges){
+  return ranges.map(r => {
+    const a = fmtDate(r.from), b = fmtDate(r.to);
+    return a === b ? a : a + "–" + b;
+  }).join(", ");
+}
+
+/* Build {key, badge, note} for a unique (cap-1) resource card in the current view.
+   @param {boolean} inShop - maintenance / off-fleet (blocks scheduling regardless of view) */
+function capAvailUI(type, ref, inShop){
+  if (inShop) return { key: "inactive", badge: `<span class="badge-status st-inshop"><i class="bi bi-wrench"></i>In shop</span>`, note: "" };
+  const av = viewAvailability(type, ref);
+  const busyTxt = "Busy " + busyRangeText(av.busy);
+  if (av.state === "busy") return { key: "busy", badge: `<span class="badge-status st-out"><i class="bi bi-ban"></i>Booked all ${viewNoun()}</span>`, note: busyTxt };
+  if (av.state === "partial") return { key: "partial", badge: `<span class="badge-status st-reorder"><i class="bi bi-exclamation-circle-fill"></i>Partially booked</span>`, note: busyTxt };
+  return { key: "free", badge: `<span class="badge-status st-available"><i class="bi bi-check-circle-fill"></i>Available</span>`, note: "" };
+}
+
+/* Qty booked for (type, ref) on active contracts overlapping the visible window
+   (replaces the all-time figure, which is misleading when paging the view). */
+function bookedQtyInView(type, ref){
+  const w = viewWindow();
+  let q = 0;
+  for (const c of IMS.contracts){
+    if (c.status !== "active") continue;
+    for (const li of (c.lineItems || [])){
+      if (li.type !== type || li.refId !== ref) continue;
+      const s = parseDT(liStart(li, c)), e = parseDT(liEnd(li, c));
+      if (w.start <= e && s < w.end) q += (li.qty || 1);
+    }
+  }
+  return q;
 }
 
 function availabilityFor(type, ref, contract){

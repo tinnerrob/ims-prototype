@@ -822,6 +822,10 @@ body {
 .res-card { cursor: grab; }
 .res-card:active { cursor: grabbing; }
 .res-card.inactive { opacity: .5; cursor: not-allowed; }
+.res-card.partial { border-color: #fcd34d; background: #fffbeb; }
+.res-card.partial:hover { border-color: #f59e0b; }
+.res-card.res-free { border-color: #bbf7d0; }
+.res-note { font-size: 10px; color: var(--slate-500); margin-top: 2px; font-weight: 600; }
 .res-card:hover { border-color: var(--accent); }
 .res-card-head {
   display: flex;
