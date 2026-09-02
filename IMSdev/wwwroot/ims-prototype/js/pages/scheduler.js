@@ -13,17 +13,18 @@ const activeContracts = () =>
   IMS.contracts.filter(c => c.status === "active")
     .sort((a, b) => (a.contractId < b.contractId ? -1 : a.contractId > b.contractId ? 1 : 0));
 
-/* Sort line items by resource type (RESOURCE_TYPE_ORDER) then ref id (ascending),
-   so same-type resources are grouped and each group is sorted. */
-const sortLineItems = items =>
-  (items || []).slice().sort((a, b) => {
-    const ta = RESOURCE_TYPE_ORDER.indexOf(a.type);
-    const tb = RESOURCE_TYPE_ORDER.indexOf(b.type);
-    const ia = ta === -1 ? RESOURCE_TYPE_ORDER.length : ta;
-    const ib = tb === -1 ? RESOURCE_TYPE_ORDER.length : tb;
-    if (ia !== ib) return ia - ib;
-    return a.refId < b.refId ? -1 : a.refId > b.refId ? 1 : 0;
-  });
+/* Compare two line items: by resource type (RESOURCE_TYPE_ORDER) then ref id (ascending). */
+const compareLineItems = (a, b) => {
+  const ta = RESOURCE_TYPE_ORDER.indexOf(a.type);
+  const tb = RESOURCE_TYPE_ORDER.indexOf(b.type);
+  const ia = ta === -1 ? RESOURCE_TYPE_ORDER.length : ta;
+  const ib = tb === -1 ? RESOURCE_TYPE_ORDER.length : tb;
+  if (ia !== ib) return ia - ib;
+  return a.refId < b.refId ? -1 : a.refId > b.refId ? 1 : 0;
+};
+
+/* Return a sorted COPY of line items, grouped by type then code. */
+const sortLineItems = items => (items || []).slice().sort(compareLineItems);
 
 /* Sort an array of resource records by a code field (ascending). */
 const byCode = (arr, key) =>
@@ -572,6 +573,9 @@ function allocateResource(type, ref, contract, qty){
   qty = Math.max(1, parseInt(qty, 10) || 1);
   contract.lineItems = contract.lineItems || [];
   contract.lineItems.push({ id:"LI-" + Date.now(), type, refId:ref, qty, startDate: contract.startDate, endDate: contract.endDate, pricingMatrix:type === "labor" ? "flat" : "standard", weekendPolicy:"bill", riskPremium:"standard", flatTotal:0 });
+  /* Keep the contract's line items sorted by type then code so any consumer that reads
+     lineItems directly sees the canonical grouped/sorted order. */
+  contract.lineItems.sort(compareLineItems);
   syncInventoryOnStage(type, ref, qty, true, contract);
 }
 
