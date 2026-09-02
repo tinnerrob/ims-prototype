@@ -579,6 +579,9 @@ function allocateResource(type, ref, contract, qty){
 function doAllocate(type, ref, contract, qty, dropBlock){
   allocateResource(type, ref, contract, qty);
   if (dropBlock) showDropCheck(dropBlock);
+  /* Reveal the target contract so the added resource appears in its sorted lane. */
+  if (!App.schedExpanded) App.schedExpanded = new Set();
+  App.schedExpanded.add(contract.contractId);
   renderInspector(contract); renderTimeline(); renderSchedQueue();
 }
 
@@ -678,6 +681,9 @@ function bindDnD(){
     } else {
       allocateResource(parsed.type, parsed.ref, c, 1);
       showDropCheck(block);
+      /* Reveal the target contract so the added resource shows in its sorted lane. */
+      if (!App.schedExpanded) App.schedExpanded = new Set();
+      App.schedExpanded.add(c.contractId);
       renderInspector(c); renderTimeline(); renderSchedQueue();
     }
   });
