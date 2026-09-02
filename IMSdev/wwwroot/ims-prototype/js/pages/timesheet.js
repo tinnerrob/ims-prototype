@@ -155,14 +155,17 @@ function blockHTML(it, showTxt, isDay){
 function labLeftHTML(){
   const active = IMS.contracts.filter(c => c.status === "active").slice().sort((a, b) => a.contractId < b.contractId ? -1 : 1);
   const chip = (t, id, label, cls) => `<button type="button" class="lab-chip ${cls}" draggable="true" data-type="${t}" data-id="${id || ""}" title="Drag onto an employee row to clock in">${label}</button>`;
-  const crows = active.map(c => chip("contract", c.contractId, c.contractId, "ts-contract")).join("");
+  const crows = active.map(c => `<div class="queue-contract lab-poolrow ts-contract" draggable="true" data-type="contract" data-id="${c.contractId}" title="Drag onto an employee row to clock in">
+      <div class="lab-prow-head"><span class="strong mono">${c.contractId}</span><span class="badge-status st-onrent">Active</span></div>
+      <div class="lab-prow-name">${c.projectName}</div>
+      <div class="text-muted2" style="font-size:10.5px">${fmtDate(c.startDate)} → ${fmtDate(c.endDate)}</div></div>`).join("");
   const tasks = ["shop", "overhead", "idle"].map(t => chip(t, "", tsKind(t).label, tsKind(t).cls)).join("");
   const wos = IMS.workOrders.filter(w => w.status !== "Completed").map(w => chip("workorder", w.woId, w.woId, "ts-wo")).join("");
   return `<div class="ts-side">
     <div class="card">
       <div class="card-header"><span class="card-title"><i class="bi bi-briefcase"></i> Active Contracts</span>
         <span class="badge-status st-onrent">${active.length}</span></div>
-      <div class="card-body ts-chips">${crows || `<p class="text-muted2">None active.</p>`}</div>
+      <div class="card-body ts-contract-list">${crows || `<p class="text-muted2">None active.</p>`}</div>
     </div>
     <div class="card">
       <div class="card-header"><span class="card-title"><i class="bi bi-lightning-charge"></i> Quick Tasks</span></div>
@@ -227,9 +230,11 @@ function renderTimesheet(){
     const blocks = geo.items.map(it => blockHTML(it, isDay || LAB.view === "week", isDay)).join("");
     return `<div class="tl-row lab-row${emp.empId === LAB.empSel ? " active" : ""}" data-emp="${emp.empId}">
       <div class="tl-row-label res lab-lbl">
-        <div class="lab-row-name">${emp.name}<button class="btn btn-ims-outline btn-sm2 lab-clock" data-clock="${emp.empId}" title="Punch ${emp.name}"><i class="bi bi-stopwatch"></i></button></div>
-        <div class="text-muted2">${emp.empId} · ${emp.role}</div>
-        <div class="lab-row-status">${status}</div>
+        <button class="lab-clock" data-clock="${emp.empId}" title="Punch ${emp.name}"><i class="bi bi-stopwatch"></i></button>
+        <div class="lab-l-name">${emp.name}${open ? `<i class="lab-live-dot" title="On ${tsShort(open)} since ${open.clockIn}"></i>` : ""}</div>
+        <div class="lab-l-code">${emp.empId}</div>
+        <div class="lab-l-title">${emp.role}</div>
+        <div class="lab-l-hours">${r2(closed)} hr logged</div>
       </div>
       <div class="tl-row-track lab-track" style="--cols:${cols};min-height:${trackH}px">
         ${blocks || `<span class="text-muted2 lab-empty">No time</span>`}
@@ -285,7 +290,7 @@ function bindTimesheet(isDay){
       if (o && o.type) clockInto(r.dataset.emp, o.type, o.id || null);
     });
   });
-  $$(".lab-chip").forEach(ch => ch.addEventListener("dragstart", e => {
+  $$(".sched-side [draggable]").forEach(ch => ch.addEventListener("dragstart", e => {
     e.dataTransfer.setData("text/plain", JSON.stringify({ type: ch.dataset.type, id: ch.dataset.id || null }));
     e.dataTransfer.effectAllowed = "copy";
   }));

@@ -1221,3 +1221,29 @@ i.ts-lunch { color: #9ca3af; }
 .ts-page .tl-head { margin-bottom: 6px; }
 .ts-page .tl-body { gap: 6px; padding-bottom: 6px; }
 .ts-page .tl-inner { padding: 0 0 0 0; }
+
+/* timesheet: active contracts as a vertical stack + centered bars + 4-line employee label */
+.ts-contract-list { display: flex; flex-direction: column; gap: 6px; max-height: 320px; overflow-y: auto; }
+.lab-poolrow { cursor: grab; }
+.lab-poolrow:active { cursor: grabbing; }
+.lab-poolrow.ts-contract { border-left: 4px solid #2563eb; }
+.lab-prow-head { display: flex; justify-content: space-between; align-items: center; gap: 6px; }
+.lab-prow-name { font-size: 11px; color: var(--slate-700); margin: 1px 0; line-height: 1.2; }
+
+.tl-row.lab-row { align-items: center; }          /* center the track (bars) when a label is taller */
+.lab-lbl {
+  position: relative; box-sizing: border-box;
+  display: flex; flex-direction: column; justify-content: center; align-items: flex-end;
+  text-align: right; gap: 1px; padding: 6px 18px 6px 2px; line-height: 1.15;
+}
+.lab-lbl .lab-clock {
+  position: absolute; top: 3px; right: 2px; z-index: 2; cursor: pointer;
+  padding: 1px 4px; font-size: 10px; line-height: 1.3; color: var(--slate-600);
+  background: #fff; border: 1px solid var(--slate-200); border-radius: 4px;
+}
+.lab-lbl .lab-clock:hover { color: var(--accent); border-color: var(--accent); }
+.lab-l-name { font-size: 11.5px; font-weight: 700; color: var(--slate-800); display: flex; align-items: center; justify-content: flex-end; gap: 3px; }
+.lab-l-code { font-size: 10px; font-weight: 600; color: var(--slate-500); }
+.lab-l-title { font-size: 10px; color: var(--slate-500); }
+.lab-l-hours { font-size: 10px; font-weight: 700; color: var(--slate-700); margin-top: 2px; }
+.lab-live-dot { width: 7px; height: 7px; border-radius: 50%; background: #16a34a; display: inline-block; flex: 0 0 auto; }
