@@ -692,6 +692,24 @@ body {
   box-shadow: 0 1px 3px rgba(0,0,0,.2);
 }
 .tl-res { cursor: grab; }
+/* Resource bars: a touch taller, and flex-centered so the label/sub text has even space
+   above and below it. Applies only to resource rows — contract bars are untouched. */
+.tl-row:has(.tl-res) { min-height: 54px; }
+.tl-row:has(.tl-res) .tl-row-track { min-height: 50px; }
+.tl-block.tl-res {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 1px;
+  padding-top: 2px;
+  padding-bottom: 2px;
+}
+.tl-row-label.res {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: flex-end;
+}
 .tl-res-serialized { background: linear-gradient(135deg, #16a34a, #15803d); }
 .tl-res-bulk { background: linear-gradient(135deg, #2563eb, #1d4ed8); }
 .tl-res-consumable { background: linear-gradient(135deg, #d97706, #b45309); }

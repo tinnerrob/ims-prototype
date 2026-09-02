@@ -51,9 +51,12 @@ const App = {
 /* ---------- date / duration helpers ---------- */
 /* Parse a date/ISO string into a Date. Date-only strings ("YYYY-MM-DD") are treated as
    LOCAL midnight (not UTC) so cycle arithmetic and display are timezone-correct.
+   Accepts an existing Date (returned unchanged in value) so format/parse helpers never
+   produce NaN dates when handed a Date object.
    @param {string|Date} s - date string (optionally "YYYY-MM-DD HH:mm") or Date
    @returns {Date} */
 const parseDT = s => {
+  if (s instanceof Date) return new Date(s.getTime());
   s = String(s).replace(" ", "T");
   if (/^\d{4}-\d{2}-\d{2}$/.test(s)){
     const [y, m, d] = s.split("-").map(Number);
