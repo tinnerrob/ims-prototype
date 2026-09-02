@@ -270,7 +270,12 @@ function laborView(e){
   const consList = cons.map(({contract, lines}) => lines.map(li =>
     `<div class="list-line"><span class="l"><span class="strong mono">${contract.contractId}</span> — ${contract.projectName} ${statusBadge(contract.status)}</span><span class="r">${fmtInt(li.qty)} hr · ${fmtMoney(computeLineTotal(li, contract))}</span></div>`).join("")).join("");
   const ts = IMS.timesheets.filter(x => x.empId === e.empId);
-  const tsList = ts.map(x => `<div class="list-line"><span class="l">${fmtDate(x.date)} · ${x.targetType === "contract" ? "Job" : "WO"} ${x.targetId}</span><span class="r">${x.hours} hr · ${fmtMoney(x.hours * e.hourlyCost)}</span></div>`).join("");
+  const tsList = ts.map(x => {
+    const nm = x.targetType === "contract" ? "Job " + x.targetId
+      : x.targetType === "workorder" ? "WO " + x.targetId
+      : x.targetType ? (x.targetType.charAt(0).toUpperCase() + x.targetType.slice(1)) : "WO";
+    return `<div class="list-line"><span class="l">${fmtDate(x.date)} · ${nm}</span><span class="r">${x.hours == null ? "live" : x.hours} hr · ${fmtMoney((x.hours || 0) * e.hourlyCost)}</span></div>`;
+  }).join("");
   openRawModal({
     id: "mdl-lview", size: "lg", title: "Employee — " + e.empId, icon: "bi-person-badge",
     body: detailGrid([

@@ -184,14 +184,31 @@ IMS.workOrders = [
    target_id | cost_rate | billable_rate
    --------------------------------------------------------- */
 IMS.timesheets = [
-  { tsId:"TS-001", empId:"EMP-001", date:"2026-08-31", hours:8,  targetType:"contract", targetId:"CT-2024-001" },
-  { tsId:"TS-002", empId:"EMP-001", date:"2026-09-01", hours:8,  targetType:"contract", targetId:"CT-2024-001" },
-  { tsId:"TS-003", empId:"EMP-003", date:"2026-09-01", hours:7.5,targetType:"contract", targetId:"CT-2024-002" },
-  { tsId:"TS-004", empId:"EMP-002", date:"2026-09-01", hours:6,  targetType:"contract", targetId:"CT-2024-003" },
-  { tsId:"TS-005", empId:"EMP-005", date:"2026-08-31", hours:3,  targetType:"workorder", targetId:"WO-401" },
-  { tsId:"TS-006", empId:"EMP-005", date:"2026-09-01", hours:5,  targetType:"workorder", targetId:"WO-401" },
-  { tsId:"TS-007", empId:"EMP-002", date:"2026-08-28", hours:1.5,targetType:"workorder", targetId:"WO-402" },
-  { tsId:"TS-008", empId:"EMP-006", date:"2026-09-01", hours:8,  targetType:"contract", targetId:"CT-2024-001" }
+  /* 2026-08-31 (Monday) */
+  { tsId:"TS-001", empId:"EMP-001", date:"2026-08-31", clockIn:"07:00", clockOut:"11:30", hours:4.5, targetType:"contract", targetId:"CT-2024-001" },
+  { tsId:"TS-002", empId:"EMP-001", date:"2026-08-31", clockIn:"11:30", clockOut:"12:30", hours:1,   targetType:"overhead", targetId:null },
+  { tsId:"TS-003", empId:"EMP-001", date:"2026-08-31", clockIn:"12:30", clockOut:"16:00", hours:3.5, targetType:"contract", targetId:"CT-2024-001" },
+  { tsId:"TS-004", empId:"EMP-002", date:"2026-08-31", clockIn:"08:00", clockOut:"12:00", hours:4,   targetType:"workorder", targetId:"WO-402" },
+  { tsId:"TS-005", empId:"EMP-002", date:"2026-08-31", clockIn:"12:30", clockOut:"16:30", hours:4,   targetType:"workorder", targetId:"WO-402" },
+  { tsId:"TS-006", empId:"EMP-005", date:"2026-08-31", clockIn:"09:00", clockOut:"12:00", hours:3,   targetType:"workorder", targetId:"WO-401" },
+  { tsId:"TS-007", empId:"EMP-005", date:"2026-08-31", clockIn:"13:00", clockOut:"15:00", hours:2,   targetType:"idle", targetId:null },
+  /* 2026-09-01 (Tuesday) */
+  { tsId:"TS-008", empId:"EMP-001", date:"2026-09-01", clockIn:"07:00", clockOut:"12:00", hours:5,   targetType:"contract", targetId:"CT-2024-001" },
+  { tsId:"TS-009", empId:"EMP-001", date:"2026-09-01", clockIn:"12:00", clockOut:"13:00", hours:1,   targetType:"idle", targetId:null },
+  { tsId:"TS-010", empId:"EMP-001", date:"2026-09-01", clockIn:"13:00", clockOut:"17:00", hours:4,   targetType:"contract", targetId:"CT-2024-001" },
+  { tsId:"TS-011", empId:"EMP-002", date:"2026-09-01", clockIn:"08:00", clockOut:"12:00", hours:4,   targetType:"workorder", targetId:"WO-401" },
+  { tsId:"TS-012", empId:"EMP-002", date:"2026-09-01", clockIn:"13:00", clockOut:"17:00", hours:4,   targetType:"shop", targetId:null },
+  { tsId:"TS-013", empId:"EMP-003", date:"2026-09-01", clockIn:"06:30", clockOut:"10:30", hours:4,   targetType:"contract", targetId:"CT-2024-002" },
+  { tsId:"TS-014", empId:"EMP-003", date:"2026-09-01", clockIn:"10:30", clockOut:"11:30", hours:1,   targetType:"overhead", targetId:null },
+  { tsId:"TS-015", empId:"EMP-003", date:"2026-09-01", clockIn:"11:30", clockOut:"14:30", hours:3,   targetType:"contract", targetId:"CT-2024-002" },
+  { tsId:"TS-016", empId:"EMP-004", date:"2026-09-01", clockIn:"07:00", clockOut:"12:00", hours:5,   targetType:"contract", targetId:"CT-2024-001" },
+  { tsId:"TS-017", empId:"EMP-004", date:"2026-09-01", clockIn:"12:00", clockOut:"13:00", hours:1,   targetType:"idle", targetId:null },
+  { tsId:"TS-018", empId:"EMP-004", date:"2026-09-01", clockIn:"13:00", clockOut:"16:00", hours:3,   targetType:"contract", targetId:"CT-2024-001" },
+  { tsId:"TS-019", empId:"EMP-005", date:"2026-09-01", clockIn:"08:00", clockOut:"12:00", hours:4,   targetType:"workorder", targetId:"WO-404" },
+  { tsId:"TS-020", empId:"EMP-005", date:"2026-09-01", clockIn:"13:00", clockOut:"17:00", hours:4,   targetType:"shop", targetId:null },
+  { tsId:"TS-021", empId:"EMP-006", date:"2026-09-01", clockIn:"08:00", clockOut:"12:00", hours:4,   targetType:"contract", targetId:"CT-2024-001" },
+  { tsId:"TS-022", empId:"EMP-006", date:"2026-09-01", clockIn:"12:00", clockOut:"13:00", hours:1,   targetType:"idle", targetId:null },
+  { tsId:"TS-023", empId:"EMP-006", date:"2026-09-01", clockIn:"13:00", clockOut:"16:00", hours:3,   targetType:"contract", targetId:"CT-2024-001" }
 ];
 
 /* ---------------------------------------------------------
