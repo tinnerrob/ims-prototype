@@ -845,31 +845,33 @@ function startSchedDrag(blockEl, contractId, liId, mode, clientX){
   const track = blockEl.closest(".tl-row-track");
   const c = getContract(contractId);
   if (!c || !track) return;
-  const anchor = schedAnchor();
   const cols = schedCols();
   const rect = track.getBoundingClientRect();
   const isContract = !liId;
   const li = isContract ? null : c.lineItems.find(x => x.id === liId);
   const sD = isContract ? parseDT(c.startDate) : parseDT(liStart(li, c));
-  const eD = isContract ? parseDT(c.endDate) : parseDT(liEnd(li, c));
-  const pxPerDay = rect.width / cols;
-  const pointerDay = Math.round((clientX - rect.left) / pxPerDay);
-  schedDrag = { blockEl, contractId, liId, isContract, mode, sD: new Date(sD), eD: new Date(eD), rect: { left: rect.left }, pxPerDay, anchor, cols, pointerDayStart: pointerDay };
+  const eD = isContract ? parseDT(c.endDate)   : parseDT(liEnd(li, c));
+  schedDrag = {
+    blockEl, contractId, liId, isContract, mode,
+    sD: new Date(sD), eD: new Date(eD),
+    grabClientX: clientX,          // pixel anchor for stable, monotonic snapping
+    pxPerUnit: rect.width / cols   // px per day (week/month) or per 15-min block (day view)
+  };
   document.addEventListener("mousemove", onSchedDragMove);
   document.addEventListener("mouseup", onSchedDragUp);
 }
-/* Commit a bar's date range. The contract is the envelope:
-   - the contract AUTO-GROWS to contain any resource that extends past it;
-   - resizing the contract only pulls resources in when it shrinks —
-     growing the contract never stretches a resource (resources only grow when you
-     resize them, and doing so grows the contract to match). */
+/* Commit a bar's date range with parent/child guardrails:
+   - A resource (child) is always confined to the contract (parent). Resizing or moving
+     a resource therefore NEVER changes the contract's own dates, so you don't have to
+     manually "fix the contract back" after nudging a resource.
+   - Resizing the contract only trims any resource that would stick out of the new
+     bounds; growing the contract leaves existing resources where they were. */
 function commitBarDates(c, liId, s, en){
-  if (s > en) en = new Date(s);
-  let sStr = toISO(s), eStr = toISO(en);
+  if (s > en) en = new Date(s); // never allow an inverted/empty range
   if (!liId){
     const oldStart = parseDT(c.startDate), oldEnd = parseDT(c.endDate);
-    const newStart = parseDT(sStr), newEnd = parseDT(eStr);
-    c.startDate = sStr; c.endDate = eStr;
+    const newStart = parseDT(s), newEnd = parseDT(en);
+    c.startDate = toISO(newStart); c.endDate = toISO(newEnd);
     (c.lineItems || []).forEach(li => {
       /* Freeze each resource to its own dates so it doesn't ride along with the
          contract (a resource that had no explicit dates inherits the OLD bounds). */
@@ -880,15 +882,18 @@ function commitBarDates(c, liId, s, en){
       if (ls < newStart) li.startDate = toISO(newStart);
       if (le > newEnd) li.endDate = toISO(newEnd);
     });
-  } else {
-    /* resource drives the contract envelope: grow the contract to fit it */
-    const cs = parseDT(c.startDate), ce = parseDT(c.endDate);
-    if (s < cs) c.startDate = sStr;
-    if (en > ce) c.endDate = eStr;
-    const li = c.lineItems.find(x => x.id === liId);
-    if (li){ li.startDate = sStr; li.endDate = eStr; }
+    return { sStr: c.startDate, eStr: c.endDate, s: newStart, en: newEnd };
   }
-  return { sStr, eStr, s, en };
+  /* resource (child): confined to the parent envelope — never grows the contract */
+  const li = c.lineItems.find(x => x.id === liId);
+  if (!li) return { sStr: toISO(s), eStr: toISO(en), s, en };
+  const cs = parseDT(c.startDate), ce = parseDT(c.endDate);
+  let ns = new Date(s), ne = new Date(en);
+  if (ns < cs) ns = new Date(cs);
+  if (ne > ce) ne = new Date(ce);
+  if (ns > ne) ne = new Date(ns);
+  li.startDate = toISO(ns); li.endDate = toISO(ne);
+  return { sStr: li.startDate, eStr: li.endDate, s: ns, en: ne };
 }
 
 
@@ -896,53 +901,40 @@ function onSchedDragMove(e){
   if (!schedDrag) return;
   const c = getContract(schedDrag.contractId);
   if (!c) return;
-  const { rect, pxPerDay, cols, anchor, pointerDayStart } = schedDrag;
-  const pDay = Math.round((e.clientX - rect.left) / pxPerDay);
-  const bMs = blockMs();
-  const atB = block => new Date(anchor.getTime() + block * bMs);
+  const d = schedDrag;
+  /* Snapping: round the NET movement from the original grip, never the absolute pointer.
+     This is monotonic and direction-correct — a sub-half-block nudge changes nothing, and
+     a nudge in one direction never momentarily grows the bar before shrinking it. */
+  const delta = Math.round((e.clientX - d.grabClientX) / d.pxPerUnit);
+  const isDay = App.schedView === "day";
+  const unitMs = isDay ? 900000 : 86400000;
+  const cl = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
   let s, en;
-  if (App.schedView === "day"){
-    /* Day view: resize/move edits the operating-hours window (time-of-day) only,
-       keeping the actual calendar dates of start/end intact so multi-day bars
-       don't jump to the visible day or overshoot. */
-    const bMin = bMs / 60000; // 15-min block
-    const targetMin = Math.max(0, Math.min(1439, pDay * bMin));
-    const sD = schedDrag.sD, eD = schedDrag.eD;
+  if (isDay){
+    /* Day view: edit the daily operating-hours window (time-of-day) only, keeping the
+       calendar dates fixed. Snaps to 15-minute blocks. */
+    const bMin = 15;
+    const sD = d.sD, eD = d.eD;
     const sMin0 = sD.getHours() * 60 + sD.getMinutes();
     const eMin0 = eD.getHours() * 60 + eD.getMinutes();
-    if (schedDrag.mode === "left"){
-      s = new Date(sD); s.setHours(0, Math.min(targetMin, eMin0 - bMin), 0, 0);
-      en = new Date(eD);
-    } else if (schedDrag.mode === "right"){
-      s = new Date(sD);
-      en = new Date(eD); en.setHours(0, Math.max(targetMin, sMin0 + bMin), 0, 0);
-    } else {
-      const delta = pDay - pointerDayStart;
-      s = new Date(sD.getTime() + delta * bMs);
-      en = new Date(eD.getTime() + delta * bMs);
-    }
+    const width0 = Math.max(0, eMin0 - sMin0);
+    let nsMin = sMin0, neMin = eMin0;
+    if (d.mode === "left"){ nsMin = cl(sMin0 + delta * bMin, 0, Math.max(0, eMin0 - bMin)); }
+    else if (d.mode === "right"){ neMin = cl(eMin0 + delta * bMin, Math.min(1439, sMin0 + bMin), 1439); }
+    else { const shift = cl(delta * bMin, -sMin0, 1439 - width0); nsMin = sMin0 + shift; neMin = eMin0 + shift; }
+    s = new Date(sD); s.setHours(0, nsMin, 0, 0);
+    en = new Date(eD); en.setHours(0, neMin, 0, 0);
   } else {
-    const curStartISO = schedDrag.isContract ? c.startDate : liStart(c.lineItems.find(x => x.id === schedDrag.liId), c);
-    const curEndISO   = schedDrag.isContract ? c.endDate   : liEnd(c.lineItems.find(x => x.id === schedDrag.liId), c);
-    const startBlock = Math.floor((parseDT(curStartISO) - anchor) / bMs);
-    const endBlock   = Math.floor((parseDT(curEndISO) - anchor) / bMs);
-    if (schedDrag.mode === "left"){
-      const target = Math.min(Math.max(pDay, 0), endBlock);
-      s = atB(target); en = atB(endBlock);
-    } else if (schedDrag.mode === "right"){
-      const target = Math.max(Math.min(pDay, cols - 1), startBlock);
-      s = atB(startBlock); en = atB(target);
-    } else {
-      const delta = pDay - pointerDayStart;
-      s = new Date(schedDrag.sD.getTime() + delta * bMs);
-      en = new Date(schedDrag.eD.getTime() + delta * bMs);
-    }
+    const shift = dt => new Date(new Date(dt).getTime() + delta * unitMs);
+    if (d.mode === "left"){ s = shift(d.sD); en = new Date(d.eD); }
+    else if (d.mode === "right"){ s = new Date(d.sD); en = shift(d.eD); }
+    else { s = shift(d.sD); en = shift(d.eD); }
   }
-  const { sStr, eStr } = commitBarDates(c, schedDrag.liId, s, en);
+  const { sStr, eStr } = commitBarDates(c, d.liId, s, en);
   const bg = tlGeom(sStr, eStr);
-  if (bg && schedDrag.blockEl){ schedDrag.blockEl.style.left = bg.left + "%"; schedDrag.blockEl.style.width = bg.width + "%"; }
+  if (bg && d.blockEl){ d.blockEl.style.left = bg.left + "%"; d.blockEl.style.width = bg.width + "%"; }
   const cg = tlGeom(c.startDate, c.endDate);
-  const cEl = document.querySelector(".tl-block[data-contract-id=\"" + schedDrag.contractId + "\"]:not([data-li-id])");
+  const cEl = document.querySelector(".tl-block[data-contract-id=\"" + d.contractId + "\"]:not([data-li-id])");
   if (cg && cEl){ cEl.style.left = cg.left + "%"; cEl.style.width = cg.width + "%"; }
 }
 
