@@ -1176,3 +1176,57 @@ i.ts-idle { color: #94a3b8; }
 .punch-tgt.ts-overhead { border-left: 3px solid #d97706; }
 .punch-tgt.ts-idle { border-left: 3px solid #94a3b8; }
 
+
+/* =========================================================
+   Labor & Timesheets — scheduler-style page (v2)
+   ========================================================= */
+.lab-layout { display: grid; grid-template-columns: 290px 1fr; gap: 12px; align-items: start; }
+.lab-panel { display: flex; flex-direction: column; gap: 12px; min-width: 0; }
+.lab-panel .card { flex: 0 1 auto; min-height: 0; }
+.lab-main { min-width: 0; display: flex; flex-direction: column; gap: 12px; }
+
+/* employee roster */
+.lab-roster { display: flex; flex-direction: column; gap: 6px; max-height: 420px; overflow-y: auto; }
+.lab-roster-row {
+  display: flex; align-items: flex-start; gap: 8px; padding: 6px 8px;
+  border: 1px solid var(--slate-200); border-radius: 8px; cursor: pointer; background: #fff;
+}
+.lab-roster-row:hover { border-color: var(--accent); }
+.lab-roster-row.active { border-color: var(--accent); background: #eff6ff; box-shadow: 0 0 0 1px var(--accent); }
+.lab-roster-main { min-width: 0; flex: 1; }
+.lab-roster-status { display: flex; align-items: center; gap: 5px; font-size: 10px; color: var(--slate-500); margin-top: 2px; }
+.lab-punch-ico { flex: 0 0 auto; }
+.lab-live-tag { color: var(--success); font-weight: 600; }
+.lab-contracts { display: flex; flex-direction: column; gap: 8px; max-height: 260px; overflow-y: auto; font-size: 12px; }
+.lab-contract { border-bottom: 1px solid var(--slate-100); padding-bottom: 6px; }
+.lab-contract:last-child { border-bottom: none; }
+
+/* timeline (matches scheduler ratios: 120px sticky label) */
+.lab-scroll { overflow: auto; max-height: 74vh; }
+.lab-lane { display: grid; grid-template-columns: 120px 1fr; align-items: stretch; }
+.lab-label {
+  position: sticky; left: 0; z-index: 3; width: 120px; box-sizing: border-box;
+  background: var(--card); border-right: 1px solid var(--slate-200);
+  padding: 6px 5px 6px 4px; box-shadow: 1px 0 0 rgba(15,23,42,.04);
+  display: flex; flex-direction: column; justify-content: center;
+}
+.lab-name { display: flex; align-items: center; gap: 4px; font-size: 11.5px; font-weight: 700; line-height: 1.15; }
+.lab-name .lab-clock { padding: 0 3px; font-size: 10px; line-height: 1; margin-left: auto; flex: 0 0 auto; }
+.lab-status { display: flex; align-items: center; gap: 4px; font-size: 9.5px; color: var(--slate-500); margin-top: 2px; }
+.lab-track {
+  position: relative; background: #f8fafc; border: 1px solid var(--slate-100);
+  border-radius: 6px; min-height: 26px;
+}
+.lab-empty { position: absolute; left: 8px; top: 5px; font-size: 10.5px; }
+
+/* drag handles + draggable affordance */
+.ts-block.draggable { cursor: grab; }
+.ts-block.draggable:active { cursor: grabbing; }
+.ts-h { position: absolute; top: 0; bottom: 0; width: 7px; cursor: col-resize; opacity: 0; background: rgba(255,255,255,.35); }
+.ts-h-l { left: 0; border-radius: 4px 0 0 4px; }
+.ts-h-r { right: 0; border-radius: 0 4px 4px 0; }
+.ts-block:hover .ts-h { opacity: .9; }
+
+@media (max-width: 1100px) { .lab-layout { grid-template-columns: 240px 1fr; } }
+@media (max-width: 860px) { .lab-layout { grid-template-columns: 1fr; } }
+
