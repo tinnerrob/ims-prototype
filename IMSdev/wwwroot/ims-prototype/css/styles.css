@@ -1190,3 +1190,29 @@ i.ts-idle { color: #94a3b8; }
 .tl-row.lab-row.active .tl-row-label { background: #eff6ff; border-right-color: var(--accent); }
 .tl-row.lab-row.active .tl-row-track { box-shadow: inset 0 0 0 1px var(--accent); }
 .tl-row.lab-row { min-height: 50px; }
+
+/* ---- timesheet 2-col page, task pool + lunch ---- */
+.ts-page { display: grid; grid-template-columns: 330px 1fr; gap: 14px; align-items: stretch; height: calc(100vh - 200px); overflow: hidden; }
+.ts-side { display: flex; flex-direction: column; gap: 14px; }
+.ts-chips { display: flex; flex-wrap: wrap; gap: 6px; align-content: flex-start; }
+.ts-chip-label { width: 100%; font-size: 10.5px; text-transform: uppercase; letter-spacing: .4px; color: var(--slate-500); margin: 3px 0 1px; }
+.ts-chip-label:first-child { margin-top: 0; }
+.ts-side-note { font-size: 11px; line-height: 1.45; padding: 0 2px; }
+.lab-chip {
+  cursor: grab; border: 1px solid var(--slate-200); border-left-width: 4px; border-radius: 6px;
+  padding: 5px 9px; font-size: 11px; font-weight: 700; background: #fff; color: var(--slate-700); white-space: nowrap;
+}
+.lab-chip:active { cursor: grabbing; }
+.lab-chip:hover { border-color: var(--slate-400); }
+.lab-chip.ts-contract { border-left-color: #2563eb; }
+.lab-chip.ts-wo { border-left-color: #0d9488; }
+.lab-chip.ts-shop { border-left-color: #7c3aed; }
+.lab-chip.ts-overhead { border-left-color: #d97706; }
+.lab-chip.ts-idle { border-left-color: #94a3b8; }
+.ts-hint { font-size: 11px; color: var(--slate-500); margin: -2px 0 8px; line-height: 1.4; }
+.tl-row.drop-hi .tl-row-track { outline: 2px dashed var(--accent); outline-offset: -2px; background: #f0f9ff; }
+.ts-lunch { --tcol: #9ca3af; }
+i.ts-lunch { color: #9ca3af; }
+@media (max-width: 1100px) { .ts-page { grid-template-columns: 250px 1fr; } }
+@media (max-width: 860px) { .ts-page { grid-template-columns: 1fr; height: auto; overflow: visible; } .ts-page .sched-timeline { min-height: 72vh; } }
+

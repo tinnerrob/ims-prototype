@@ -20,8 +20,10 @@ const TS_KIND = {
   workorder: { label: "Work Order", icon: "bi-tools",             cls: "ts-wo" },
   shop:      { label: "Shop",       icon: "bi-wrench-adjustable", cls: "ts-shop" },
   overhead:  { label: "Overhead",   icon: "bi-diagram-3",         cls: "ts-overhead" },
-  idle:      { label: "Idle",       icon: "bi-hourglass-split",   cls: "ts-idle" }
+  idle:      { label: "Idle",       icon: "bi-hourglass-split",   cls: "ts-idle" },
+  lunch:     { label: "Lunch",      icon: "bi-cup-hot",           cls: "ts-lunch" }
 };
+const isLunch = t => t.targetType === "lunch";
 const tsKind = t => TS_KIND[t] || { label: t, icon: "", cls: "ts-idle" };
 
 const labEmps = () => IMS.labor.slice().sort((a, b) => (a.empId < b.empId ? -1 : 1));
@@ -39,8 +41,8 @@ const segHours = ts => {
   if (ts.clockOut) return r2((hmMin(ts.clockOut) - hmMin(ts.clockIn)) / 60);
   return 0;
 };
-const segBill = ts => { const e = getEmp(ts.empId); return r2(segHours(ts) * (e ? e.hourlyBillable : 0)); };
-const segCost = ts => { const e = getEmp(ts.empId); return r2(segHours(ts) * (e ? e.hourlyCost : 0)); };
+const segBill = ts => { if (isLunch(ts)) return 0; const e = getEmp(ts.empId); return r2(segHours(ts) * (e ? e.hourlyBillable : 0)); };
+const segCost = ts => { if (isLunch(ts)) return 0; const e = getEmp(ts.empId); return r2(segHours(ts) * (e ? e.hourlyCost : 0)); };
 const segLabel = ts => {
   if (ts.targetType === "contract") { const c = getContract(ts.targetId); return c ? `${c.contractId} · ${c.projectName}` : ts.targetId; }
   if (ts.targetType === "workorder") return ts.targetId;
@@ -83,7 +85,7 @@ function labSegs(empId){
 }
 
 /* ---- layout geometry ---- */
-const DAY_A = 360, DAY_B = 1200, ROWH = 44;   // day window 06:00–20:00; track row height px (≈ scheduler rows)
+const DAY_A = 360, DAY_B = 1200, ROWH = 54;   // day window 06:00–20:00; track row height px (tall bars)
 const effEndMin = (ts, now) => ts.clockOut ? hmMin(ts.clockOut) : now;
 
 /* Week/month: per employee-day, stack by time-overlap (sequential segments share a row). */
@@ -153,33 +155,26 @@ function blockHTML(it, showTxt, isDay){
 
 /* ---- LEFT pane: employees + active contracts ---- */
 function labLeftHTML(){
-  const rows = labEmps().map(e => {
-    const sel = e.empId === LAB.empSel ? " active" : "";
-    const live = openSeg(e.empId);
-    const status = live ? `<span class="lab-dot live"></span><span class="lab-live-tag">On ${tsShort(live)} · ${live.clockIn}</span>` : `<span class="lab-dot"></span>Clocked out`;
-    return `<div class="res-card lab-roster-row${sel}" data-emp="${e.empId}">
-      <div class="lab-roster-main">
-        <div class="lab-roster-name">${e.name}</div>
-        <div class="text-muted2" style="font-size:10.5px">${e.empId} · ${e.role}</div>
-        <div class="lab-roster-status">${status}</div>
-      </div>
-      <button class="btn btn-ims-outline btn-sm2 lab-punch-ico" data-clock="${e.empId}" title="Clock ${e.name}"><i class="bi bi-stopwatch"></i></button>
-    </div>`;
-  }).join("");
-  const active = IMS.contracts.filter(c => c.status === "active");
-  const crows = active.slice().sort((a, b) => a.contractId < b.contractId ? -1 : 1)
-    .map(c => `<div class="queue-contract"><span class="strong mono">${c.contractId}</span><div class="text-muted2">${c.projectName}</div>
-      <div class="text-muted2" style="font-size:10.5px">${fmtDate(c.startDate)} → ${fmtDate(c.endDate)}</div></div>`).join("");
-  return `<div class="card">
-      <div class="card-header"><span class="card-title"><i class="bi bi-people"></i> Employees</span>
-        <button class="btn btn-ims btn-sm2" id="tsPunch"><i class="bi bi-stopwatch"></i> Punch</button></div>
-      <div class="card-body ts-roster">${rows || `<p class="text-muted2">No employees.</p>`}</div>
-    </div>
+  const active = IMS.contracts.filter(c => c.status === "active").slice().sort((a, b) => a.contractId < b.contractId ? -1 : 1);
+  const chip = (t, id, label, cls) => `<button type="button" class="lab-chip ${cls}" draggable="true" data-type="${t}" data-id="${id || ""}" title="Drag onto an employee row to clock in">${label}</button>`;
+  const crows = active.map(c => chip("contract", c.contractId, c.contractId, "ts-contract")).join("");
+  const tasks = ["shop", "overhead", "idle"].map(t => chip(t, "", tsKind(t).label, tsKind(t).cls)).join("");
+  const wos = IMS.workOrders.filter(w => w.status !== "Completed").map(w => chip("workorder", w.woId, w.woId, "ts-wo")).join("");
+  return `<div class="ts-side">
     <div class="card">
       <div class="card-header"><span class="card-title"><i class="bi bi-briefcase"></i> Active Contracts</span>
         <span class="badge-status st-onrent">${active.length}</span></div>
-      <div class="card-body ts-contracts">${crows || `<p class="text-muted2">None active.</p>`}</div>
-    </div>`;
+      <div class="card-body ts-chips">${crows || `<p class="text-muted2">None active.</p>`}</div>
+    </div>
+    <div class="card">
+      <div class="card-header"><span class="card-title"><i class="bi bi-lightning-charge"></i> Quick Tasks</span></div>
+      <div class="card-body ts-chips">
+        <div class="ts-chip-label">Overhead / other</div>${tasks || ""}
+        ${wos ? `<div class="ts-chip-label">Work orders</div>${wos}` : ""}
+      </div>
+    </div>
+    <div class="text-muted2 ts-side-note">Drag a contract or task onto an employee's row to clock them in. Click the <i class="bi bi-stopwatch"></i> on a row to punch (includes Lunch).</div>
+  </div>`;
 }
 
 /* ---- RIGHT pane: selected employee ---- */
@@ -201,8 +196,8 @@ function labInspectorHTML(){
 }
 
 function legendHTML(){
-  const L = [["ts-contract", "Job"], ["ts-wo", "WO"], ["ts-shop", "Shop"], ["ts-overhead", "Overhead"], ["ts-idle", "Idle"]];
-  return `<span class="lab-legend-item"><i class="bi bi-mouse2"></i>Drag a bar to move${LAB.view === "day" ? " / resize" : ""}; click to edit</span>` +
+  const L = [["ts-contract", "Job"], ["ts-wo", "WO"], ["ts-shop", "Shop"], ["ts-overhead", "Overhead"], ["ts-idle", "Idle"], ["ts-lunch", "Lunch"]];
+  return `<span class="lab-legend-item"><i class="bi bi-arrow-down-left-circle"></i>Drag a chip onto a row to clock in</span>` +
     L.map(x => `<span class="lab-legend-item"><i class="bi bi-square-fill ${x[0]}"></i>${x[1]}</span>`).join("");
 }
 
@@ -250,8 +245,8 @@ function renderTimesheet(){
 
   $("#content").innerHTML = `
     <div class="page-head"></div>
-    <div class="scheduler-3col">
-      <aside class="sched-side"><div class="ts-side">${labLeftHTML()}</div></aside>
+    <div class="ts-page">
+      <aside class="sched-side">${labLeftHTML()}</aside>
       <div class="sched-timeline">
         <div class="tl-nav">
           <button class="btn btn-ims-outline btn-sm2" id="tsPrev"><i class="bi bi-chevron-left"></i></button>
@@ -259,12 +254,12 @@ function renderTimesheet(){
           <button class="btn btn-ims-outline btn-sm2" id="tsNext"><i class="bi bi-chevron-right"></i></button>
           <div class="btn-group ms-auto" id="tsViewToggle">${viewBtns}</div>
         </div>
+        <div class="ts-hint"><i class="bi bi-arrow-down-left-circle"></i> Drag a contract or task onto an employee row to clock in · drag a bar to move/resize · click a bar to edit · clock icon = punch</div>
         <div class="tl-week" id="tsWeek"><div class="tl-inner" style="min-width:${minW}px">
           ${headCols}
           <div class="tl-body">${lanes}</div>
         </div></div>
       </div>
-      <aside class="sched-inspector" id="tsInspector">${labInspectorHTML()}</aside>
     </div>
     ${labSummaryHTML()}
     <div class="lab-legend-bottom">${legendHTML()}</div>`;
@@ -276,13 +271,25 @@ function bindTimesheet(isDay){
   $("#tsViewToggle").querySelectorAll("[data-view]").forEach(b => b.addEventListener("click", () => setLabView(b.dataset.view)));
   $("#tsPrev").addEventListener("click", () => labNav(-1));
   $("#tsNext").addEventListener("click", () => labNav(1));
-  const bindPunch = btn => btn && btn.addEventListener("click", () => openPunch(LAB.empSel));
-  bindPunch($("#tsPunch")); bindPunch($("#tsInspPunch"));
-  $$(".lab-roster-row").forEach(r => r.addEventListener("click", () => { LAB.empSel = r.dataset.emp; renderTimesheet(); }));
-  $$(".lab-clock, .lab-punch-ico").forEach(b => b.addEventListener("click", e => { e.stopPropagation(); openPunch(b.dataset.clock); }));
-  $$(".lab-row").forEach(r => r.addEventListener("click", e => {
-    if (e.target.closest(".ts-block") || e.target.closest(".lab-clock")) return;
-    LAB.empSel = r.dataset.emp; renderTimesheet();
+  $$(".lab-clock").forEach(b => b.addEventListener("click", e => { e.stopPropagation(); openPunch(b.dataset.clock); }));
+  $$(".lab-row").forEach(r => {
+    r.addEventListener("click", e => {
+      if (e.target.closest(".ts-block") || e.target.closest(".lab-clock")) return;
+      LAB.empSel = r.dataset.emp; renderTimesheet();
+    });
+    const hi = e => { e.preventDefault(); r.classList.add("drop-hi"); };
+    r.addEventListener("dragover", hi);
+    r.addEventListener("dragleave", () => r.classList.remove("drop-hi"));
+    r.addEventListener("drop", e => {
+      e.preventDefault(); r.classList.remove("drop-hi");
+      const raw = (e.dataTransfer && e.dataTransfer.getData("text/plain")) || "";
+      let o = null; try { o = JSON.parse(raw); } catch(_) {}
+      if (o && o.type) clockInto(r.dataset.emp, o.type, o.id || null);
+    });
+  });
+  $$(".lab-chip").forEach(ch => ch.addEventListener("dragstart", e => {
+    e.dataTransfer.setData("text/plain", JSON.stringify({ type: ch.dataset.type, id: ch.dataset.id || null }));
+    e.dataTransfer.effectAllowed = "copy";
   }));
   if (window.bootstrap && bootstrap.Tooltip) $$(".ts-block[title]").forEach(el => { try { new bootstrap.Tooltip(el, { trigger: "hover", container: "body", html: true }); } catch(_){} });
   $$(".ts-block").forEach(b => {
@@ -367,38 +374,42 @@ function closeOpen(empId, endMin){
   if (!o) return;
   o.clockOut = minHM(endMin); o.hours = r2((endMin - hmMin(o.clockIn)) / 60);
 }
+function nowExact(){ const n = new Date(); return n.getHours() * 60 + n.getMinutes(); }
 function punchIn(empId, targetType, targetId, startMin){
-  closeOpen(empId, startMin);
+  closeOpen(empId, startMin);                       // exact keyed time, no rounding
   IMS.timesheets.push({
     tsId: nextTsId(), empId, date: dISO(new Date()),
-    clockIn: minHM(snap15(startMin)), clockOut: null,
+    clockIn: minHM(startMin), clockOut: null,
     targetType, targetId: (targetType === "contract" || targetType === "workorder") ? targetId : null,
     hours: null
   });
   LAB.empSel = empId; renderTimesheet();
 }
-function punchOut(empId){
-  const n = new Date();
-  closeOpen(empId, n.getHours() * 60 + n.getMinutes());
-  LAB.empSel = empId; renderTimesheet();
-}
+function clockInto(empId, type, id){ punchIn(empId, type, id, nowExact()); }
+function punchOut(empId){ closeOpen(empId, nowExact()); LAB.empSel = empId; renderTimesheet(); }
+function lunchOut(empId, min){ punchIn(empId, "lunch", null, min); }  // clock out for lunch (opens grey lunch)
+function lunchIn(empId, min){ closeOpen(empId, min); renderTimesheet(); } // clock back in (closes grey lunch)
 
 function openPunch(empId){
   const emp = getEmp(empId) || { name: empId, role: "" };
   const active = IMS.contracts.filter(c => c.status === "active");
   const wos = IMS.workOrders.filter(w => w.status !== "Completed");
   const open = openSeg(empId);
-  const n = new Date();
-  const nowMin = snap15(n.getHours() * 60 + n.getMinutes());
+  const onLunch = open && isLunch(open);
+  const nowMin = nowExact();                        // exact current time (no snap)
   const tgt = (t, id, label, cls) => `<button type="button" class="punch-tgt ${cls}" data-t="${t}" data-id="${id || ""}"><span class="strong">${label}</span></button>`;
+  const lunchBtns = onLunch
+    ? `<button type="button" class="btn btn-ims btn-sm2 w-100 mb-3" id="lunch-in"><i class="bi bi-cup-hot"></i> Clock In from Lunch (at the time above)</button>`
+    : `<button type="button" class="btn btn-ims-outline btn-sm2 w-100 mb-3" id="lunch-out"><i class="bi bi-cup-hot"></i> Clock Out for Lunch (at the time above)</button>`;
   const body = `
     <div class="lab-punch-head"><div><span class="strong">${emp.name}</span><div class="text-muted2">${emp.role} · ${empId}</div></div>
-      <span class="badge-status ${open ? "st-reorder" : "st-out"}">${open ? "Clocked in on " + segLabel(open) : "Clocked out"}</span></div>
-    <div class="text-muted2 mb-2" style="font-size:12px">${open
-      ? `On <strong>${segLabel(open)}</strong> since ${open.clockIn}. Choosing below switches jobs (closing it at ${minHM(nowMin)}).`
-      : `Clock into a job, work order, shop, overhead or idle at <strong>${minHM(nowMin)}</strong>.`}</div>
-    <div class="field-group mb-2"><label class="form-label">Start time</label>
+      <span class="badge-status ${open ? (onLunch ? "st-staged" : "st-reorder") : "st-out"}">${open ? (onLunch ? "On lunch" : "Clocked in on " + segLabel(open)) : "Clocked out"}</span></div>
+    <div class="text-muted2 mb-2" style="font-size:12px">${onLunch
+      ? "You're on lunch. Set the time above (lunch-in), then use the lunch button or pick a target to resume."
+      : (open ? `On <strong>${segLabel(open)}</strong> since ${open.clockIn}. Choosing below switches jobs (closing it at the time above).` : "Clock into a job, work order, shop, overhead or idle at the time above.")}</div>
+    <div class="field-group mb-2"><label class="form-label">${onLunch ? "Lunch-in time" : open ? "Clock-out time for current" : "Punch time"}</label>
       <input type="time" class="form-control" id="punch-time" value="${minHM(nowMin)}"></div>
+    ${lunchBtns}
     <div class="punch-label">Job</div><div class="punch-grid">${active.map(c => tgt("contract", c.contractId, `${c.contractId} · ${c.projectName}`, "ts-contract")).join("")}</div>
     <div class="punch-label">Work order</div><div class="punch-grid">${wos.length ? wos.map(w => tgt("workorder", w.woId, `${w.woId} · ${w.assetId}`, "ts-wo")).join("") : `<span class="text-muted2" style="font-size:12px">None open.</span>`}</div>
     <div class="punch-label">Other</div><div class="punch-grid">${tgt("shop", "", "Shop", "ts-shop")}${tgt("overhead", "", "Overhead", "ts-overhead")}${tgt("idle", "", "Idle", "ts-idle")}</div>`;
@@ -406,10 +417,14 @@ function openPunch(empId){
     ${open ? `<button type="button" class="btn btn-outline-danger me-auto" id="pp-clockout"><i class="bi bi-stop-circle"></i> Clock Out</button>` : ""}
     <button type="button" class="btn btn-ims-outline" data-bs-dismiss="modal">Cancel</button>`;
   const root = openRawModal({ id: "mdl-punch", title: "Clock In / Out", icon: "bi-stopwatch", body, footer });
-  const startOf = () => { const v = root.querySelector("#punch-time").value; return v ? snap15(hmMin(v)) : nowMin; };
+  const timeOf = () => { const v = root.querySelector("#punch-time").value; return v ? hmMin(v) : nowMin; }; // exact, never rounds
   root.querySelectorAll(".punch-tgt").forEach(b => b.addEventListener("click", () => {
-    const sm = startOf(); dismissModal(root); punchIn(empId, b.dataset.t, b.dataset.id || null, sm);
+    const tm = timeOf(); dismissModal(root); punchIn(empId, b.dataset.t, b.dataset.id || null, tm);
   }));
+  const lo = root.querySelector("#lunch-out");
+  if (lo) lo.addEventListener("click", () => { const tm = timeOf(); dismissModal(root); lunchOut(empId, tm); });
+  const li = root.querySelector("#lunch-in");
+  if (li) li.addEventListener("click", () => { const tm = timeOf(); dismissModal(root); lunchIn(empId, tm); });
   const co = root.querySelector("#pp-clockout");
   if (co) co.addEventListener("click", () => { dismissModal(root); punchOut(empId); });
 }
@@ -427,7 +442,7 @@ function segEdit(tsId){
   const targetSel = `<select class="form-control" id="seg-target">` +
     opt("Job", active.map(c => ["contract|" + c.contractId, c.contractId + " · " + c.projectName])) +
     opt("Work order", wos.map(w => ["workorder|" + w.woId, w.woId + " · " + w.assetId])) +
-    opt("Other", [["shop|", "Shop"], ["overhead|", "Overhead"], ["idle|", "Idle"]]) + `</select>`;
+    opt("Other", [["shop|", "Shop"], ["overhead|", "Overhead"], ["idle|", "Idle"], ["lunch|", "Lunch"]]) + `</select>`;
   const body = `
     <div class="lab-punch-head"><div><span class="strong">${emp.name}</span><div class="text-muted2">${emp.empId} · ${emp.role} · ${ts.tsId}</div></div></div>
     ${live ? `<div class="alert-text mb-2"><i class="bi bi-stopwatch"></i> Running since ${ts.clockIn}. Set an end time below, or Clock Out now.</div>` : ""}
@@ -450,8 +465,8 @@ function segEdit(tsId){
     const v = read();
     if (!v.date || (v.outMin != null && v.outMin <= v.inMin)){ window.alert("Clock out must be after clock in."); return; }
     const [tt, tid] = v.tv.split("|");
-    ts.date = v.date; ts.clockIn = minHM(snap15(v.inMin));
-    if (v.outMin != null){ ts.clockOut = minHM(snap15(v.outMin)); ts.hours = r2((snap15(v.outMin) - snap15(v.inMin)) / 60); }
+    ts.date = v.date; ts.clockIn = minHM(v.inMin);                       // manual entry: exact, never rounds
+    if (v.outMin != null){ ts.clockOut = minHM(v.outMin); ts.hours = r2((v.outMin - v.inMin) / 60); }
     else { ts.clockOut = null; ts.hours = null; }
     ts.targetType = tt; ts.targetId = (tt === "contract" || tt === "workorder") ? (tid || null) : null;
     dismissModal(root); renderTimesheet();
