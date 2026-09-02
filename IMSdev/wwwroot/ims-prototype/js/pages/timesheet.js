@@ -83,7 +83,7 @@ function labSegs(empId){
 }
 
 /* ---- layout geometry ---- */
-const DAY_A = 360, DAY_B = 1200, ROWH = 30;   // day window 06:00–20:00; track row height px
+const DAY_A = 360, DAY_B = 1200, ROWH = 44;   // day window 06:00–20:00; track row height px (≈ scheduler rows)
 const effEndMin = (ts, now) => ts.clockOut ? hmMin(ts.clockOut) : now;
 
 /* Week/month: per employee-day, stack by time-overlap (sequential segments share a row). */
@@ -141,9 +141,12 @@ function blockHTML(it, showTxt, isDay){
   const style = `left:${r2(it.left)}%;width:${r2(it.width)}%;top:${it.top}px;height:${it.height}px`;
   const h = c => `<span class="ts-h ${c}" data-resize="${c === "ts-h-l" ? "l" : "r"}" title="Drag to resize"></span>`;
   const handles = isDay && !live ? h("ts-h-l") + h("ts-h-r") : "";
+  const inner = showTxt
+    ? `<span class="ts-block-title">${tsShort(seg)}</span><span class="ts-block-sub">${live ? "running" : (seg.clockOut ? seg.clockIn + "–" + seg.clockOut : segHours(seg) + "h")}</span>`
+    : "";
   return `<div class="ts-block ${tsKind(seg.targetType).cls}${live ? " ts-live" : ""}${live ? "" : " draggable"}"
       data-ts="${seg.tsId}" title="${tsTip(seg)}" style="${style}">
-      ${handles}${showTxt ? `<span class="ts-block-lbl">${tsShort(seg)}</span>` : ""}
+      ${handles}${inner}
     </div>`;
 }
 
@@ -229,7 +232,7 @@ function renderTimesheet(){
     const open = openSeg(emp.empId);
     const status = open ? `<span class="lab-dot live"></span>${tsShort(open)} · since ${open.clockIn}` : `${r2(closed)} hr logged`;
     const blocks = geo.items.map(it => blockHTML(it, isDay || LAB.view === "week", isDay)).join("");
-    return `<div class="tl-row lab-row">
+    return `<div class="tl-row lab-row${emp.empId === LAB.empSel ? " active" : ""}" data-emp="${emp.empId}">
       <div class="tl-row-label res lab-lbl">
         <div class="lab-row-name">${emp.name}<button class="btn btn-ims-outline btn-sm2 lab-clock" data-clock="${emp.empId}" title="Punch ${emp.name}"><i class="bi bi-stopwatch"></i></button></div>
         <div class="text-muted2">${emp.empId} · ${emp.role}</div>
@@ -254,8 +257,7 @@ function renderTimesheet(){
           <button class="btn btn-ims-outline btn-sm2" id="tsPrev"><i class="bi bi-chevron-left"></i></button>
           <span class="strong" id="tsLabel">${labRangeLabel()}</span>
           <button class="btn btn-ims-outline btn-sm2" id="tsNext"><i class="bi bi-chevron-right"></i></button>
-          <span class="ms-auto text-muted2" style="font-size:11px">Punching for <span class="strong">${selEmp.name}</span></span>
-          <div class="btn-group btn-group-sm" id="tsViewToggle">${viewBtns}</div>
+          <div class="btn-group ms-auto" id="tsViewToggle">${viewBtns}</div>
         </div>
         <div class="tl-week" id="tsWeek"><div class="tl-inner" style="min-width:${minW}px">
           ${headCols}
@@ -278,6 +280,11 @@ function bindTimesheet(isDay){
   bindPunch($("#tsPunch")); bindPunch($("#tsInspPunch"));
   $$(".lab-roster-row").forEach(r => r.addEventListener("click", () => { LAB.empSel = r.dataset.emp; renderTimesheet(); }));
   $$(".lab-clock, .lab-punch-ico").forEach(b => b.addEventListener("click", e => { e.stopPropagation(); openPunch(b.dataset.clock); }));
+  $$(".lab-row").forEach(r => r.addEventListener("click", e => {
+    if (e.target.closest(".ts-block") || e.target.closest(".lab-clock")) return;
+    LAB.empSel = r.dataset.emp; renderTimesheet();
+  }));
+  if (window.bootstrap && bootstrap.Tooltip) $$(".ts-block[title]").forEach(el => { try { new bootstrap.Tooltip(el, { trigger: "hover", container: "body", html: true }); } catch(_){} });
   $$(".ts-block").forEach(b => {
     b.addEventListener("click", e => { if (labJustDrag) { labJustDrag = false; return; } segEdit(b.dataset.ts); });
     if (b.classList.contains("draggable")) b.addEventListener("mousedown", e => { if (e.target.closest(".ts-h")) return; labDragBegin(e, b.dataset.ts, "move"); });

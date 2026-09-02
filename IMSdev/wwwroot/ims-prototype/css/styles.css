@@ -1181,3 +1181,12 @@ i.ts-idle { color: #94a3b8; }
 .punch-tgt.ts-shop { border-left: 3px solid #7c3aed; }
 .punch-tgt.ts-overhead { border-left: 3px solid #d97706; }
 .punch-tgt.ts-idle { border-left: 3px solid #94a3b8; }
+/* ---- timesheet / scheduler parity ---- */
+#tsViewToggle .btn-ims-outline { background: var(--slate-200); color: var(--slate-600); }
+#tsViewToggle .btn-ims-outline:hover { background: var(--slate-300); color: var(--slate-700); }
+.ts-block { flex-direction: column; align-items: flex-start; justify-content: center; gap: 1px; padding: 2px 6px; }
+.ts-block-title { display: block; max-width: 100%; font-size: 10.5px; font-weight: 700; line-height: 1.15; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ts-block-sub { display: block; max-width: 100%; font-size: 9px; opacity: .9; line-height: 1.15; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 600; }
+.tl-row.lab-row.active .tl-row-label { background: #eff6ff; border-right-color: var(--accent); }
+.tl-row.lab-row.active .tl-row-track { box-shadow: inset 0 0 0 1px var(--accent); }
+.tl-row.lab-row { min-height: 50px; }
