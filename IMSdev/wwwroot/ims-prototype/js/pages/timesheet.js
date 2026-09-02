@@ -85,7 +85,8 @@ function labSegs(empId){
 }
 
 /* ---- layout geometry ---- */
-const DAY_A = 360, DAY_B = 1200, ROWH = 54;   // day window 06:00–20:00; track row height px (tall bars)
+const DAY_A = 0, DAY_B = 1440, ROWH = 54;   // day view = full 24h from midnight (matches scheduler); row height px
+const ROWM = Math.max(4, Math.round(ROWH * 0.1)); // vertical margin inside a row band (keeps bars centered)
 const effEndMin = (ts, now) => ts.clockOut ? hmMin(ts.clockOut) : now;
 
 /* Week/month: per employee-day, stack by time-overlap (sequential segments share a row). */
@@ -95,15 +96,12 @@ function laneDays(empId, days, nowMin){
   const byDay = {}; labSegs(empId).forEach(t => { (byDay[t.date] = byDay[t.date] || []).push(t); });
   let laneRows = 1; const items = [];
   Object.keys(byDay).forEach(k => {
-    const arr = byDay[k].slice(0, 8).sort((x, y) => hmMin(x.clockIn) - hmMin(y.clockIn));
-    const slotEnd = [];
-    arr.forEach(seg => {
-      let s = hmMin(seg.clockIn), e = effEndMin(seg, nowMin); if (e <= s) e = s + 30;
-      let slot = slotEnd.findIndex(end => s >= end);
-      if (slot < 0) { slot = slotEnd.length; slotEnd.push(e); } else slotEnd[slot] = e;
-      laneRows = Math.max(laneRows, slot + 1);
-      const inset = cols > 26 ? 0.6 : 2.2; const ci = colIdx[k];
-      items.push({ seg, live: isLive(seg), left: ci * cw + inset / 2, width: cw - inset, top: slot * ROWH, height: ROWH - 5 });
+    const arr = byDay[k].slice(0, 6).sort((x, y) => hmMin(x.clockIn) - hmMin(y.clockIn));
+    laneRows = Math.max(laneRows, arr.length);          // one stacked row per segment on that day
+    const inset = cols > 26 ? 0.6 : 2.2; const ci = colIdx[k];
+    arr.forEach((seg, slot) => {
+      items.push({ seg, live: isLive(seg), left: ci * cw + inset / 2, width: cw - inset,
+        top: slot * ROWH + ROWM, height: ROWH - 2 * ROWM });
     });
   });
   return { items, laneRows };
@@ -123,8 +121,8 @@ function laneDay(empId, nowMin){
   });
   const items = placed.map(p => ({
     seg: p.seg, live: isLive(p.seg),
-    left: (p.s - DAY_A) / span * 100, width: Math.max(1.4, (p.e - p.s) / span * 100),
-    top: p.slot * ROWH, height: ROWH - 5
+    left: (p.s - DAY_A) / span * 100, width: Math.max(1.2, (p.e - p.s) / span * 100),
+    top: p.slot * ROWH + ROWM, height: ROWH - 2 * ROWM
   }));
   return { items, laneRows: Math.max(1, lanesEnd.length) };
 }
@@ -222,7 +220,7 @@ function renderTimesheet(){
 
   const lanes = labEmps().map(emp => {
     const geo = isDay ? laneDay(emp.empId, nowMin) : laneDays(emp.empId, days, nowMin);
-    const trackH = Math.max(30, geo.laneRows * ROWH + 6);
+    const trackH = geo.laneRows * ROWH;
     const closed = labSegs(emp.empId).reduce((s, t) => s + segHours(t), 0);
     const open = openSeg(emp.empId);
     const status = open ? `<span class="lab-dot live"></span>${tsShort(open)} · since ${open.clockIn}` : `${r2(closed)} hr logged`;
@@ -313,7 +311,7 @@ function labDragBegin(e, tsId, mode){
   const colIdx = {}; days.forEach((d, i) => colIdx[dISO(d)] = i);
   labJustDrag = false;
   labDrag = {
-    tsId, mode, isDay, grabX: e.clientX, rectW: rect.width || 1,
+    tsId, mode, isDay, grabX: e.clientX, rectLeft: rect.left || 0, rectW: rect.width || 1,
     origIn: hmMin(seg.clockIn), origOut: seg.clockOut ? hmMin(seg.clockOut) : hmMin(seg.clockIn),
     origCol: colIdx[seg.date] != null ? colIdx[seg.date] : 0,
     cols: days.length, lastD: 0, block: e.currentTarget.closest(".ts-block")
@@ -325,22 +323,26 @@ function labDragMove(e){
   const d = labDrag, seg = d && getTS(d.tsId);
   if (!seg) return;
   if (d.isDay){
-    const span = DAY_B - DAY_A, perPx = span / d.rectW;
-    const dn = Math.round((e.clientX - d.grabX) / perPx / 15) * 15;
+    const span = DAY_B - DAY_A;
     let ns = d.origIn, ne = d.origOut;
-    if (d.mode === "l") ns = Math.max(DAY_A, Math.min(d.origOut - 15, d.origIn + dn));
-    else if (d.mode === "r") ne = Math.min(DAY_B, Math.max(d.origIn + 15, d.origOut + dn));
-    else {
+    if (d.mode === "l" || d.mode === "r"){
+      // scheduler-style: the edge follows the cursor and snaps to the 15-min grid
+      const pm = DAY_A + (e.clientX - d.rectLeft) / d.rectW * span;
+      const t = Math.max(DAY_A, Math.min(DAY_B, snap15(pm)));
+      if (d.mode === "l") ns = Math.max(DAY_A, Math.min(d.origOut - 15, t));
+      else ne = Math.min(DAY_B, Math.max(d.origIn + 15, t));
+    } else {
+      const perPx = span / d.rectW;
+      const dn = Math.round((e.clientX - d.grabX) / perPx / 15) * 15;
       ns = d.origIn + dn; ne = d.origOut + dn;
       if (ns < DAY_A){ const sh = DAY_A - ns; ns += sh; ne += sh; }
       if (ne > DAY_B){ const sh = ne - DAY_B; ns -= sh; ne -= sh; }
     }
-    if (ns >= ne) ne = ns + 15;
     ns = Math.max(DAY_A, Math.min(DAY_B, ns)); ne = Math.max(DAY_A, Math.min(DAY_B, ne));
     if (ne <= ns) ne = Math.min(DAY_B, ns + 15);
-    if (dn) labJustDrag = true;
+    if (ns !== d.origIn || ne !== d.origOut) labJustDrag = true;
     seg.clockIn = minHM(snap15(ns)); seg.clockOut = minHM(snap15(ne)); seg.hours = r2((snap15(ne) - snap15(ns)) / 60);
-    const left = (snap15(ns) - DAY_A) / span * 100, w = Math.max(1.4, (snap15(ne) - snap15(ns)) / span * 100);
+    const left = (snap15(ns) - DAY_A) / span * 100, w = Math.max(1.2, (snap15(ne) - snap15(ns)) / span * 100);
     if (d.block){ d.block.style.left = left + "%"; d.block.style.width = w + "%"; }
   } else {
     const pxCol = d.rectW / d.cols;
