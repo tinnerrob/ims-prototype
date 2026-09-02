@@ -1247,3 +1247,10 @@ i.ts-lunch { color: #9ca3af; }
 .lab-l-title { font-size: 10px; color: var(--slate-500); }
 .lab-l-hours { font-size: 10px; font-weight: 700; color: var(--slate-700); margin-top: 2px; }
 .lab-live-dot { width: 7px; height: 7px; border-radius: 50%; background: #16a34a; display: inline-block; flex: 0 0 auto; }
+
+/* timesheet: right-hand clock gutter (shrinks calendar) */
+.tl-row.lab-row { grid-template-columns: 120px minmax(0,1fr) 40px; }
+.lab-row-clock { display: flex; align-items: center; justify-content: flex-end; }
+.lab-row-clock .btn { padding: 2px 5px; font-size: 11px; line-height: 1.2; }
+.tl-gutter { background: var(--card); border-left: 1px solid var(--slate-100); }
+.lab-lbl { padding-right: 2px; }

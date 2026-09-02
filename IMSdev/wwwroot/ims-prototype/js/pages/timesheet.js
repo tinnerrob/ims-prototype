@@ -211,15 +211,16 @@ function renderTimesheet(){
 
   /* header columns (120px sticky label to match .tl-row) */
   let headCols;
+  const GUT = 40; // right gutter column (clock buttons), slightly shrinking the calendar
   if (isDay){
     const cells = [];
     for (let h = DAY_A / 60; h < DAY_B / 60; h++){ const hh = h % 12 === 0 ? 12 : h % 12; cells.push(`<div class="tl-day-head">${hh}${h < 12 ? "a" : "p"}</div>`); }
-    headCols = `<div class="tl-head" style="grid-template-columns:120px repeat(${DAY_B / 60 - DAY_A / 60},1fr)"><div class="tl-corner">Employee</div>${cells.join("")}</div>`;
+    headCols = `<div class="tl-head" style="grid-template-columns:120px repeat(${DAY_B / 60 - DAY_A / 60},1fr) ${GUT}px"><div class="tl-corner">Employee</div>${cells.join("")}<div class="tl-gutter"></div></div>`;
   } else {
-    headCols = `<div class="tl-head" style="grid-template-columns:120px repeat(${cols},minmax(${LAB.view === "month" ? 34 : 88}px,1fr))"><div class="tl-corner">Employee</div>` +
-      days.map(d => `<div class="tl-day-head ${dISO(d) === todayKey ? "today" : ""}">${LAB.view === "month" ? d.getDate() : d.toLocaleDateString("en-US", { weekday: "short" })}<div class="text-muted2" style="font-size:10px">${d.getMonth() + 1}/${d.getDate()}</div></div>`).join("") + `</div>`;
+    headCols = `<div class="tl-head" style="grid-template-columns:120px repeat(${cols},minmax(${LAB.view === "month" ? 34 : 88}px,1fr)) ${GUT}px"><div class="tl-corner">Employee</div>` +
+      days.map(d => `<div class="tl-day-head ${dISO(d) === todayKey ? "today" : ""}">${LAB.view === "month" ? d.getDate() : d.toLocaleDateString("en-US", { weekday: "short" })}<div class="text-muted2" style="font-size:10px">${d.getMonth() + 1}/${d.getDate()}</div></div>`).join("") + `<div class="tl-gutter"></div></div>`;
   }
-  const minW = 120 + (isDay ? (DAY_B - DAY_A) / 60 * 44 : LAB.view === "month" ? cols * 40 : cols * 92);
+  const minW = 120 + GUT + (isDay ? (DAY_B - DAY_A) / 60 * 44 : LAB.view === "month" ? cols * 40 : cols * 92);
 
   const lanes = labEmps().map(emp => {
     const geo = isDay ? laneDay(emp.empId, nowMin) : laneDays(emp.empId, days, nowMin);
@@ -230,7 +231,6 @@ function renderTimesheet(){
     const blocks = geo.items.map(it => blockHTML(it, isDay || LAB.view === "week", isDay)).join("");
     return `<div class="tl-row lab-row${emp.empId === LAB.empSel ? " active" : ""}" data-emp="${emp.empId}">
       <div class="tl-row-label res lab-lbl">
-        <button class="lab-clock" data-clock="${emp.empId}" title="Punch ${emp.name}"><i class="bi bi-stopwatch"></i></button>
         <div class="lab-l-name">${emp.name}${open ? `<i class="lab-live-dot" title="On ${tsShort(open)} since ${open.clockIn}"></i>` : ""}</div>
         <div class="lab-l-code">${emp.empId}</div>
         <div class="lab-l-title">${emp.role}</div>
@@ -240,6 +240,7 @@ function renderTimesheet(){
         ${blocks || `<span class="text-muted2 lab-empty">No time</span>`}
         ${isDay ? `<div class="lab-nowline" style="left:${Math.max(0, Math.min(100, (nowMin - DAY_A) / (DAY_B - DAY_A) * 100))}%"></div>` : ""}
       </div>
+      <div class="lab-row-clock"><button class="btn btn-ims-outline btn-sm2" data-clock="${emp.empId}" title="Punch ${emp.name}"><i class="bi bi-stopwatch"></i></button></div>
     </div>`;
   }).join("");
 
@@ -274,10 +275,10 @@ function bindTimesheet(isDay){
   $("#tsViewToggle").querySelectorAll("[data-view]").forEach(b => b.addEventListener("click", () => setLabView(b.dataset.view)));
   $("#tsPrev").addEventListener("click", () => labNav(-1));
   $("#tsNext").addEventListener("click", () => labNav(1));
-  $$(".lab-clock").forEach(b => b.addEventListener("click", e => { e.stopPropagation(); openPunch(b.dataset.clock); }));
+  $$("[data-clock]").forEach(b => b.addEventListener("click", e => { e.stopPropagation(); openPunch(b.dataset.clock); }));
   $$(".lab-row").forEach(r => {
     r.addEventListener("click", e => {
-      if (e.target.closest(".ts-block") || e.target.closest(".lab-clock")) return;
+      if (e.target.closest(".ts-block") || e.target.closest(".lab-row-clock") || e.target.closest("[data-clock]")) return;
       LAB.empSel = r.dataset.emp; renderTimesheet();
     });
     const hi = e => { e.preventDefault(); r.classList.add("drop-hi"); };
@@ -382,19 +383,19 @@ function closeOpen(empId, endMin){
   o.clockOut = minHM(endMin); o.hours = r2((endMin - hmMin(o.clockIn)) / 60);
 }
 function nowExact(){ const n = new Date(); return n.getHours() * 60 + n.getMinutes(); }
-function punchIn(empId, targetType, targetId, startMin){
+function punchIn(empId, targetType, targetId, startMin, dateISO){
   closeOpen(empId, startMin);                       // exact keyed time, no rounding
   IMS.timesheets.push({
-    tsId: nextTsId(), empId, date: dISO(new Date()),
+    tsId: nextTsId(), empId, date: dateISO || dISO(new Date()),
     clockIn: minHM(startMin), clockOut: null,
     targetType, targetId: (targetType === "contract" || targetType === "workorder") ? targetId : null,
     hours: null
   });
   LAB.empSel = empId; renderTimesheet();
 }
-function clockInto(empId, type, id){ punchIn(empId, type, id, nowExact()); }
+function clockInto(empId, type, id){ punchIn(empId, type, id, nowExact(), dISO(new Date())); }
 function punchOut(empId){ closeOpen(empId, nowExact()); LAB.empSel = empId; renderTimesheet(); }
-function lunchOut(empId, min){ punchIn(empId, "lunch", null, min); }  // clock out for lunch (opens grey lunch)
+function lunchOut(empId, min, dateISO){ punchIn(empId, "lunch", null, min, dateISO); }  // clock out for lunch (opens grey lunch)
 function lunchIn(empId, min){ closeOpen(empId, min); renderTimesheet(); } // clock back in (closes grey lunch)
 
 function openPunch(empId){
@@ -414,8 +415,12 @@ function openPunch(empId){
     <div class="text-muted2 mb-2" style="font-size:12px">${onLunch
       ? "You're on lunch. Set the time above (lunch-in), then use the lunch button or pick a target to resume."
       : (open ? `On <strong>${segLabel(open)}</strong> since ${open.clockIn}. Choosing below switches jobs (closing it at the time above).` : "Clock into a job, work order, shop, overhead or idle at the time above.")}</div>
-    <div class="field-group mb-2"><label class="form-label">${onLunch ? "Lunch-in time" : open ? "Clock-out time for current" : "Punch time"}</label>
-      <input type="time" class="form-control" id="punch-time" value="${minHM(nowMin)}"></div>
+    <div class="row g-2 mb-2">
+      <div class="col-5"><label class="form-label">Work date</label>
+        <input type="date" class="form-control" id="punch-date" value="${dISO(new Date())}"></div>
+      <div class="col-7"><label class="form-label">${onLunch ? "Lunch-in time" : open ? "Clock-out time for current" : "Punch time"}</label>
+        <input type="time" class="form-control" id="punch-time" value="${minHM(nowMin)}"></div>
+    </div>
     ${lunchBtns}
     <div class="punch-label">Job</div><div class="punch-grid">${active.map(c => tgt("contract", c.contractId, `${c.contractId} · ${c.projectName}`, "ts-contract")).join("")}</div>
     <div class="punch-label">Work order</div><div class="punch-grid">${wos.length ? wos.map(w => tgt("workorder", w.woId, `${w.woId} · ${w.assetId}`, "ts-wo")).join("") : `<span class="text-muted2" style="font-size:12px">None open.</span>`}</div>
@@ -425,11 +430,12 @@ function openPunch(empId){
     <button type="button" class="btn btn-ims-outline" data-bs-dismiss="modal">Cancel</button>`;
   const root = openRawModal({ id: "mdl-punch", title: "Clock In / Out", icon: "bi-stopwatch", body, footer });
   const timeOf = () => { const v = root.querySelector("#punch-time").value; return v ? hmMin(v) : nowMin; }; // exact, never rounds
+  const dateOf = () => { const el = root.querySelector("#punch-date"); const v = el && el.value; return v || dISO(new Date()); };
   root.querySelectorAll(".punch-tgt").forEach(b => b.addEventListener("click", () => {
-    const tm = timeOf(); dismissModal(root); punchIn(empId, b.dataset.t, b.dataset.id || null, tm);
+    const tm = timeOf(), dt = dateOf(); dismissModal(root); punchIn(empId, b.dataset.t, b.dataset.id || null, tm, dt);
   }));
   const lo = root.querySelector("#lunch-out");
-  if (lo) lo.addEventListener("click", () => { const tm = timeOf(); dismissModal(root); lunchOut(empId, tm); });
+  if (lo) lo.addEventListener("click", () => { const tm = timeOf(), dt = dateOf(); dismissModal(root); lunchOut(empId, tm, dt); });
   const li = root.querySelector("#lunch-in");
   if (li) li.addEventListener("click", () => { const tm = timeOf(); dismissModal(root); lunchIn(empId, tm); });
   const co = root.querySelector("#pp-clockout");
