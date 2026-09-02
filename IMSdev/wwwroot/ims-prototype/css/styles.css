@@ -1216,3 +1216,8 @@ i.ts-lunch { color: #9ca3af; }
 @media (max-width: 1100px) { .ts-page { grid-template-columns: 250px 1fr; } }
 @media (max-width: 860px) { .ts-page { grid-template-columns: 1fr; height: auto; overflow: visible; } .ts-page .sched-timeline { min-height: 72vh; } }
 
+
+/* uniform, symmetric vertical rhythm in the timesheet timeline (matches scheduler feel) */
+.ts-page .tl-head { margin-bottom: 6px; }
+.ts-page .tl-body { gap: 6px; padding-bottom: 6px; }
+.ts-page .tl-inner { padding: 0 0 0 0; }
