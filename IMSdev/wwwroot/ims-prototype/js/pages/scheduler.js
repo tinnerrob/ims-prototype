@@ -8,6 +8,29 @@
    STAGE 2 — CONTRACT MANAGEMENT & SCHEDULER
    ========================================================= */
 
+/* Active contracts sorted by contract id (ascending). */
+const activeContracts = () =>
+  IMS.contracts.filter(c => c.status === "active")
+    .sort((a, b) => (a.contractId < b.contractId ? -1 : a.contractId > b.contractId ? 1 : 0));
+
+/* Sort line items by resource type (RESOURCE_TYPE_ORDER) then ref id (ascending),
+   so same-type resources are grouped and each group is sorted. */
+const sortLineItems = items =>
+  (items || []).slice().sort((a, b) => {
+    const ta = RESOURCE_TYPE_ORDER.indexOf(a.type);
+    const tb = RESOURCE_TYPE_ORDER.indexOf(b.type);
+    const ia = ta === -1 ? RESOURCE_TYPE_ORDER.length : ta;
+    const ib = tb === -1 ? RESOURCE_TYPE_ORDER.length : tb;
+    if (ia !== ib) return ia - ib;
+    return a.refId < b.refId ? -1 : a.refId > b.refId ? 1 : 0;
+  });
+
+/* Sort an array of resource records by a code field (ascending). */
+const byCode = (arr, key) =>
+  arr.slice().sort((a, b) => {
+    const x = String(a[key] || ""), y = String(b[key] || "");
+    return x < y ? -1 : x > y ? 1 : 0;
+  });
 
 /* ---- weekly timeline helpers ---- */
 const mondayOf = d => { const x = new Date(d); x.setDate(x.getDate() - ((x.getDay() + 6) % 7)); x.setHours(0,0,0,0); return x; };
@@ -173,13 +196,14 @@ function focusContract(id){
 
 function renderSchedQueue(){
   const box = $("#schedQueue");
-  const contracts = IMS.contracts.filter(c => c.status === "active");
+  const contracts = activeContracts();
   const cList = contracts.map(c => `<div class="queue-contract ${c.contractId === App.contractId ? "active" : ""}" data-qcid="${c.contractId}">
     <div class="qc-head"><i class="bi bi-briefcase"></i><span class="strong" style="font-size:12px">${c.contractId}</span></div>
     <div class="text-muted2" style="font-size:11px">${c.customer}</div>
     <div class="text-muted2" style="font-size:10.5px">${fmtDate(c.startDate)} → ${fmtDate(c.endDate)}</div>
   </div>`).join("") || `<p class="text-muted2 py-2">No active contracts.</p>`;
-  const poolTabs = [{ key:"serialized", label:"Serialized Equipment" }, { key:"bulk", label:"Bulk Resources" }, { key:"consumable", label:"Consumables" }, { key:"parts", label:"Stock Inventory" }, { key:"labor", label:"Labor / Employees" }, { key:"kits", label:"Kits" }, { key:"attachments", label:"Attachments" }];
+  const poolLabels = { serialized:"Serialized Equipment", bulk:"Bulk Resources", consumable:"Consumables", parts:"Stock Inventory", labor:"Labor / Employees", attachments:"Attachments", kits:"Kits" };
+  const poolTabs = RESOURCE_TYPE_ORDER.map(k => ({ key:k, label: poolLabels[k] }));
   box.innerHTML = `
     <div class="card mb-3">
       <div class="card-header"><span class="card-title"><i class="bi bi-briefcase"></i> Active Contracts</span>
@@ -233,13 +257,13 @@ function renderPoolList(){
   const box = $("#poolList");
   const t = App.schedPoolTab;
   let html = "";
-  if (t === "serialized") html = IMS.serializedAssets.filter(a => recActive(a)).map(a => resCard("serialized", a.id, `${a.id} · ${a.make} ${a.model}`, `${a.status} · ${fmtMoney(a.baseDaily)}/d`, a.status === "In Shop" || a.status === "On Rent")).join("");
-  else if (t === "bulk") html = IMS.bulkResources.filter(b => recActive(b)).map(b => resCard("bulk", b.sku, `${b.sku} · ${b.name}`, `${fmtInt(b.qtyAvailable)} avail · ${fmtInt(globalBookedQty("bulk", b.sku))} booked · ${fmtMoney(b.baseDaily)}/u`)).join("");
-  else if (t === "consumable") html = IMS.consumables.filter(c => recActive(c)).map(c => resCard("consumable", c.sku, `${c.sku} · ${c.name}`, `${fmtInt(c.qtyOnHand)} on hand · ${fmtInt(globalBookedQty("consumable", c.sku))} booked · ${fmtMoney(c.retailPrice)}`)).join("");
-  else if (t === "labor") html = IMS.labor.filter(e => recActive(e)).map(e => resCard("labor", e.empId, `${e.empId} · ${e.name}`, `${e.role} · ${fmtMoney(e.hourlyBillable)}/hr`)).join("");
-  else if (t === "parts") html = IMS.parts.filter(p => recActive(p)).map(p => resCard("part", p.partId, `${p.partId} · ${p.description}`, `${p.bin} · ${fmtInt(p.qtyOnHand)} on hand · ${fmtInt(globalBookedQty("part", p.partId))} booked · ${fmtMoney(p.costPrice)}`)).join("");
-  else if (t === "kits") html = IMS.kits.filter(k => recActive(k)).map(k => resCard("kit", k.kitId, `${k.kitId} · ${k.name}`, `${fmtInt(k.qtyOwned || 1)} owned · ${fmtInt(globalBookedQty("kit", k.kitId))} booked · ${fmtMoney(k.baseRate)}/d`)).join("");
-  else if (t === "attachments") html = IMS.attachments.filter(a => recActive(a)).map(a => resCard("attachment", a.accId, `${a.accId} · ${a.name}`, `${a.category} · ${fmtInt(a.qtyOwned || 1)} owned · ${fmtInt(globalBookedQty("attachment", a.accId))} booked · ${fmtMoney(a.daily)}/d`)).join("");
+  if (t === "serialized") html = byCode(IMS.serializedAssets.filter(a => recActive(a)), "id").map(a => resCard("serialized", a.id, `${a.id} · ${a.make} ${a.model}`, `${a.status} · ${fmtMoney(a.baseDaily)}/d`, a.status === "In Shop" || a.status === "On Rent")).join("");
+  else if (t === "bulk") html = byCode(IMS.bulkResources.filter(b => recActive(b)), "sku").map(b => resCard("bulk", b.sku, `${b.sku} · ${b.name}`, `${fmtInt(b.qtyAvailable)} avail · ${fmtInt(globalBookedQty("bulk", b.sku))} booked · ${fmtMoney(b.baseDaily)}/u`)).join("");
+  else if (t === "consumable") html = byCode(IMS.consumables.filter(c => recActive(c)), "sku").map(c => resCard("consumable", c.sku, `${c.sku} · ${c.name}`, `${fmtInt(c.qtyOnHand)} on hand · ${fmtInt(globalBookedQty("consumable", c.sku))} booked · ${fmtMoney(c.retailPrice)}`)).join("");
+  else if (t === "labor") html = byCode(IMS.labor.filter(e => recActive(e)), "empId").map(e => resCard("labor", e.empId, `${e.empId} · ${e.name}`, `${e.role} · ${fmtMoney(e.hourlyBillable)}/hr`)).join("");
+  else if (t === "parts") html = byCode(IMS.parts.filter(p => recActive(p)), "partId").map(p => resCard("part", p.partId, `${p.partId} · ${p.description}`, `${p.bin} · ${fmtInt(p.qtyOnHand)} on hand · ${fmtInt(globalBookedQty("part", p.partId))} booked · ${fmtMoney(p.costPrice)}`)).join("");
+  else if (t === "kits") html = byCode(IMS.kits.filter(k => recActive(k)), "kitId").map(k => resCard("kit", k.kitId, `${k.kitId} · ${k.name}`, `${fmtInt(k.qtyOwned || 1)} owned · ${fmtInt(globalBookedQty("kit", k.kitId))} booked · ${fmtMoney(k.baseRate)}/d`)).join("");
+  else if (t === "attachments") html = byCode(IMS.attachments.filter(a => recActive(a)), "accId").map(a => resCard("attachment", a.accId, `${a.accId} · ${a.name}`, `${a.category} · ${fmtInt(a.qtyOwned || 1)} owned · ${fmtInt(globalBookedQty("attachment", a.accId))} booked · ${fmtMoney(a.daily)}/d`)).join("");
   box.innerHTML = html || `<p class="text-muted2 py-2">No resources in this pool.</p>`;
 }
 
@@ -255,7 +279,7 @@ function renderTimeline(){
   const isDay = App.schedView === "day";
   const anchor = schedAnchor();
   const days = isMonth ? monthDates(anchor) : (isDay ? dayDates(anchor) : weekDates(anchor));
-  const contracts = IMS.contracts.filter(c => c.status === "active");
+  const contracts = activeContracts();
   const conflictKeys = new Set(collectConflicts().map(f => f.type + "|" + f.refId));
   let gridCols, minWidth, head;
   if (isDay){
@@ -275,7 +299,7 @@ function renderTimeline(){
   }
   let lanes = "";
   contracts.forEach(c => {
-    const items = c.lineItems || [];
+    const items = sortLineItems(c.lineItems);
     const expanded = App.schedExpanded && App.schedExpanded.has(c.contractId);
     const g = tlGeom(c.startDate, c.endDate);
     if (!g) return;

@@ -22,15 +22,18 @@ function invAddLabel(){
 }
 
 function renderInventory(){
-  const tabs = [
-    { key:"serialized",  label:"Serialized Equipment", icon:"bi-truck-front", count: IMS.serializedAssets.length },
-    { key:"bulk",        label:"Bulk Resources",       icon:"bi-boxes",       count: IMS.bulkResources.length },
-    { key:"consumable",  label:"Consumables",          icon:"bi-capsule",     count: IMS.consumables.length },
-    { key:"parts",       label:"Stock Inventory",      icon:"bi-wrench-adjustable", count: IMS.parts.length },
-    { key:"labor",       label:"Labor / Employees",    icon:"bi-person-badge", count: IMS.labor.length },
-    { key:"attachments", label:"Attachments",          icon:"bi-paperclip",   count: IMS.attachments.length },
-    { key:"kits",        label:"Kits",                 icon:"bi-puzzle",      count: IMS.kits.length }
-  ];
+  /* Type order follows the shared RESOURCE_TYPE_ORDER so it always matches the
+     scheduler resource-pool dropdown and timeline grouping. */
+  const tabMeta = {
+    serialized:  { label:"Serialized Equipment", icon:"bi-truck-front",      count: IMS.serializedAssets.length },
+    bulk:        { label:"Bulk Resources",       icon:"bi-boxes",            count: IMS.bulkResources.length },
+    consumable:  { label:"Consumables",          icon:"bi-capsule",          count: IMS.consumables.length },
+    parts:       { label:"Stock Inventory",      icon:"bi-wrench-adjustable",count: IMS.parts.length },
+    labor:       { label:"Labor / Employees",    icon:"bi-person-badge",     count: IMS.labor.length },
+    attachments: { label:"Attachments",          icon:"bi-paperclip",        count: IMS.attachments.length },
+    kits:        { label:"Kits",                 icon:"bi-puzzle",           count: IMS.kits.length }
+  };
+  const tabs = RESOURCE_TYPE_ORDER.map(k => ({ key:k, ...tabMeta[k] }));
   $("#content").innerHTML = `
     <div class="page-head"></div>
     <div class="card">

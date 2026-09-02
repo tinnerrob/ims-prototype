@@ -474,6 +474,9 @@ function liDays(li, c){ return daysBetween(liStart(li, c), liEnd(li, c)); }
 
 /* Format a Date as "YYYY-MM-DDTHH:mm". @param {Date} d @returns {string} */
 function toISO(d){ return `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}T${pad2(d.getHours())}:${pad2(d.getMinutes())}`; }
+/* Canonical resource-type display order (shared by Inventory tabs, the scheduler
+   resource-pool dropdown, and scheduler timeline grouping). */
+const RESOURCE_TYPE_ORDER = ["serialized", "bulk", "consumable", "parts", "labor", "attachments", "kits"];
 const TYPE_LABEL = { serialized:"Serialized", bulk:"Bulk", consumable:"Consumable", labor:"Labor", part:"Part", kit:"Kit", attachment:"Attachment" };
 /* True for multi-unit (quantity) resource types that may be split across contracts. @param {string} type @returns {boolean} */
 function isQuantityType(type){
