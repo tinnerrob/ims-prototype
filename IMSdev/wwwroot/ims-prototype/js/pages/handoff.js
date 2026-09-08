@@ -65,6 +65,12 @@ function hoCheckIn(assetId){
   hoLog(assetId, info.contractId, "Check-In", info.custodian, "Returned to yard / available.");
   const a = getResource({ type: "serialized", refId: assetId });
   if (a){ a.status = "Available"; a.contractId = null; }
+  /* A walk-in counter rental completes when its last asset is returned. */
+  const c = info.contract;
+  if (c && c.counter){
+    const stillOut = IMS.serializedAssets.some(x => { const o = assetOutInfo(x.id); return o && o.contractId === c.contractId; });
+    if (!stillOut){ c.status = "closed"; c.endDate = (c.endDate || ""); }
+  }
   renderHandoff();
 }
 
@@ -133,6 +139,10 @@ function renderHandoff(){
       <td>${h.custodian}</td><td class="mono">${fmtDT(h.at)}</td><td>${h.by}</td>
     </tr>`).join("");
 
+  const today = hoTodayStr();
+  const renAssets = IMS.serializedAssets.filter(a => recActive(a) && a.status !== "In Shop" && !assetOutInfo(a.id));
+  const renOpts = renAssets.map(a => `<option value="${a.id}">${a.id} — ${a.make} ${a.model} · ${fmtMoney(a.baseDaily)}/d</option>`).join("");
+  const custOpts = IMS.customers.map(c => `<option value="${c.id}">${c.name}</option>`).join("") + `<option value="__new__">+ New walk-in customer…</option>`;
   $("#content").innerHTML = `
     <div class="page-head"></div>
     <div class="row g-3 mb-3">
@@ -142,6 +152,20 @@ function renderHandoff(){
         <div class="ho-stat-num">${scheduled}</div><div class="text-muted2">Scheduled this period</div></div></div></div>
       <div class="col-md-4"><div class="card"><div class="card-body ho-stat">
         <div class="ho-stat-num">${all.length - outN}</div><div class="text-muted2">In yard / available</div></div></div></div>
+    </div>
+    <div class="card mb-3">
+      <div class="card-header"><span class="card-title"><i class="bi bi-shop"></i> Walk-in Counter Rental</span>
+        <span class="text-muted2" style="font-weight:500">Rent on the spot — creates a short-term rental, checks equipment out, and completes it on return</span></div>
+      <div class="card-body">
+        <div class="row g-2 align-items-end">
+          <div class="col-md-3 field-group"><label class="form-label">Customer</label><select id="ren-cust" class="form-select">${custOpts}</select></div>
+          <div class="col-md-2 field-group" id="ren-new-wrap" style="display:none"><label class="form-label">Walk-in name</label><input id="ren-new" class="form-control" placeholder="Customer name"></div>
+          <div class="col-md-3 field-group"><label class="form-label">Equipment</label><select id="ren-asset" class="form-select">${renOpts || `<option value="">— no equipment available —</option>`}</select></div>
+          <div class="col-md-2 field-group"><label class="form-label">Check-out date</label><input id="ren-start" class="form-control" type="date" value="${today}"></div>
+          <div class="col-md-2 field-group"><label class="form-label">Return date</label><input id="ren-end" class="form-control" type="date" value="${today}"></div>
+        </div>
+        <button id="renRent" class="btn btn-ims mt-3"><i class="bi bi-box-arrow-up-right"></i> Rent &amp; Check Out</button>
+      </div>
     </div>
     <div class="card mb-3">
       <div class="card-header"><span class="card-title"><i class="bi bi-truck"></i> Equipment by Contract — Dispatch &amp; Return</span>
@@ -173,5 +197,49 @@ function renderHandoff(){
     if (el.dataset.audit) hoAuditModal(el.dataset.audit);
     else if (el.dataset.ho === "in") hoCheckIn(el.dataset.asset);
   });
+  const custSel = $("#ren-cust");
+  if (custSel) custSel.addEventListener("change", () => { const w = $("#ren-new-wrap"); if (w) w.style.display = custSel.value === "__new__" ? "" : "none"; });
+  const rs = $("#ren-start"), re = $("#ren-end");
+  if (rs && re) rs.addEventListener("change", () => { if (!re.value || re.value < rs.value) re.value = rs.value; });
+  const rb = $("#renRent");
+  if (rb) rb.addEventListener("click", createCounterRental);
+}
+
+
+/* ---- walk-in counter rental ---- */
+function hoTodayStr(){ const d = new Date(); const p = n => String(n).padStart(2, "0"); return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`; }
+function counterContractId(){ let n = 0; IMS.contracts.forEach(c => { const m = parseInt(String(c.contractId).split("-").pop(), 10); if (m > n) n = m; }); return `CT-${new Date().getFullYear()}-${String(n + 1).padStart(3, "0")}`; }
+function counterCustId(){ let n = 0; IMS.customers.forEach(c => { const m = parseInt(String(c.id).split("-").pop(), 10); if (m > n) n = m; }); return "CUST-" + String(n + 1).padStart(3, "0"); }
+function counterLiId(){ let n = 0; IMS.contracts.forEach(c => (c.lineItems || []).forEach(l => { const m = parseInt(String(l.id).split("-")[1], 10); if (m > n) n = m; })); return "LI-" + String(n + 1).padStart(3, "0"); }
+
+function createCounterRental(){
+  const custVal = $("#ren-cust").value;
+  let custId = custVal, custName = custVal, contact = custVal;
+  if (custVal === "__new__"){
+    custName = ($("#ren-new").value || "").trim();
+    if (!custName){ window.alert("Enter the walk-in customer's name."); return; }
+    custId = counterCustId();
+    IMS.customers.push({ id: custId, name: custName, contact: custName, phone: "", email: "", billingAddress: "Front counter", billingCycle: "walk-in", notes: "Counter rental" });
+    contact = custName;
+  } else {
+    const c = getCustomer(custVal);
+    if (c){ custName = c.name; contact = c.contact || c.name; }
+  }
+  const assetId = $("#ren-asset").value;
+  if (!assetId){ window.alert("Choose equipment to rent."); return; }
+  const start = $("#ren-start").value || hoTodayStr();
+  let end = $("#ren-end").value || start; if (end < start) end = start;
+  const a = getResource({ type: "serialized", refId: assetId });
+  const cid = counterContractId();
+  IMS.contracts.push({
+    contractId: cid, customerId: custId, customer: custName, jobSite: "Front counter pickup",
+    projectName: "Counter Rental — " + custName,
+    startDate: start + "T09:00", endDate: end + "T17:00", status: "active", counter: true,
+    siteLat: (IMS.yard && IMS.yard.lat) || 33.7490, siteLng: (IMS.yard && IMS.yard.lng) || -84.3880,
+    lineItems: [{ id: counterLiId(), type: "serialized", refId: assetId, qty: 1, pricingMatrix: "standard", weekendPolicy: "bill", riskPremium: "standard", flatTotal: 0 }]
+  });
+  if (a){ a.status = "On Rent"; a.contractId = cid; }
+  hoLog(assetId, cid, "Check-Out", contact, "Counter rental — checked out at the front desk.");
+  renderHandoff();
 }
 
