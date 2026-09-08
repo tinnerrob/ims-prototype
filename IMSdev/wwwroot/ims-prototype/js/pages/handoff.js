@@ -275,9 +275,9 @@ function rnAddItem(){
       <div class="row g-2">
         <div class="col-3 field-group"><label class="form-label">Charge</label>
           <select class="form-select rn-freq" id="rn_f_${seq}"><option value="hour">Hour</option><option value="day" selected>Day</option><option value="week">Week</option></select></div>
-        <div class="col-3 field-group"><label class="form-label">Hour</label><input class="form-control rn-rate" id="rn_h_${seq}" type="number" step="0.01" min="0"></div>
-        <div class="col-3 field-group"><label class="form-label">Day</label><input class="form-control rn-rate" id="rn_d_${seq}" type="number" step="0.01" min="0"></div>
-        <div class="col-3 field-group"><label class="form-label">Week</label><input class="form-control rn-rate" id="rn_w_${seq}" type="number" step="0.01" min="0"></div>
+        <div class="col-9 field-group rn-ratebox" data-rate="hour" style="display:none"><label class="form-label">Custom Hour rate</label><input class="form-control rn-rate" id="rn_h_${seq}" type="number" step="0.01" min="0"></div>
+        <div class="col-9 field-group rn-ratebox" data-rate="day"><label class="form-label">Custom Day rate</label><input class="form-control rn-rate" id="rn_d_${seq}" type="number" step="0.01" min="0"></div>
+        <div class="col-9 field-group rn-ratebox" data-rate="week" style="display:none"><label class="form-label">Custom Week rate</label><input class="form-control rn-rate" id="rn_w_${seq}" type="number" step="0.01" min="0"></div>
       </div>
       <div class="row g-2">
         <div class="col-3 field-group"><label class="form-label">Deposit (%)</label><input class="form-control rn-dep" id="rn_p_${seq}" type="number" min="0" max="100" step="1" value="25"></div>
@@ -286,12 +286,23 @@ function rnAddItem(){
     </div>`;
   box.insertAdjacentHTML("beforeend", html);
   rnFill(seq); // load default rates for the first option and refresh
-  // bindings for this line
+  rnApplyFreq(seq); // only show the rate matching the charge frequency
   const seg = box.querySelector('[data-seq="' + seq + '"]');
   seg.querySelector("#rn_a_" + seq).addEventListener("change", () => rnFill(seq));
-  seg.querySelectorAll(".rn-rate, .rn-date, .rn-dep, .rn-freq, .rn-ref").forEach(i => i.addEventListener("input", rnRefreshPreview));
+  seg.querySelector(".rn-freq").addEventListener("change", () => { rnApplyFreq(seq); rnRefreshPreview(); });
+  seg.querySelectorAll(".rn-rate, .rn-date, .rn-dep, .rn-ref").forEach(i => i.addEventListener("input", rnRefreshPreview));
   seg.querySelector(".rn-ref").addEventListener("change", rnRefreshPreview);
   seg.querySelector(".rn-del").addEventListener("click", () => { seg.remove(); rnRefreshPreview(); });
+}
+
+/* Show only the custom-rate box that matches this line's charge frequency. */
+function rnApplyFreq(seq){
+  const seg = document.querySelector('#rn-items .rn-item[data-seq="' + seq + '"]');
+  if (!seg) return;
+  const f = seg.querySelector("#rn_f_" + seq);
+  if (!f) return;
+  const freq = f.value;
+  seg.querySelectorAll(".rn-ratebox").forEach(b => { b.style.display = b.dataset.rate === freq ? "" : "none"; });
 }
 
 
