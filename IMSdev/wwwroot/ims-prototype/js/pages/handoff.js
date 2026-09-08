@@ -207,8 +207,10 @@ function openNewRentalModal(){
     </div>
     <div id="rn-ratebox"></div>
     <div class="row g-2">
-      <div class="col-md-4 field-group"><label class="form-label">Deposit (%)</label><input class="form-control" id="rn-deposit" type="number" min="0" max="100" step="1" value="25"></div>
-      <div class="col-md-4 field-group" style="padding-top:24px"><div class="form-check form-switch"><input class="form-check-input" type="checkbox" id="rn-refundable" checked><label class="form-check-label" for="rn-refundable">Refundable deposit</label></div></div>
+      <div class="col-md-3 field-group"><label class="form-label">Deposit (%)</label><input class="form-control" id="rn-deposit" type="number" min="0" max="100" step="1" value="25"></div>
+      <div class="col-md-3 field-group"><label class="form-label">Charge frequency</label>
+        <select class="form-select" id="rn-freq"><option value="hour">Hour</option><option value="day" selected>Day</option><option value="week">Week</option></select></div>
+      <div class="col-md-6 field-group" style="padding-top:24px"><div class="form-check form-switch"><input class="form-check-input" type="checkbox" id="rn-refundable" checked><label class="form-check-label" for="rn-refundable">Refundable deposit</label></div></div>
     </div>
     <div id="rn-preview" class="ho-preview"></div>`;
   const root = openRawModal({
@@ -227,6 +229,7 @@ function openNewRentalModal(){
   const onPick = () => { rnRenderRates(); refresh(); };
   $("#rn-assets").addEventListener("change", onPick);
   $("#rn-deposit").addEventListener("input", refresh);
+  $("#rn-freq").addEventListener("change", refresh);
   $("#rn-refundable").addEventListener("change", refresh);
   $("#rn-start").addEventListener("change", () => { const e = $("#rn-end"); if (e && (!e.value || e.value < $("#rn-start").value)) e.value = $("#rn-start").value; refresh(); });
   $("#rn-end").addEventListener("change", refresh);
@@ -239,9 +242,20 @@ function rnRefreshPreview(){
   const box = $("#rn-preview"); if (!box) return;
   const sel = Array.from($("#rn-assets").selectedOptions);
   const start = $("#rn-start").value, end = $("#rn-end").value;
-  const days = (start && end) ? daysBetween(start, end) : 0;
+  const days = (start && end) ? Math.max(1, daysBetween(start, end)) : 0;
+  const freq = $("#rn-freq") ? $("#rn-freq").value : "day";
+  const minH = (IMS.settings.pricing && IMS.settings.pricing.dailyMinHours) || 8;
+  const units = freq === "week" ? Math.max(1, Math.ceil(days / 7)) : (freq === "hour" ? days * minH : days);
+  const uLabel = freq === "week" ? "week" : freq === "hour" ? "hour" : "day";
   let subtotal = 0;
-  sel.forEach(o => { const el = $("#rn-day_" + o.value); const daily = el ? (parseFloat(el.value) || 0) : 0; subtotal += daily * days; });
+  sel.forEach(o => {
+    const id = o.value, a = getResource({ type: "serialized", refId: id }), def = rnDefaultRate(a);
+    const key = freq === "hour" ? "hourly" : freq === "week" ? "weekly" : "daily";
+    const inputId = "rn-" + (key === "hourly" ? "hr" : key === "weekly" ? "wk" : "day") + "_" + id;
+    const el = $("#" + inputId);
+    const rate = el ? (parseFloat(el.value) || 0) : def[key];
+    subtotal += rate * units;
+  });
   const depEl = $("#rn-deposit"); const depPct = depEl ? Math.min(100, Math.max(0, parseFloat(depEl.value) || 0)) : 0;
   const refund = $("#rn-refundable") ? $("#rn-refundable").checked : true;
   const deposit = subtotal * depPct / 100;
@@ -249,7 +263,7 @@ function rnRefreshPreview(){
   const total = subtotal + tax;
   box.innerHTML = subtotal > 0
     ? `<div class="divider"></div>
-       <div class="list-line"><span class="l">${sel.length} asset(s) × ${days} day(s)</span><span class="r">${fmtMoney(subtotal)}</span></div>
+       <div class="list-line"><span class="l">${sel.length} asset(s) × ${units} ${uLabel}${units !== 1 ? "s" : ""}</span><span class="r">${fmtMoney(subtotal)}</span></div>
        <div class="list-line"><span class="l">Sales tax (${Math.round(taxRate() * 100)}%)</span><span class="r">${fmtMoney(tax)}</span></div>
        <div class="list-line"><span class="l">Deposit (${depPct}%, ${refund ? "refundable" : "non-refundable"})</span><span class="r">${fmtMoney(deposit)}</span></div>
        <div class="list-line"><span class="l strong">Total due at pick-up</span><span class="r strong">${fmtMoney(total)}</span></div>`
@@ -281,6 +295,7 @@ function createRentalFromModal(root){
   const num = id => { const el = $("#" + id); return el ? (parseFloat(el.value) || 0) : 0; };
   const depositPct = num("rn-deposit");
   const depositRefundable = $("#rn-refundable") ? $("#rn-refundable").checked : true;
+  const rentalFreq = $("#rn-freq") ? $("#rn-freq").value : "day";
   const lineItems = ids.map(refId => {
     const a = getResource({ type: "serialized", refId });
     const def = rnDefaultRate(a);
@@ -294,7 +309,7 @@ function createRentalFromModal(root){
     jobSite: custAddr || "Front counter pickup",
     projectName: "Equipment Rental — " + custName,
     startDate: start + "T09:00", endDate: end + "T17:00", status: "active", counter: true,
-    depositPct, depositRefundable,
+    depositPct, depositRefundable, rentalFreq,
     siteLat: (IMS.yard && IMS.yard.lat) || 33.7490, siteLng: (IMS.yard && IMS.yard.lng) || -84.3880,
     lineItems
   });
@@ -329,9 +344,9 @@ function rnRenderRates(){
     return `<div class="rn-item">
       <div class="rn-item-head"><span class="mono strong">${a ? a.id : o.value}</span><span class="text-muted2">${a ? a.make + " " + a.model : ""}</span></div>
       <div class="row g-2">
-        <div class="col-4 field-group"><label class="form-label">Hour / hr</label><input class="form-control form-control-sm" id="rn-hr_${o.value}" type="number" step="0.01" min="0" value="${d.hourly}"></div>
-        <div class="col-4 field-group"><label class="form-label">Day / day</label><input class="form-control form-control-sm" id="rn-day_${o.value}" type="number" step="0.01" min="0" value="${d.daily}"></div>
-        <div class="col-4 field-group"><label class="form-label">Week / week</label><input class="form-control form-control-sm" id="rn-wk_${o.value}" type="number" step="0.01" min="0" value="${d.weekly}"></div>
+        <div class="col-4 field-group"><label class="form-label">Hour</label><input class="form-control form-control-sm" id="rn-hr_${o.value}" type="number" step="0.01" min="0" value="${d.hourly}"></div>
+        <div class="col-4 field-group"><label class="form-label">Day</label><input class="form-control form-control-sm" id="rn-day_${o.value}" type="number" step="0.01" min="0" value="${d.daily}"></div>
+        <div class="col-4 field-group"><label class="form-label">Week</label><input class="form-control form-control-sm" id="rn-wk_${o.value}" type="number" step="0.01" min="0" value="${d.weekly}"></div>
       </div>
     </div>`;
   }).join("");
