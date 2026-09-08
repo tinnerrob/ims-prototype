@@ -1311,3 +1311,11 @@ tr.ho-sec td .mono { font-size: 12px; }
 .rn-depcell { display: flex; flex-direction: column; padding-top: 0; }
 .rn-depspacer { display: block; height: 18px; margin-bottom: 4px; padding: 0; }
 .rn-depcell-row { display: flex; align-items: center; flex: 1 1 auto; min-height: 0; }
+
+/* hand-off: split rented/scheduled scrollable tables + clickable rows */
+.ho-scroll { max-height: 460px; overflow-y: auto; border: 1px solid var(--line-soft); border-radius: 10px; }
+.ho-scroll thead th { position: sticky; top: 0; background: #fff; z-index: 1; box-shadow: 0 1px 0 var(--line); }
+.ho-row { cursor: pointer; }
+.ho-row:hover td { background: rgba(79, 70, 229, .05); }
+.ho-row td:first-child { box-shadow: inset 3px 0 0 transparent; transition: box-shadow var(--t-fast); }
+.ho-row:hover td:first-child { box-shadow: inset 3px 0 0 var(--brand); }
