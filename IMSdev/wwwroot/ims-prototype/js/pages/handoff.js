@@ -66,11 +66,22 @@ function hoCheckIn(assetId, note){
   hoLog(assetId, info.contractId, "Check-In", info.custodian, note || "Returned to yard / available.");
   const a = getResource({ type: "serialized", refId: assetId });
   if (a){ a.status = "Available"; a.contractId = null; }
-  /* A walk-in rental completes when its last asset is returned. */
+  /* Check-in must NOT remove the contract from the scheduler. If the unit is
+     returned before its scheduled end, tighten the contract window so the
+     scheduler reflects the actual (early) check-in timeframe. */
   const c = info.contract;
-  if (c && c.counter){
+  const returnAt = hoStamp();
+  if (c){
     const stillOut = IMS.serializedAssets.some(x => { const o = assetOutInfo(x.id); return o && o.contractId === c.contractId; });
-    if (!stillOut){ c.status = "closed"; }
+    const liEnd = l => (l.endDate || c.endDate || "");
+    const li = (c.lineItems || []).find(l => l.type === "serialized" && l.refId === assetId);
+    if (li && liEnd(li) && returnAt < liEnd(li)) li.endDate = returnAt;
+    if (!stillOut){
+      if (!c.endDate || returnAt < c.endDate) c.endDate = returnAt;
+      (c.lineItems || []).forEach(l => {
+        if (l.type === "serialized" && liEnd(l) && returnAt < liEnd(l)) l.endDate = returnAt;
+      });
+    }
   }
   renderHandoff();
 }
