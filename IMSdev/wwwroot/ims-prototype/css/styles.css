@@ -1269,3 +1269,6 @@ i.ts-lunch { color: #9ca3af; }
 .ho-stat-num { font-size: 26px; font-weight: 800; color: var(--slate-800); line-height: 1; margin-bottom: 4px; }
 tr.ho-sec td { background: var(--slate-100); font-size: 11px; color: var(--slate-700); padding: 5px 8px; }
 tr.ho-sec td .mono { font-size: 12px; }
+
+.ho-new-cust { background: #f8fafc; border: 1px solid var(--slate-100); border-radius: 8px; padding: 8px; margin-top: 6px; }
+.ho-preview .divider { margin: 10px 0; }
