@@ -82,20 +82,6 @@ function nextCustomerId(){ let n = 0; IMS.customers.forEach(c => { const m = par
 function nextLiId(){ let n = 0; IMS.contracts.forEach(c => (c.lineItems || []).forEach(l => { const m = parseInt(String(l.id).split("-")[1], 10); if (m > n) n = m; })); return "LI-" + String(n + 1).padStart(3, "0"); }
 function availableSerialized(){ return IMS.serializedAssets.filter(a => recActive(a) && a.status !== "In Shop" && !assetOutInfo(a.id)); }
 
-/* ---- audit (chain of custody) modal ---- */
-function hoAuditModal(assetId){
-  const a = getResource({ type: "serialized", refId: assetId }) || {};
-  const rows = hoEvents(assetId).map(h => `<div class="list-line">
-    <span class="l"><span class="mono strong">${h.id}</span> · <span class="badge-status ${h.direction === "Check-Out" ? "st-out" : "st-available"}">${h.direction}</span> ${h.contractId || ""}</span>
-    <span class="r mono">${fmtDT(h.at)}</span>
-    <div class="text-muted2" style="grid-column:1/-1">Custodian: <strong>${h.custodian}</strong> · by ${h.by}${h.note ? " · " + h.note : ""}</div>
-  </div>`).join("");
-  openRawModal({
-    id: "mdl-audit", title: "Chain of Custody — " + assetId, icon: "bi-fingerprint",
-    body: `<div class="text-muted2 mb-2" style="font-size:12px">${assetId} · ${a.make || ""} ${a.model || ""} — immutable audit log (${hoEvents(assetId).length} events)</div>${rows || `<p class="text-muted2">No hand-off events.</p>`}`,
-    footer: `<button type="button" class="btn btn-ims-outline" data-bs-dismiss="modal">Close</button>`
-  });
-}
 
 /* ---- page ---- */
 function renderHandoff(){
@@ -124,7 +110,6 @@ function renderHandoff(){
           ${out
             ? `<button class="btn btn-ims btn-sm2" data-ho="in" data-asset="${a.id}"><i class="bi bi-box-arrow-in-down"></i> Check In</button>`
             : `<button class="btn btn-ims-outline btn-sm2" data-ho="out" data-asset="${a.id}" data-contract="${c.contractId}"><i class="bi bi-box-arrow-up-right"></i> Check Out</button>`}
-          <button class="btn btn-ims-outline btn-sm2" data-audit="${a.id}" title="Chain of custody"><i class="bi bi-fingerprint"></i></button>
         </td>
       </tr>`;
     });
@@ -161,7 +146,6 @@ function bindHandoff(){
     if (el.dataset.ho === "out") hoCheckOut(el.dataset.asset, el.dataset.contract);
     else hoCheckInModal(el.dataset.asset);
   });
-  delegate($("#hoTable"), "click", "button[data-audit]", (el) => hoAuditModal(el.dataset.audit));
 }
 
 
