@@ -1319,3 +1319,7 @@ tr.ho-sec td .mono { font-size: 12px; }
 .ho-row:hover td { background: rgba(79, 70, 229, .05); }
 .ho-row td:first-child { box-shadow: inset 3px 0 0 transparent; transition: box-shadow var(--t-fast); }
 .ho-row:hover td:first-child { box-shadow: inset 3px 0 0 var(--brand); }
+
+/* hand-off day board controls */
+.ho-daytag { display: inline-flex; align-items: center; gap: 8px; font-weight: 700; font-size: 14px; color: var(--ink); background: var(--card); border: 1px solid var(--line); padding: 7px 14px; border-radius: 11px; box-shadow: var(--shadow-xs); }
+.ho-daynav button { min-width: 34px; }

@@ -84,72 +84,108 @@ function availableSerialized(){ return IMS.serializedAssets.filter(a => recActiv
 
 
 /* ---- page ---- */
-function renderHandoff(){
-  const active = IMS.contracts.filter(c => c.status === "active").sort((a, b) => a.contractId < b.contractId ? -1 : 1);
-  const availN = availableSerialized().length;
-  const fleetN = IMS.serializedAssets.length;
+/* =========================================================
+   Hand-Off day board: outbound (to check out) vs incoming
+   (to check in) for a selected day, with next/prev day nav.
+   ========================================================= */
+let hoDayISO = null;
+function hoAnchorDay(){ if (!hoDayISO) hoDayISO = hoTodayStr(); return hoDayISO; }
+function hoMoveDay(n){ hoDayISO = addDays(hoAnchorDay(), n); renderHandoff(); }
+function hoGoToday(){ hoDayISO = hoTodayStr(); renderHandoff(); }
+function hoFmtDay(){
+  return new Date(hoAnchorDay() + "T12:00:00").toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric", year: "numeric" });
+}
+function hoDayStr(v){ return (v || "").slice(0, 10); }
 
-  /* Split each scheduled/out serialized unit into rented (on site) vs scheduled. */
-  const rented = [], scheduled = [];
+function renderHandoff(){
+  const D = hoAnchorDay();
+  const active = IMS.contracts.filter(c => c.status === "active").sort((a, b) => a.contractId < b.contractId ? -1 : 1);
+
+  /* Outbound = serialized units still in the yard that should go out on/before D.
+     Incoming = serialized units currently on site that are due back by D. */
+  const outbound = [], incoming = [];
   active.forEach(c => {
-    const ids = hoScheduledIds(c.contractId).filter(id => { const o = assetOutInfo(id); return !o || o.contractId === c.contractId; });
-    ids.forEach(id => {
-      const a = getResource({ type: "serialized", refId: id }) || { id };
-      const out = assetOutInfo(id);
-      (out ? rented : scheduled).push({ c, a, id, out });
+    (c.lineItems || []).forEach(li => {
+      if (li.type !== "serialized") return;
+      const s = hoDayStr(li.startDate || c.startDate);
+      const e = hoDayStr(li.endDate || c.endDate);
+      const a = getResource({ type: "serialized", refId: li.refId }) || { id: li.refId };
+      const out = assetOutInfo(li.refId);
+      const rec = { c, a, id: li.refId, out, s, e };
+      if (!out && s <= D && D <= e) outbound.push(rec);
+      else if (out && e <= D) incoming.push(rec);
     });
   });
-  const outN = rented.length;
 
-  const rowHTML = ({ c, a, id, out }) => `
+  const rowHTML = (rec, kind) => {
+    const { c, a, id, out, s, e } = rec;
+    const isOutbound = kind === "out";
+    const status = isOutbound
+      ? (s === D
+          ? `<span class="badge-status st-out">Pick-up today</span>`
+          : `<span class="badge-status st-reorder">Go out (overdue)</span>`)
+      : (e === D
+          ? `<span class="badge-status st-out">Due back today</span>`
+          : `<span class="badge-status st-reorder">Overdue return</span>`);
+    return `
       <tr class="ho-row" data-hoopen="${c.contractId}">
         <td class="strong mono">${a.id}</td>
         <td class="mono">${c.contractId}</td>
         <td class="text-muted2">${a.make || ""} ${a.model || ""}</td>
-        <td>${fmtDate(c.startDate)} → ${fmtDate(c.endDate)}</td>
-        <td>${out ? (out.custodian + `<div class="text-muted2 small">${fmtDT(out.at)}</div>`) : hoCustodian(c)}</td>
-        <td><span class="badge-status ${out ? "st-out" : "st-reorder"}">${out ? "On Site" : "Scheduled"}</span></td>
+        <td>${fmtDate(s)} → ${fmtDate(e)}</td>
+        <td>${isOutbound ? hoCustodian(c) : (out.custodian + `<div class="text-muted2 small">out ${fmtDT(out.at)}</div>`)}</td>
+        <td>${status}</td>
         <td class="text-end text-nowrap">
           <button class="btn btn-ims-outline btn-sm2" data-hoopen="${c.contractId}" title="Open contract"><i class="bi bi-eye"></i></button>
-          ${out
-            ? `<button class="btn btn-ims btn-sm2" data-ho="in" data-asset="${a.id}"><i class="bi bi-box-arrow-in-down"></i> Check In</button>`
-            : `<button class="btn btn-ims-outline btn-sm2" data-ho="out" data-asset="${a.id}" data-contract="${c.contractId}"><i class="bi bi-box-arrow-up-right"></i> Check Out</button>`}
+          ${isOutbound
+            ? `<button class="btn btn-ims btn-sm2" data-ho="out" data-asset="${a.id}" data-contract="${c.contractId}"><i class="bi bi-box-arrow-up-right"></i> Check Out</button>`
+            : `<button class="btn btn-ims btn-sm2" data-ho="in" data-asset="${a.id}"><i class="bi bi-box-arrow-in-down"></i> Check In</button>`}
         </td>
       </tr>`;
+  };
 
   const thead = `<thead><tr>
       <th>Asset</th><th>Contract</th><th>Model</th><th>Rental window</th><th>Custodian</th><th>Status</th><th class="text-end">Actions</th>
     </tr></thead>`;
-  const rentedBody = rented.map(rowHTML).join("") || `<tr><td colspan="7" class="text-center text-muted2 py-4">No equipment on site right now.</td></tr>`;
-  const schedBody = scheduled.map(rowHTML).join("") || `<tr><td colspan="7" class="text-center text-muted2 py-4">No scheduled pick-ups.</td></tr>`;
+  const outboundBody = outbound.map(r => rowHTML(r, "out")).join("") || `<tr><td colspan="7" class="text-center text-muted2 py-4">No units to check out on ${hoFmtDay()}.</td></tr>`;
+  const incomingBody = incoming.map(r => rowHTML(r, "in")).join("") || `<tr><td colspan="7" class="text-center text-muted2 py-4">No units due back on ${hoFmtDay()}.</td></tr>`;
 
   $("#content").innerHTML = `
     <div class="page-head"></div>
     <div class="card mb-3">
-      <div class="card-header"><span class="card-title"><i class="bi bi-box-arrow-up-right"></i> Equipment Hand-Off</span>
-        <button class="btn btn-ims btn-sm2" id="newRentalBtn"><i class="bi bi-plus-lg"></i> New Rental</button></div>
+      <div class="card-body">
+        <div class="d-flex flex-wrap align-items-center justify-content-between gap-3">
+          <div>
+            <span class="card-title"><i class="bi bi-box-arrow-up-right"></i> Equipment Hand-Off</span>
+            <div class="text-muted2 small">Daily check-out / check-in dispatch board</div>
+          </div>
+          <div class="ho-daynav d-flex align-items-center gap-1">
+            <button class="btn btn-ims-outline btn-sm2" id="hoPrev" title="Previous day"><i class="bi bi-chevron-left"></i></button>
+            <button class="btn btn-ims-outline btn-sm2" id="hoToday">Today</button>
+            <button class="btn btn-ims-outline btn-sm2" id="hoNext" title="Next day"><i class="bi bi-chevron-right"></i></button>
+          </div>
+          <span class="ho-daytag"><i class="bi bi-calendar-event"></i> ${hoFmtDay()}</span>
+          <button class="btn btn-ims btn-sm2" id="newRentalBtn"><i class="bi bi-plus-lg"></i> New Rental</button>
+        </div>
+      </div>
     </div>
-    <div class="row g-3 mb-3">
-      <div class="col-md-4"><div class="card"><div class="card-body ho-stat"><div class="ho-stat-num">${outN}</div><div class="text-muted2">On site with customer</div></div></div></div>
-      <div class="col-md-4"><div class="card"><div class="card-body ho-stat"><div class="ho-stat-num">${scheduled.length}</div><div class="text-muted2">Scheduled to go out</div></div></div></div>
-      <div class="col-md-4"><div class="card"><div class="card-body ho-stat"><div class="ho-stat-num">${fleetN}</div><div class="text-muted2">Total fleet</div></div></div></div>
-    </div>
+
     <div id="hoTables" class="row g-3">
       <div class="col-xl-6">
         <div class="card h-100">
-          <div class="card-header"><span class="card-title"><i class="bi bi-box-arrow-in-down"></i> Rented — On Site</span>
-            <span class="badge-status st-out">${rented.length} on site</span></div>
+          <div class="card-header"><span class="card-title"><i class="bi bi-box-arrow-up-right"></i> Outbound — To Check Out</span>
+            <span class="badge-status st-out">${outbound.length} due</span></div>
           <div class="card-body table-wrap">
-            <div class="ho-scroll"><table class="table">${thead}<tbody>${rentedBody}</tbody></table></div>
+            <div class="ho-scroll"><table class="table">${thead}<tbody>${outboundBody}</tbody></table></div>
           </div>
         </div>
       </div>
       <div class="col-xl-6">
         <div class="card h-100">
-          <div class="card-header"><span class="card-title"><i class="bi bi-calendar3"></i> Scheduled — Awaiting Check-Out</span>
-            <span class="badge-status st-reorder">${scheduled.length} scheduled</span></div>
+          <div class="card-header"><span class="card-title"><i class="bi bi-box-arrow-in-down"></i> Incoming — To Check In</span>
+            <span class="badge-status st-reorder">${incoming.length} due</span></div>
           <div class="card-body table-wrap">
-            <div class="ho-scroll"><table class="table">${thead}<tbody>${schedBody}</tbody></table></div>
+            <div class="ho-scroll"><table class="table">${thead}<tbody>${incomingBody}</tbody></table></div>
           </div>
         </div>
       </div>
@@ -161,6 +197,11 @@ function renderHandoff(){
 function bindHandoff(){
   const nb = $("#newRentalBtn");
   if (nb) nb.addEventListener("click", openNewRentalModal);
+  const prev = $("#hoPrev"), next = $("#hoNext"), today = $("#hoToday");
+  if (prev) prev.addEventListener("click", () => hoMoveDay(-1));
+  if (next) next.addEventListener("click", () => hoMoveDay(1));
+  if (today) today.addEventListener("click", hoGoToday);
+
   const tables = $("#hoTables");
   if (!tables) return;
   delegate(tables, "click", "button[data-ho]", (el) => {
@@ -419,6 +460,7 @@ function createRentalFromModal(root){
     jobSite: custAddr || "Front counter pickup",
     projectName: "Equipment Rental — " + custName,
     startDate: cStart + "T09:00", endDate: cEnd + "T17:00", status: "active", counter: true,
+    geofenceRadius: 300, overheads: [],
     siteLat: (IMS.yard && IMS.yard.lat) || 33.7490, siteLng: (IMS.yard && IMS.yard.lng) || -84.3880,
     lineItems
   });
