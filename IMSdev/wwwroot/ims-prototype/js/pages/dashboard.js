@@ -33,68 +33,104 @@ function renderDashboard(){
   const stKeys = ["Available", "On Rent", "In Shop", "Staged"];
 
   $("#content").innerHTML = `
-    <div class="page-head">
-      <button class="btn btn-ims" onclick="showView('scheduler')"><i class="bi bi-calendar3"></i> Open Scheduler</button>
-    </div>
-
-    <div class="kpi-grid">
-      <div class="kpi"><div class="kpi-icon kpi-blue"><i class="bi bi-safe"></i></div>
-        <div><div class="kpi-label">Total Fleet Book Value</div><div class="kpi-value">${fmtMoney(k.book)}</div><div class="kpi-sub">${k.fleet} serialized units</div></div></div>
-      <div class="kpi"><div class="kpi-icon kpi-green"><i class="bi bi-arrow-repeat"></i></div>
-        <div><div class="kpi-label">Physical Utilization Rate</div><div class="kpi-value">${fmtPct(k.util)}</div><div class="kpi-sub">${k.onRent} of ${k.fleet} on rent</div></div></div>
-      <div class="kpi"><div class="kpi-icon kpi-red"><i class="bi bi-sign-stop"></i></div>
-        <div><div class="kpi-label">Out-of-Geofence Alerts</div><div class="kpi-value">${k.alerts}</div><div class="kpi-sub">live breach stream</div></div></div>
-      <div class="kpi"><div class="kpi-icon kpi-purple"><i class="bi bi-graph-up-arrow"></i></div>
-        <div><div class="kpi-label">Active Revenue Run-Rate</div><div class="kpi-value">${fmtMoney(k.run)}</div><div class="kpi-sub">annualized / yr</div></div></div>
-    </div>
-
-    <div class="dash-grid">
-      <div>
-        <div class="card">
-          <div class="card-header"><span class="card-title"><i class="bi bi-briefcase"></i> Active Contracts — Profitability</span></div>
-          <div class="card-body table-wrap">
-            <table class="table"><thead><tr><th>Contract</th><th>Project</th><th class="num">Days</th><th class="num">Gross Billing</th><th class="num">Net Profit</th><th class="num">Margin</th></tr></thead><tbody>
-              ${active.map(c => { const t = contractTotals(c); return `<tr>
-                <td class="strong mono">${c.contractId}</td>
-                <td>${c.projectName}<div class="text-muted2" style="font-size:11px">${c.customer}</div></td>
-                <td class="num">${t.days}</td>
-                <td class="num">${fmtMoney(t.gross)}</td>
-                <td class="num ${t.net < 0 ? "text-danger" : ""}">${fmtMoney(t.net)}</td>
-                <td class="num"><span class="badge-status ${t.margin >= 30 ? "st-available" : t.margin >= 10 ? "st-reorder" : "st-out"}">${fmtPct(t.margin)}</span></td>
-              </tr>`; }).join("") || `<tr><td colspan="6" class="text-center text-muted2 py-3">No active contracts</td></tr>`}
-            </tbody></table>
-          </div>
-        </div>
-        <div class="card" style="margin-top:18px">
-          <div class="card-header"><span class="card-title"><i class="bi bi-exclamation-triangle"></i> Reorder Warnings — Consumables & Stock</span>
-            <span class="badge-status st-reorder">${reorders.length}</span></div>
-          <div class="card-body">
-            ${reorders.map(c => `<div class="list-line">
-              <span class="l">${c.ref} · ${c.label}</span>
-              <span class="r d-flex align-items-center gap-2"><span class="text-danger">${fmtInt(c.qtyOnHand)} / @ ${fmtInt(c.reorderPoint)}</span>
-                <button class="btn btn-ims btn-sm2" data-reorder="${c.type}:${c.ref}"><i class="bi bi-arrow-repeat"></i> Reorder</button></span>
-            </div>`).join("") || `<p class="text-muted2 py-2">All stock above reorder point.</p>`}
+    <div class="dash-bento">
+      <div class="bento bento--kpi c-3">
+        <div class="kpi-row">
+          <div class="kpi-icon kpi-blue"><i class="bi bi-safe"></i></div>
+          <div>
+            <div class="kpi-label">Total Fleet Book Value</div>
+            <div class="kpi-value">${fmtMoney(k.book)}</div>
+            <div class="text-muted2 small">${k.fleet} serialized units</div>
           </div>
         </div>
       </div>
-      <div>
-        <div class="card">
-          <div class="card-header"><span class="card-title"><i class="bi bi-broadcast"></i> Recent Geofence Alerts</span></div>
-          <div class="card-body">
-            ${recent.map(a => `<div class="mini-alert"><i class="bi bi-exclamation-triangle-fill"></i><span>${a.msg}</span></div>`).join("") || `<p class="text-muted2 py-2">No alerts yet.</p>`}
+      <div class="bento bento--kpi c-3">
+        <div class="kpi-row">
+          <div class="kpi-icon kpi-green"><i class="bi bi-arrow-repeat"></i></div>
+          <div>
+            <div class="kpi-label">Physical Utilization</div>
+            <div class="kpi-value">${fmtPct(k.util)}</div>
+            <div class="text-muted2 small">${k.onRent} of ${k.fleet} on rent</div>
           </div>
         </div>
-        <div class="card" style="margin-top:18px">
-          <div class="card-header"><span class="card-title"><i class="bi bi-pie-chart"></i> Fleet Status Breakdown</span></div>
-          <div class="card-body">
-            ${stKeys.map(s => `<div class="list-line"><span class="l">${statusBadge(s)}</span><span class="r">${byStatus[s] || 0}</span></div>`).join("")}
+      </div>
+      <div class="bento bento--kpi c-3">
+        <div class="kpi-row">
+          <div class="kpi-icon kpi-red"><i class="bi bi-sign-stop"></i></div>
+          <div>
+            <div class="kpi-label">Out-of-Geofence Alerts</div>
+            <div class="kpi-value">${k.alerts}</div>
+            <div class="text-muted2 small">live breach stream</div>
           </div>
         </div>
-        <div class="card" style="margin-top:18px">
-          <div class="card-header"><span class="card-title"><i class="bi bi-boxes"></i> Bulk Resources Out</span></div>
-          <div class="card-body">
-            ${IMS.bulkResources.map(b => `<div class="list-line"><span class="l">${b.sku} · ${b.name}</span><span class="r">${fmtInt(b.qtyOut)} / ${fmtInt(b.totalOwned)} out</span></div>`).join("")}
+      </div>
+      <div class="bento bento--kpi c-3">
+        <div class="kpi-row">
+          <div class="kpi-icon kpi-purple"><i class="bi bi-graph-up-arrow"></i></div>
+          <div>
+            <div class="kpi-label">Revenue Run-Rate</div>
+            <div class="kpi-value">${fmtMoney(k.run)}</div>
+            <div class="text-muted2 small">annualized / yr</div>
           </div>
+        </div>
+      </div>
+
+      <div class="bento c-8">
+        <div class="bento-head">
+          <span class="bento-title"><i class="bi bi-briefcase"></i> Active Contracts — Profitability</span>
+        </div>
+        <div class="bento-body table-wrap">
+          <table class="table"><thead><tr><th>Contract</th><th>Project</th><th class="num">Days</th><th class="num">Gross Billing</th><th class="num">Net Profit</th><th class="num">Margin</th></tr></thead><tbody>
+            ${active.map(c => { const t = contractTotals(c); return `<tr>
+              <td class="strong mono">${c.contractId}</td>
+              <td>${c.projectName}<div class="text-muted2 small">${c.customer}</div></td>
+              <td class="num">${t.days}</td>
+              <td class="num">${fmtMoney(t.gross)}</td>
+              <td class="num ${t.net < 0 ? "text-danger" : ""}">${fmtMoney(t.net)}</td>
+              <td class="num"><span class="badge-status ${t.margin >= 30 ? "st-available" : t.margin >= 10 ? "st-reorder" : "st-out"}">${fmtPct(t.margin)}</span></td>
+            </tr>`; }).join("") || `<tr><td colspan="6" class="text-center text-muted2 py-3">No active contracts</td></tr>`}
+          </tbody></table>
+        </div>
+      </div>
+
+      <div class="bento c-4">
+        <div class="bento-head">
+          <span class="bento-title"><i class="bi bi-broadcast"></i> Recent Geofence Alerts</span>
+        </div>
+        <div class="bento-body">
+          ${recent.map(a => `<div class="mini-alert"><i class="bi bi-exclamation-triangle-fill"></i><span>${a.msg}</span></div>`).join("") || `<p class="text-muted2 py-2">No alerts yet.</p>`}
+        </div>
+      </div>
+
+      <div class="bento c-8">
+        <div class="bento-head">
+          <span class="bento-title"><i class="bi bi-exclamation-triangle"></i> Reorder Warnings — Consumables &amp; Stock</span>
+          <span class="badge-status st-reorder">${reorders.length}</span>
+        </div>
+        <div class="bento-body">
+          ${reorders.map(c => `<div class="list-line">
+            <span class="l">${c.ref} · ${c.label}</span>
+            <span class="r d-flex align-items-center gap-2"><span class="text-danger">${fmtInt(c.qtyOnHand)} / @ ${fmtInt(c.reorderPoint)}</span>
+              <button class="btn btn-ims btn-sm2" data-reorder="${c.type}:${c.ref}"><i class="bi bi-arrow-repeat"></i> Reorder</button></span>
+          </div>`).join("") || `<p class="text-muted2 py-2">All stock above reorder point.</p>`}
+        </div>
+      </div>
+
+      <div class="bento c-4">
+        <div class="bento-head">
+          <span class="bento-title"><i class="bi bi-pie-chart"></i> Fleet Status</span>
+        </div>
+        <div class="bento-body">
+          ${stKeys.map(s => `<div class="list-line"><span class="l">${statusBadge(s)}</span><span class="r strong">${byStatus[s] || 0}</span></div>`).join("")}
+        </div>
+      </div>
+
+      <div class="bento c-12">
+        <div class="bento-head">
+          <span class="bento-title"><i class="bi bi-boxes"></i> Bulk Resources Out</span>
+        </div>
+        <div class="bento-body">
+          ${IMS.bulkResources.map(b => `<div class="list-line"><span class="l">${b.sku} · ${b.name}</span><span class="r strong">${fmtInt(b.qtyOut)} / ${fmtInt(b.totalOwned)} out</span></div>`).join("")}
         </div>
       </div>
     </div>`;
