@@ -1306,3 +1306,8 @@ tr.ho-sec td .mono { font-size: 12px; }
 .rw-totals { max-width: 340px; margin-left: auto; }
 .rw-big { font-size: 18px; }
 .rw-additem-wrap { display: flex; justify-content: center; margin: 10px 0 2px; }
+
+/* deposit switch: center on the deposit % input box */
+.rn-depcell { display: flex; flex-direction: column; padding-top: 0; }
+.rn-depspacer { display: block; height: 18px; margin-bottom: 4px; padding: 0; }
+.rn-depcell-row { display: flex; align-items: center; flex: 1 1 auto; min-height: 0; }

@@ -153,9 +153,12 @@ function rwBody(seq, type, used){
     if (dep){
       cols.push(`<div class="row g-2">
           <div class="col-3 field-group"><label class="form-label">Deposit (%)</label><input class="form-control rn-dep" id="rn_p_${seq}" type="number" min="0" max="100" step="1" value="25"></div>
-          <div class="col-9 field-group" style="padding-top:24px"><div class="form-check form-switch">
-            <input class="form-check-input rn-ref" type="checkbox" id="rn_x_${seq}" checked>
-            <label class="form-check-label" for="rn_x_${seq}">Refundable deposit</label></div></div>
+          <div class="col-9 field-group rn-depcell">
+            <span class="form-label rn-depspacer"></span>
+            <div class="rn-depcell-row"><div class="form-check form-switch">
+              <input class="form-check-input rn-ref" type="checkbox" id="rn_x_${seq}" checked>
+              <label class="form-check-label" for="rn_x_${seq}">Refundable deposit</label></div></div>
+          </div>
         </div>`);
     }
     cols.push(`<div class="row g-2">
