@@ -205,6 +205,11 @@ function openNewRentalModal(){
       <div class="col-6 field-group"><label class="form-label">Rent from</label><input class="form-control" id="rn-start" type="date" value="${today}"></div>
       <div class="col-6 field-group"><label class="form-label">Return by</label><input class="form-control" id="rn-end" type="date" value="${today}"></div>
     </div>
+    <div id="rn-ratebox"></div>
+    <div class="row g-2">
+      <div class="col-md-4 field-group"><label class="form-label">Deposit (%)</label><input class="form-control" id="rn-deposit" type="number" min="0" max="100" step="1" value="25"></div>
+      <div class="col-md-4 field-group" style="padding-top:24px"><div class="form-check form-switch"><input class="form-check-input" type="checkbox" id="rn-refundable" checked><label class="form-check-label" for="rn-refundable">Refundable deposit</label></div></div>
+    </div>
     <div id="rn-preview" class="ho-preview"></div>`;
   const root = openRawModal({
     id: "mdl-rental", size: "lg", title: "New Rental / Check Out", icon: "bi-box-arrow-up-right",
@@ -219,26 +224,34 @@ function openNewRentalModal(){
     if (!isNew){ const c = getCustomer(cust.value); if (c && nameI) nameI.value = c.name; }
   });
   const refresh = () => rnRefreshPreview();
-  $("#rn-assets").addEventListener("change", refresh);
+  const onPick = () => { rnRenderRates(); refresh(); };
+  $("#rn-assets").addEventListener("change", onPick);
+  $("#rn-deposit").addEventListener("input", refresh);
+  $("#rn-refundable").addEventListener("change", refresh);
   $("#rn-start").addEventListener("change", () => { const e = $("#rn-end"); if (e && (!e.value || e.value < $("#rn-start").value)) e.value = $("#rn-start").value; refresh(); });
   $("#rn-end").addEventListener("change", refresh);
+  rnRenderRates();
   refresh();
   $("#rn-save").addEventListener("click", () => createRentalFromModal(root));
 }
 
 function rnRefreshPreview(){
   const box = $("#rn-preview"); if (!box) return;
-  const ids = Array.from($("#rn-assets").selectedOptions).map(o => o.value);
+  const sel = Array.from($("#rn-assets").selectedOptions);
   const start = $("#rn-start").value, end = $("#rn-end").value;
   const days = (start && end) ? daysBetween(start, end) : 0;
   let subtotal = 0;
-  ids.forEach(id => { const a = getResource({ type: "serialized", refId: id }); subtotal += (a ? a.baseDaily : 0) * days; });
+  sel.forEach(o => { const el = $("#rn-day_" + o.value); const daily = el ? (parseFloat(el.value) || 0) : 0; subtotal += daily * days; });
+  const depEl = $("#rn-deposit"); const depPct = depEl ? Math.min(100, Math.max(0, parseFloat(depEl.value) || 0)) : 0;
+  const refund = $("#rn-refundable") ? $("#rn-refundable").checked : true;
+  const deposit = subtotal * depPct / 100;
   const tax = subtotal * taxRate();
   const total = subtotal + tax;
   box.innerHTML = subtotal > 0
     ? `<div class="divider"></div>
-       <div class="list-line"><span class="l">${ids.length} asset(s) × ${days} day(s)</span><span class="r">${fmtMoney(subtotal)}</span></div>
+       <div class="list-line"><span class="l">${sel.length} asset(s) × ${days} day(s)</span><span class="r">${fmtMoney(subtotal)}</span></div>
        <div class="list-line"><span class="l">Sales tax (${Math.round(taxRate() * 100)}%)</span><span class="r">${fmtMoney(tax)}</span></div>
+       <div class="list-line"><span class="l">Deposit (${depPct}%, ${refund ? "refundable" : "non-refundable"})</span><span class="r">${fmtMoney(deposit)}</span></div>
        <div class="list-line"><span class="l strong">Total due at pick-up</span><span class="r strong">${fmtMoney(total)}</span></div>`
     : `<div class="text-muted2" style="margin-top:8px">Select equipment and dates to preview pricing.</div>`;
 }
@@ -265,12 +278,23 @@ function createRentalFromModal(root){
   const start = $("#rn-start").value || hoTodayStr();
   let end = $("#rn-end").value || start; if (end < start) end = start;
   const cid = nextContractId();
-  const lineItems = ids.map(refId => ({ id: nextLiId(), type: "serialized", refId, qty: 1, pricingMatrix: "standard", weekendPolicy: "bill", riskPremium: "standard", flatTotal: 0 }));
+  const num = id => { const el = $("#" + id); return el ? (parseFloat(el.value) || 0) : 0; };
+  const depositPct = num("rn-deposit");
+  const depositRefundable = $("#rn-refundable") ? $("#rn-refundable").checked : true;
+  const lineItems = ids.map(refId => {
+    const a = getResource({ type: "serialized", refId });
+    const def = rnDefaultRate(a);
+    return {
+      id: nextLiId(), type: "serialized", refId, qty: 1, pricingMatrix: "standard", weekendPolicy: "bill", riskPremium: "standard", flatTotal: 0,
+      customRates: { hourly: num("rn-hr_" + refId) || def.hourly, daily: num("rn-day_" + refId) || def.daily, weekly: num("rn-wk_" + refId) || def.weekly }
+    };
+  });
   IMS.contracts.push({
     contractId: cid, customerId: custId, customer: custName,
     jobSite: custAddr || "Front counter pickup",
     projectName: "Equipment Rental — " + custName,
     startDate: start + "T09:00", endDate: end + "T17:00", status: "active", counter: true,
+    depositPct, depositRefundable,
     siteLat: (IMS.yard && IMS.yard.lat) || 33.7490, siteLng: (IMS.yard && IMS.yard.lng) || -84.3880,
     lineItems
   });
@@ -281,5 +305,37 @@ function createRentalFromModal(root){
   });
   dismissModal(root);
   renderHandoff();
+}
+
+
+/* default hour/day/week rates for an asset (hourly = daily ÷ daily min hours) */
+function rnDefaultRate(a){
+  const h = (IMS.settings.pricing && IMS.settings.pricing.dailyMinHours) || 8;
+  return {
+    hourly: a ? Math.round((a.baseDaily / h) * 100) / 100 : 0,
+    daily:  a ? a.baseDaily : 0,
+    weekly: a ? (a.baseWeekly || a.baseDaily * 7) : 0
+  };
+}
+
+/* Editable per-asset hour/day/week override rows that follow the equipment selection. */
+function rnRenderRates(){
+  const box = $("#rn-ratebox"); if (!box) return;
+  const sel = Array.from($("#rn-assets").selectedOptions);
+  if (!sel.length){ box.innerHTML = ""; return; }
+  const rows = sel.map(o => {
+    const a = getResource({ type: "serialized", refId: o.value });
+    const d = rnDefaultRate(a);
+    return `<div class="rn-item">
+      <div class="rn-item-head"><span class="mono strong">${a ? a.id : o.value}</span><span class="text-muted2">${a ? a.make + " " + a.model : ""}</span></div>
+      <div class="row g-2">
+        <div class="col-4 field-group"><label class="form-label">Hour / hr</label><input class="form-control form-control-sm" id="rn-hr_${o.value}" type="number" step="0.01" min="0" value="${d.hourly}"></div>
+        <div class="col-4 field-group"><label class="form-label">Day / day</label><input class="form-control form-control-sm" id="rn-day_${o.value}" type="number" step="0.01" min="0" value="${d.daily}"></div>
+        <div class="col-4 field-group"><label class="form-label">Week / week</label><input class="form-control form-control-sm" id="rn-wk_${o.value}" type="number" step="0.01" min="0" value="${d.weekly}"></div>
+      </div>
+    </div>`;
+  }).join("");
+  box.innerHTML = `<div class="strong mb-1" style="font-size:12px">Equipment rates <span class="text-muted2" style="font-weight:500">(override defaults)</span></div>${rows}`;
+  box.querySelectorAll("input").forEach(i => i.addEventListener("input", rnRefreshPreview));
 }
 
