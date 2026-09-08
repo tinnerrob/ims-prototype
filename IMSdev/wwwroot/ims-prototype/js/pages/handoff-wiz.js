@@ -35,7 +35,12 @@ RW_TYPES.forEach(t => { RW_TYPE_LABEL[t.type] = t.label; });
 const RW_TIME_TYPES = { serialized: 1, bulk: 1, kit: 1, attachment: 1 };
 const rwIsTime = t => !!RW_TIME_TYPES[t];        // billed over a rental window
 const rwMulti = t => t !== "serialized";         // takes a quantity field
-const rwHasDep = t => t === "serialized";        // only discrete equipment holds a deposit
+const rwHasDep = rwIsTime;                       // every rentable (time) type can hold a deposit
+
+function rwDefaultDepPct(type, ref){
+  const r = rwRes(type, ref);
+  return (r && r.depositPct != null) ? Math.min(100, Math.max(0, r.depositPct)) : 25;
+}
 
 const rwRes = (type, ref) => getResource({ type, refId: ref });
 
@@ -189,6 +194,8 @@ function rwFill(seq, quiet){
       const el = seg.querySelector("#rn_" + k + "_" + seq);
       if (el) el.value = d[k === "h" ? "hourly" : k === "d" ? "daily" : "weekly"];
     });
+    const pEl = seg.querySelector("#rn_p_" + seq);
+    if (pEl) pEl.value = rwDefaultDepPct(type, ref);
     const av = rwAvail(type, ref);
     const qEl = seg.querySelector("#rn_q_" + seq);
     if (qEl && av > 0) qEl.max = av;
@@ -571,7 +578,7 @@ function rwCreate(root){
     if (it.time){
       base.startDate = it.start + "T09:00"; base.endDate = it.end + "T17:00";
       base.customRates = it.rates; base.freq = it.freq;
-      if (it.type === "serialized"){ base.depositPct = it.depPct; base.depositRefundable = it.refundable; }
+      base.depositPct = it.depPct; base.depositRefundable = it.refundable;
     } else {
       base.unitPrice = it.unit; base.flatTotal = Math.round(it.unit * it.qty * 100) / 100;
     }

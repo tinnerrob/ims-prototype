@@ -238,6 +238,7 @@ function serializedView(a){
       ["Asset ID", a.id], ["Serial / VIN", a.serial], ["Make / Model", a.make + " " + a.model], ["Category", a.category],
       ["Meter Hours", fmtInt(a.meterHours)], ["Fuel", a.fuelType], ["Purchase Value", fmtMoney(a.purchaseValue)],
       ["Daily", fmtMoney(a.baseDaily)], ["Weekly", fmtMoney(a.baseWeekly)], ["Monthly", fmtMoney(a.baseMonthly)],
+      ["Default Deposit", (a.depositPct != null ? a.depositPct : 25) + "% of rental"],
       ["GPS Coord", a.lat.toFixed(4) + ", " + a.lng.toFixed(4)], ["Status", statusBadge(a.status)]
     ])
       + section("Assigned to Contracts (" + cons.length + ")", consList)
@@ -257,7 +258,8 @@ function bulkView(b){
     body: detailGrid([
       ["SKU", b.sku], ["Name", b.name], ["Category", b.category],
       ["Total Owned", fmtInt(b.totalOwned)], ["Available", fmtInt(b.qtyAvailable)], ["Out", fmtInt(b.qtyOut)],
-      ["Daily", fmtMoney(b.baseDaily)], ["Weekly", fmtMoney(b.baseWeekly)], ["Monthly", fmtMoney(b.baseMonthly)]
+      ["Daily", fmtMoney(b.baseDaily)], ["Weekly", fmtMoney(b.baseWeekly)], ["Monthly", fmtMoney(b.baseMonthly)],
+      ["Default Deposit", (b.depositPct != null ? b.depositPct : 25) + "% of rental"]
     ]) + section("Assigned to Contracts (" + cons.length + ")", consList),
     footer: closeBtn
   });
@@ -425,6 +427,7 @@ function serializedFields(e){
     { key:"baseDaily", label:"Base Daily Rate ($)", type:"number", value: e.baseDaily || 0 },
     { key:"baseWeekly", label:"Base Weekly Rate ($)", type:"number", value: e.baseWeekly || 0, hint:"Weekly ≈ Daily × 5" },
     { key:"baseMonthly", label:"Base Monthly Rate ($)", type:"number", value: e.baseMonthly || 0, hint:"Monthly ≈ Daily × 15 (28-day period)" },
+    { key:"depositPct", label:"Default Deposit (%)", type:"number", value: (e.depositPct != null ? e.depositPct : 25), hint:"Held as % of the rental subtotal at check-out" },
     { key:"lat", label:"Latitude", type:"number", value: e.lat ?? IMS.yard.lat, step:"0.0001" },
     { key:"lng", label:"Longitude", type:"number", value: e.lng ?? IMS.yard.lng, step:"0.0001" },
     { key:"status", label:"Status", type:"select", value: e.status || "Available", options: opt(["Available","On Rent","In Shop","Staged"]) }
@@ -438,9 +441,9 @@ function serializedModal(existing){
     fields: serializedFields(existing),
     onSave: v => {
       if (isEdit) {
-        Object.assign(existing, { active:v.active !== false, serial:v.serial, make:v.make, model:v.model, category:v.category, meterHours:v.meterHours, fuelType:v.fuelType, purchaseValue:v.purchaseValue, baseDaily:v.baseDaily, baseWeekly:v.baseWeekly, baseMonthly:v.baseMonthly, lat:v.lat, lng:v.lng, status:v.status });
+        Object.assign(existing, { active:v.active !== false, serial:v.serial, make:v.make, model:v.model, category:v.category, meterHours:v.meterHours, fuelType:v.fuelType, purchaseValue:v.purchaseValue, baseDaily:v.baseDaily, baseWeekly:v.baseWeekly, baseMonthly:v.baseMonthly, depositPct:v.depositPct, lat:v.lat, lng:v.lng, status:v.status });
       } else {
-        IMS.serializedAssets.push({ id:v.id, active:v.active !== false, serial:v.serial, make:v.make, model:v.model, category:v.category, meterHours:v.meterHours, fuelType:v.fuelType, purchaseValue:v.purchaseValue, baseDaily:v.baseDaily, baseWeekly:v.baseWeekly, baseMonthly:v.baseMonthly, lat:v.lat, lng:v.lng, status:v.status, battery:100, lastReported: new Date().toISOString().slice(0,19), contractId:null });
+        IMS.serializedAssets.push({ id:v.id, active:v.active !== false, serial:v.serial, make:v.make, model:v.model, category:v.category, meterHours:v.meterHours, fuelType:v.fuelType, purchaseValue:v.purchaseValue, baseDaily:v.baseDaily, baseWeekly:v.baseWeekly, baseMonthly:v.baseMonthly, depositPct:v.depositPct, lat:v.lat, lng:v.lng, status:v.status, battery:100, lastReported: new Date().toISOString().slice(0,19), contractId:null });
       }
       renderInventory();
     }
@@ -457,7 +460,8 @@ function bulkFields(e){
     { key:"totalOwned", label:"Total Owned", type:"number", value: e.totalOwned || 0 },
     { key:"baseDaily", label:"Base Daily Rate / unit ($)", type:"number", value: e.baseDaily || 0 },
     { key:"baseWeekly", label:"Base Weekly Rate / unit ($)", type:"number", value: e.baseWeekly || 0 },
-    { key:"baseMonthly", label:"Base Monthly Rate / unit ($)", type:"number", value: e.baseMonthly || 0 }
+    { key:"baseMonthly", label:"Base Monthly Rate / unit ($)", type:"number", value: e.baseMonthly || 0 },
+    { key:"depositPct", label:"Default Deposit (%)", type:"number", value: (e.depositPct != null ? e.depositPct : 25), hint:"Held as % of the per-unit rental at check-out" }
   ];
 }
 
@@ -468,9 +472,9 @@ function bulkModal(existing){
     fields: bulkFields(existing),
     onSave: v => {
       if (isEdit) {
-        Object.assign(existing, { active:v.active !== false, sku:v.sku, name:v.name, category:v.category, totalOwned:v.totalOwned, baseDaily:v.baseDaily, baseWeekly:v.baseWeekly, baseMonthly:v.baseMonthly });
+        Object.assign(existing, { active:v.active !== false, sku:v.sku, name:v.name, category:v.category, totalOwned:v.totalOwned, baseDaily:v.baseDaily, baseWeekly:v.baseWeekly, baseMonthly:v.baseMonthly, depositPct:v.depositPct });
       } else {
-        IMS.bulkResources.push({ active:v.active !== false, sku:v.sku, name:v.name, category:v.category, totalOwned:v.totalOwned, qtyAvailable:v.totalOwned, qtyOut:0, baseDaily:v.baseDaily, baseWeekly:v.baseWeekly, baseMonthly:v.baseMonthly });
+        IMS.bulkResources.push({ active:v.active !== false, sku:v.sku, name:v.name, category:v.category, totalOwned:v.totalOwned, qtyAvailable:v.totalOwned, qtyOut:0, baseDaily:v.baseDaily, baseWeekly:v.baseWeekly, baseMonthly:v.baseMonthly, depositPct:v.depositPct });
       }
       renderInventory();
     }
@@ -604,7 +608,7 @@ function renderKitComps(root, kit){
 
 function kitModal(existing){
   const isEdit = !!existing;
-  const kit = existing || { kitId: nextKitId(), name:"", baseRate:0, qtyOwned:1, components:[], active:true };
+  const kit = existing || { kitId: nextKitId(), name:"", baseRate:0, qtyOwned:1, depositPct:25, components:[], active:true };
   const body = `
     <div class="d-flex align-items-center gap-2 mb-3">
       <div class="form-check form-switch mb-0"><input class="form-check-input" type="checkbox" id="k-active" ${recActive(kit) ? "checked" : ""}><label class="form-check-label" for="k-active"><strong>Active</strong></label></div>
@@ -615,6 +619,10 @@ function kitModal(existing){
       <div class="col-md-3 field-group"><label class="form-label">Kit Name</label><input class="form-control" id="k-title" value="${kit.name}"></div>
       <div class="col-md-3 field-group"><label class="form-label">Total Kit Base Rate ($/day)</label><input class="form-control" id="k-rate" type="number" value="${kit.baseRate}"></div>
       <div class="col-md-3 field-group"><label class="form-label">Qty Owned</label><input class="form-control" id="k-owned" type="number" min="1" value="${kit.qtyOwned || 1}"></div>
+    </div>
+    <div class="row g-3">
+      <div class="col-md-3 field-group"><label class="form-label">Default Deposit (%)</label><input class="form-control" id="k-dep" type="number" min="0" max="100" step="1" value="${kit.depositPct != null ? kit.depositPct : 25}"></div>
+      <div class="col-md-9 field-group d-flex align-items-end"><span class="text-muted2" style="font-size:11.5px"><i class="bi bi-info-circle"></i> Held as % of the kit's rental at check-out.</span></div>
     </div>
     <div class="divider"></div>
     <div class="strong mb-2"><i class="bi bi-link-45deg me-1"></i>Component Binding</div>
@@ -644,6 +652,8 @@ function kitModal(existing){
     kit.name = root.querySelector("#k-title").value;
     kit.baseRate = parseFloat(root.querySelector("#k-rate").value) || 0;
     kit.qtyOwned = Math.max(1, parseInt(root.querySelector("#k-owned").value, 10) || 1);
+    const kdep = parseFloat(root.querySelector("#k-dep").value);
+    kit.depositPct = isNaN(kdep) ? 25 : Math.min(100, Math.max(0, kdep));
     kit.active = root.querySelector("#k-active").checked;
     if (!isEdit) IMS.kits.push(kit);
     renderInventory();
@@ -677,6 +687,8 @@ function attachmentModal(existing){
       <div class="col-md-4 field-group"><label class="form-label">Category</label><select class="form-select" id="a-cat">${["Bucket","Carriage","Platform","Hydraulic","Lifting"].map(c => `<option ${c === (e.category || "Bucket") ? "selected" : ""}>${c}</option>`).join("")}</select></div>
       <div class="col-md-3 field-group"><label class="form-label">Qty Owned</label><input class="form-control" id="a-qty" type="number" value="${e.qtyOwned || 0}"></div>
       <div class="col-md-3 field-group"><label class="form-label">Daily Rate ($)</label><input class="form-control" id="a-daily" type="number" value="${e.daily || 0}"></div>
+      <div class="col-md-3 field-group"><label class="form-label">Default Deposit (%)</label><input class="form-control" id="a-dep" type="number" min="0" max="100" step="1" value="${e.depositPct != null ? e.depositPct : 25}"></div>
+      <div class="col-md-3 field-group d-flex align-items-end"><span class="text-muted2" style="font-size:11.5px"><i class="bi bi-info-circle"></i> Held as % of the rental at check-out</span></div>
     </div>
     <div class="divider"></div>
     <div class="strong mb-2"><i class="bi bi-link-45deg me-1"></i>Fits Asset IDs</div>
@@ -728,6 +740,7 @@ function attachmentModal(existing){
       category: root.querySelector("#a-cat").value,
       qtyOwned: parseFloat(root.querySelector("#a-qty").value) || 0,
       daily: parseFloat(root.querySelector("#a-daily").value) || 0,
+      depositPct: (() => { const d = parseFloat(root.querySelector("#a-dep").value); return isNaN(d) ? 25 : Math.min(100, Math.max(0, d)); })(),
       active: root.querySelector("#a-active").checked,
       fits: Array.from(root.querySelectorAll("#a-ids input:checked")).map(i => i.value)
     };

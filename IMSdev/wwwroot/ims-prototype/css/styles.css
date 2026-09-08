@@ -1286,7 +1286,7 @@ tr.ho-sec td .mono { font-size: 12px; }
 .rn-item.rn-collapsed .rn-body { display: none; }
 
 /* ---- New Rental wizard (handoff-wiz.js) ---- */
-.rw-steps { display: flex; gap: 6px; margin-bottom: 14px; }
+.rw-steps { display: flex; justify-content: center; gap: 6px; margin-bottom: 14px; }
 .rw-step { display: inline-flex; align-items: center; gap: 8px; padding: 6px 12px; border-radius: 8px;
   background: #eef2f7; color: #64748b; font-size: 13px; font-weight: 600; cursor: pointer; user-select: none; border: 1px solid transparent; }
 .rw-step .rw-step-n { display: inline-grid; place-items: center; width: 20px; height: 20px; border-radius: 50%;
