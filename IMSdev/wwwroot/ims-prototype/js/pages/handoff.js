@@ -177,12 +177,126 @@ function hoCheckInModal(assetId){
 
 
 /* ---- New Rental modal (full short-term contract, multiple assets) ---- */
-function taxRate(){ const g = (IMS.settings.taxSchedules || []).find(t => t.code === "GA"); return g ? g.rate : 0.08; }
 
+/* Compute totals/rates for a single equipment line */
+function rnCompute(seg){
+  const seq = seg.dataset.seq;
+  const as = seg.querySelector("#rn_a_" + seq); const assetId = as ? as.value : "";
+  if (!assetId) return null;
+  const a = getResource({ type: "serialized", refId: assetId }) || {};
+  const sEl = seg.querySelector("#rn_s_" + seq), eEl = seg.querySelector("#rn_e_" + seq);
+  const start = sEl ? sEl.value : "", end = eEl ? eEl.value : "";
+  const days = (start && end) ? Math.max(1, daysBetween(start, end)) : 0;
+  const fEl = seg.querySelector("#rn_f_" + seq); const freq = fEl ? fEl.value : "day";
+  const g = i => { const el = seg.querySelector("#rn_" + i + "_" + seq); return el ? (parseFloat(el.value) || 0) : 0; };
+  const rates = { hourly: g("h"), daily: g("d"), weekly: g("w") };
+  const minH = (IMS.settings.pricing && IMS.settings.pricing.dailyMinHours) || 8;
+  const key = freq === "hour" ? "hourly" : freq === "week" ? "weekly" : "daily";
+  const units = freq === "week" ? Math.max(1, Math.ceil(days / 7)) : (freq === "hour" ? days * minH : days);
+  const uLabel = freq === "week" ? "week" : freq === "hour" ? "hour" : "day";
+  const subtotal = rates[key] * units;
+  const pEl = seg.querySelector("#rn_p_" + seq); const depPct = pEl ? Math.min(100, Math.max(0, parseFloat(pEl.value) || 0)) : 0;
+  const rEl = seg.querySelector("#rn_x_" + seq); const refundable = rEl ? rEl.checked : true;
+  return { assetId, asset: a, start, end, freq, rates, days, units, uLabel, subtotal, depPct, deposit: subtotal * depPct / 100, refundable };
+}
+
+function rnRefreshPreview(){
+  const segs = Array.from(document.querySelectorAll("#rn-items .rn-item"));
+  let subtotal = 0, deposits = 0;
+  segs.forEach(seg => {
+    const c = rnCompute(seg); const el = seg.querySelector(".rn-t");
+    if (el) el.textContent = c ? fmtMoney(c.subtotal) + " · " + c.units + " " + c.uLabel + (c.units !== 1 ? "s" : "") : "";
+    if (c){ subtotal += c.subtotal; deposits += c.deposit; }
+  });
+  const box = $("#rn-summary"); if (!box) return;
+  const tax = subtotal * taxRate();
+  box.innerHTML = subtotal > 0
+    ? `<div class="divider"></div>
+       <div class="list-line"><span class="l">${segs.filter(s => rnCompute(s)).length} equipment line(s)</span><span class="r strong">${fmtMoney(subtotal)}</span></div>
+       <div class="list-line"><span class="l">Sales tax (${Math.round(taxRate() * 100)}%)</span><span class="r">${fmtMoney(tax)}</span></div>
+       <div class="list-line"><span class="l">Deposits (held)</span><span class="r">${fmtMoney(deposits)}</span></div>
+       <div class="list-line"><span class="l strong">Total due at pick-up</span><span class="r strong">${fmtMoney(subtotal + tax)}</span></div>`
+    : `<div class="text-muted2" style="margin-top:8px">Add equipment and set dates to preview pricing.</div>`;
+}
+
+
+/* =========================================================
+   New Rental / Check-Out modal — one row per piece of
+   equipment, each with its own dates, custom hour/day/week
+   rates, deposit and charge frequency. Added via a "+".
+   ========================================================= */
+let rnSeq = 0;
+
+function taxRate(){ const g = (IMS.settings.taxSchedules || []).find(t => t.code === "GA"); return g ? g.rate : 0.08; }
+function rnDefaultRate(a){
+  const h = (IMS.settings.pricing && IMS.settings.pricing.dailyMinHours) || 8;
+  return {
+    hourly: a ? Math.round((a.baseDaily / h) * 100) / 100 : 0,
+    daily:  a ? a.baseDaily : 0,
+    weekly: a ? (a.baseWeekly || a.baseDaily * 7) : 0
+  };
+}
+function rnOpts(exclude){
+  const ex = exclude || {};
+  return availableSerialized().filter(a => !ex[a.id]).map(a => `<option value="${a.id}">${a.id} — ${a.make} ${a.model} · ${fmtMoney(a.baseDaily)}/d</option>`).join("");
+}
+/* push default rates of the chosen asset into that item's hour/day/week fields */
+function rnFill(seq){
+  const sel = $("#rn_a_" + seq);
+  const a = sel && sel.value ? getResource({ type: "serialized", refId: sel.value }) : null;
+  const d = rnDefaultRate(a);
+  ["h", "d", "w"].forEach(k => { const el = $("#rn_" + k + "_" + seq); if (el) el.value = d[k === "h" ? "hourly" : k === "d" ? "daily" : "weekly"]; });
+  rnRefreshPreview();
+}
+
+/* Add one equipment line-item section to the modal */
+function rnAddItem(){
+  rnSeq++; const seq = rnSeq, today = hoTodayStr();
+  // exclude assets already chosen in other lines
+  const used = {};
+  document.querySelectorAll("#rn-items select.rn-a").forEach(s => { if (s.value) used[s.value] = true; });
+  const box = $("#rn-items");
+  if (!box) return;
+  const html = `
+    <div class="rn-item" data-seq="${seq}">
+      <div class="rn-item-head">
+        <span class="strong">Equipment ${rnSeq}</span>
+        <span class="rn-item-head-right">
+          <span class="rn-t mono" id="rn_t_${seq}"></span>
+          <button type="button" class="btn btn-ims-outline btn-sm2 rn-del" data-seq="${seq}" title="Remove"><i class="bi bi-x-lg"></i></button>
+        </span>
+      </div>
+      <div class="row g-2">
+        <div class="col-md-12 field-group"><label class="form-label">Equipment</label>
+          <select class="form-select rn-a" id="rn_a_${seq}">${rnOpts(used)}</select></div>
+        <div class="col-6 field-group"><label class="form-label">Rent from</label><input class="form-control rn-date" id="rn_s_${seq}" type="date" value="${today}"></div>
+        <div class="col-6 field-group"><label class="form-label">Return by</label><input class="form-control rn-date" id="rn_e_${seq}" type="date" value="${today}"></div>
+      </div>
+      <div class="row g-2">
+        <div class="col-3 field-group"><label class="form-label">Charge</label>
+          <select class="form-select rn-freq" id="rn_f_${seq}"><option value="hour">Hour</option><option value="day" selected>Day</option><option value="week">Week</option></select></div>
+        <div class="col-3 field-group"><label class="form-label">Hour</label><input class="form-control rn-rate" id="rn_h_${seq}" type="number" step="0.01" min="0"></div>
+        <div class="col-3 field-group"><label class="form-label">Day</label><input class="form-control rn-rate" id="rn_d_${seq}" type="number" step="0.01" min="0"></div>
+        <div class="col-3 field-group"><label class="form-label">Week</label><input class="form-control rn-rate" id="rn_w_${seq}" type="number" step="0.01" min="0"></div>
+      </div>
+      <div class="row g-2">
+        <div class="col-3 field-group"><label class="form-label">Deposit (%)</label><input class="form-control rn-dep" id="rn_p_${seq}" type="number" min="0" max="100" step="1" value="25"></div>
+        <div class="col-9 field-group" style="padding-top:24px"><div class="form-check form-switch"><input class="form-check-input rn-ref" type="checkbox" id="rn_x_${seq}" checked><label class="form-check-label" for="rn_x_${seq}">Refundable deposit</label></div></div>
+      </div>
+    </div>`;
+  box.insertAdjacentHTML("beforeend", html);
+  rnFill(seq); // load default rates for the first option and refresh
+  // bindings for this line
+  const seg = box.querySelector('[data-seq="' + seq + '"]');
+  seg.querySelector("#rn_a_" + seq).addEventListener("change", () => rnFill(seq));
+  seg.querySelectorAll(".rn-rate, .rn-date, .rn-dep, .rn-freq, .rn-ref").forEach(i => i.addEventListener("input", rnRefreshPreview));
+  seg.querySelector(".rn-ref").addEventListener("change", rnRefreshPreview);
+  seg.querySelector(".rn-del").addEventListener("click", () => { seg.remove(); rnRefreshPreview(); });
+}
+
+
+/* ---- New Rental / Check-Out modal ---- */
 function openNewRentalModal(){
-  const today = hoTodayStr();
-  const avail = availableSerialized();
-  const assetOpts = avail.map(a => `<option value="${a.id}">${a.id} — ${a.make} ${a.model} · ${fmtMoney(a.baseDaily)}/day</option>`).join("");
   const custOpts = IMS.customers.slice().sort((a, b) => a.name < b.name ? -1 : 1)
     .map(c => `<option value="${c.id}">${c.name}</option>`).join("") + `<option value="__new__">+ New customer…</option>`;
   const body = `
@@ -199,87 +313,35 @@ function openNewRentalModal(){
         <div class="col-12 field-group"><label class="form-label">Billing / delivery address</label><input class="form-control" id="rn-address" placeholder="Street, City, State"></div>
       </div>
     </div>
-    <div class="row g-2">
-      <div class="col-12 field-group"><label class="form-label">Equipment (select one or more) *</label>
-        <select class="form-select" id="rn-assets" multiple size="6">${assetOpts || `<option value="">— none available —</option>`}</select></div>
-      <div class="col-6 field-group"><label class="form-label">Rent from</label><input class="form-control" id="rn-start" type="date" value="${today}"></div>
-      <div class="col-6 field-group"><label class="form-label">Return by</label><input class="form-control" id="rn-end" type="date" value="${today}"></div>
-    </div>
-    <div id="rn-ratebox"></div>
-    <div class="row g-2">
-      <div class="col-md-3 field-group"><label class="form-label">Deposit (%)</label><input class="form-control" id="rn-deposit" type="number" min="0" max="100" step="1" value="25"></div>
-      <div class="col-md-3 field-group"><label class="form-label">Charge frequency</label>
-        <select class="form-select" id="rn-freq"><option value="hour">Hour</option><option value="day" selected>Day</option><option value="week">Week</option></select></div>
-      <div class="col-md-6 field-group" style="padding-top:24px"><div class="form-check form-switch"><input class="form-check-input" type="checkbox" id="rn-refundable" checked><label class="form-check-label" for="rn-refundable">Refundable deposit</label></div></div>
-    </div>
-    <div id="rn-preview" class="ho-preview"></div>`;
+    <div class="mb-2"><div id="rn-items"></div>
+      <button type="button" class="btn btn-ims-outline btn-sm2" id="rn-add"><i class="bi bi-plus-lg"></i> Add equipment</button></div>
+    <div id="rn-summary" class="ho-preview"></div>`;
   const root = openRawModal({
     id: "mdl-rental", size: "lg", title: "New Rental / Check Out", icon: "bi-box-arrow-up-right",
     body,
     footer: `<button type="button" class="btn btn-ims-outline" data-bs-dismiss="modal">Cancel</button>
       <button type="button" class="btn btn-ims" id="rn-save"><i class="bi bi-check2"></i> Create Rental &amp; Check Out</button>`
   });
-  const cust = $("#rn-cust"), nameI = $("#rn-name");
+  const cust = $("#rn-cust");
   cust.addEventListener("change", () => {
     const isNew = cust.value === "__new__";
     $("#rn-new").style.display = isNew ? "" : "none";
-    if (!isNew){ const c = getCustomer(cust.value); if (c && nameI) nameI.value = c.name; }
+    if (!isNew){ const c = getCustomer(cust.value); const ni = $("#rn-name"); if (c && ni) ni.value = c.name; }
   });
-  const refresh = () => rnRefreshPreview();
-  const onPick = () => { rnRenderRates(); refresh(); };
-  $("#rn-assets").addEventListener("change", onPick);
-  $("#rn-deposit").addEventListener("input", refresh);
-  $("#rn-freq").addEventListener("change", refresh);
-  $("#rn-refundable").addEventListener("change", refresh);
-  $("#rn-start").addEventListener("change", () => { const e = $("#rn-end"); if (e && (!e.value || e.value < $("#rn-start").value)) e.value = $("#rn-start").value; refresh(); });
-  $("#rn-end").addEventListener("change", refresh);
-  rnRenderRates();
-  refresh();
+  $("#rn-add").addEventListener("click", rnAddItem);
+  rnAddItem();               // start with one equipment line
   $("#rn-save").addEventListener("click", () => createRentalFromModal(root));
-}
-
-function rnRefreshPreview(){
-  const box = $("#rn-preview"); if (!box) return;
-  const sel = Array.from($("#rn-assets").selectedOptions);
-  const start = $("#rn-start").value, end = $("#rn-end").value;
-  const days = (start && end) ? Math.max(1, daysBetween(start, end)) : 0;
-  const freq = $("#rn-freq") ? $("#rn-freq").value : "day";
-  const minH = (IMS.settings.pricing && IMS.settings.pricing.dailyMinHours) || 8;
-  const units = freq === "week" ? Math.max(1, Math.ceil(days / 7)) : (freq === "hour" ? days * minH : days);
-  const uLabel = freq === "week" ? "week" : freq === "hour" ? "hour" : "day";
-  let subtotal = 0;
-  sel.forEach(o => {
-    const id = o.value, a = getResource({ type: "serialized", refId: id }), def = rnDefaultRate(a);
-    const key = freq === "hour" ? "hourly" : freq === "week" ? "weekly" : "daily";
-    const inputId = "rn-" + (key === "hourly" ? "hr" : key === "weekly" ? "wk" : "day") + "_" + id;
-    const el = $("#" + inputId);
-    const rate = el ? (parseFloat(el.value) || 0) : def[key];
-    subtotal += rate * units;
-  });
-  const depEl = $("#rn-deposit"); const depPct = depEl ? Math.min(100, Math.max(0, parseFloat(depEl.value) || 0)) : 0;
-  const refund = $("#rn-refundable") ? $("#rn-refundable").checked : true;
-  const deposit = subtotal * depPct / 100;
-  const tax = subtotal * taxRate();
-  const total = subtotal + tax;
-  box.innerHTML = subtotal > 0
-    ? `<div class="divider"></div>
-       <div class="list-line"><span class="l">${sel.length} asset(s) × ${units} ${uLabel}${units !== 1 ? "s" : ""}</span><span class="r">${fmtMoney(subtotal)}</span></div>
-       <div class="list-line"><span class="l">Sales tax (${Math.round(taxRate() * 100)}%)</span><span class="r">${fmtMoney(tax)}</span></div>
-       <div class="list-line"><span class="l">Deposit (${depPct}%, ${refund ? "refundable" : "non-refundable"})</span><span class="r">${fmtMoney(deposit)}</span></div>
-       <div class="list-line"><span class="l strong">Total due at pick-up</span><span class="r strong">${fmtMoney(total)}</span></div>`
-    : `<div class="text-muted2" style="margin-top:8px">Select equipment and dates to preview pricing.</div>`;
 }
 
 
 function createRentalFromModal(root){
   const custVal = $("#rn-cust").value;
-  let custId = custVal, custName = "", custContact = "", custPhone = "", custEmail = "", custAddr = "";
+  let custId = custVal, custName = "", custContact = "", custAddr = "", custPhone = "", custEmail = "";
   if (custVal === "__new__"){
     custName = ($("#rn-name").value || "").trim();
     if (!custName){ window.alert("Enter the customer name."); return; }
     custContact = ($("#rn-contact").value || "").trim() || custName;
-    custPhone = ($("#rn-phone").value || "").trim();
-    custEmail = ($("#rn-email").value || "").trim();
+    custPhone = ($("#rn-phone").value || "").trim(); custEmail = ($("#rn-email").value || "").trim();
     custAddr = ($("#rn-address").value || "").trim();
     custId = nextCustomerId();
     IMS.customers.push({ id: custId, name: custName, contact: custContact, phone: custPhone, email: custEmail, billingAddress: custAddr, billingCycle: "walk-in", notes: "Equipment rental" });
@@ -287,70 +349,33 @@ function createRentalFromModal(root){
     const c = getCustomer(custVal);
     if (c){ custName = c.name; custContact = c.contact || c.name; custAddr = c.billingAddress || ""; custPhone = c.phone || ""; custEmail = c.email || ""; }
   }
-  const ids = Array.from($("#rn-assets").selectedOptions).map(o => o.value);
-  if (!ids.length){ window.alert("Choose at least one piece of equipment."); return; }
-  const start = $("#rn-start").value || hoTodayStr();
-  let end = $("#rn-end").value || start; if (end < start) end = start;
+  const items = Array.from(document.querySelectorAll("#rn-items .rn-item")).map(rnCompute).filter(Boolean);
+  if (!items.length){ window.alert("Add at least one piece of equipment."); return; }
+  const seen = {};
+  for (const it of items){ if (seen[it.assetId]){ window.alert(it.assetId + " is already on the rental — use its own line."); return; } seen[it.assetId] = true; }
+  let cStart = items[0].start, cEnd = items[0].end;
+  items.forEach(it => { if (it.start && (!cStart || it.start < cStart)) cStart = it.start; if (it.end && it.end > cEnd) cEnd = it.end; });
   const cid = nextContractId();
-  const num = id => { const el = $("#" + id); return el ? (parseFloat(el.value) || 0) : 0; };
-  const depositPct = num("rn-deposit");
-  const depositRefundable = $("#rn-refundable") ? $("#rn-refundable").checked : true;
-  const rentalFreq = $("#rn-freq") ? $("#rn-freq").value : "day";
-  const lineItems = ids.map(refId => {
-    const a = getResource({ type: "serialized", refId });
-    const def = rnDefaultRate(a);
-    return {
-      id: nextLiId(), type: "serialized", refId, qty: 1, pricingMatrix: "standard", weekendPolicy: "bill", riskPremium: "standard", flatTotal: 0,
-      customRates: { hourly: num("rn-hr_" + refId) || def.hourly, daily: num("rn-day_" + refId) || def.daily, weekly: num("rn-wk_" + refId) || def.weekly }
-    };
-  });
+  const lineItems = items.map(it => ({
+    id: nextLiId(), type: "serialized", refId: it.assetId, qty: 1,
+    pricingMatrix: "standard", weekendPolicy: "bill", riskPremium: "standard", flatTotal: 0,
+    startDate: it.start + "T09:00", endDate: it.end + "T17:00",
+    customRates: it.rates, freq: it.freq, depositPct: it.depPct, depositRefundable: it.refundable
+  }));
   IMS.contracts.push({
     contractId: cid, customerId: custId, customer: custName,
     jobSite: custAddr || "Front counter pickup",
     projectName: "Equipment Rental — " + custName,
-    startDate: start + "T09:00", endDate: end + "T17:00", status: "active", counter: true,
-    depositPct, depositRefundable, rentalFreq,
+    startDate: cStart + "T09:00", endDate: cEnd + "T17:00", status: "active", counter: true,
     siteLat: (IMS.yard && IMS.yard.lat) || 33.7490, siteLng: (IMS.yard && IMS.yard.lng) || -84.3880,
     lineItems
   });
-  ids.forEach(refId => {
-    const a = getResource({ type: "serialized", refId });
+  items.forEach(it => {
+    const a = getResource({ type: "serialized", refId: it.assetId });
     if (a){ a.status = "On Rent"; a.contractId = cid; }
-    hoLog(refId, cid, "Check-Out", custContact, "Rental checked out at the front desk.");
+    hoLog(it.assetId, cid, "Check-Out", custContact, "Rental checked out at the front desk.");
   });
   dismissModal(root);
   renderHandoff();
-}
-
-
-/* default hour/day/week rates for an asset (hourly = daily ÷ daily min hours) */
-function rnDefaultRate(a){
-  const h = (IMS.settings.pricing && IMS.settings.pricing.dailyMinHours) || 8;
-  return {
-    hourly: a ? Math.round((a.baseDaily / h) * 100) / 100 : 0,
-    daily:  a ? a.baseDaily : 0,
-    weekly: a ? (a.baseWeekly || a.baseDaily * 7) : 0
-  };
-}
-
-/* Editable per-asset hour/day/week override rows that follow the equipment selection. */
-function rnRenderRates(){
-  const box = $("#rn-ratebox"); if (!box) return;
-  const sel = Array.from($("#rn-assets").selectedOptions);
-  if (!sel.length){ box.innerHTML = ""; return; }
-  const rows = sel.map(o => {
-    const a = getResource({ type: "serialized", refId: o.value });
-    const d = rnDefaultRate(a);
-    return `<div class="rn-item">
-      <div class="rn-item-head"><span class="mono strong">${a ? a.id : o.value}</span><span class="text-muted2">${a ? a.make + " " + a.model : ""}</span></div>
-      <div class="row g-2">
-        <div class="col-4 field-group"><label class="form-label">Hour</label><input class="form-control form-control-sm" id="rn-hr_${o.value}" type="number" step="0.01" min="0" value="${d.hourly}"></div>
-        <div class="col-4 field-group"><label class="form-label">Day</label><input class="form-control form-control-sm" id="rn-day_${o.value}" type="number" step="0.01" min="0" value="${d.daily}"></div>
-        <div class="col-4 field-group"><label class="form-label">Week</label><input class="form-control form-control-sm" id="rn-wk_${o.value}" type="number" step="0.01" min="0" value="${d.weekly}"></div>
-      </div>
-    </div>`;
-  }).join("");
-  box.innerHTML = `<div class="strong mb-1" style="font-size:12px">Equipment rates <span class="text-muted2" style="font-weight:500">(override defaults)</span></div>${rows}`;
-  box.querySelectorAll("input").forEach(i => i.addEventListener("input", rnRefreshPreview));
 }
 
