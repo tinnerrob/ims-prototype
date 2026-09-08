@@ -1284,3 +1284,24 @@ tr.ho-sec td .mono { font-size: 12px; }
 .rn-item { background: #f1f5f9; border: 1px solid var(--slate-200); }
 .rn-item-head { border-bottom: 1px solid var(--slate-200); padding-bottom: 6px; }
 .rn-item.rn-collapsed .rn-body { display: none; }
+
+/* ---- New Rental wizard (handoff-wiz.js) ---- */
+.rw-steps { display: flex; gap: 6px; margin-bottom: 14px; }
+.rw-step { display: inline-flex; align-items: center; gap: 8px; padding: 6px 12px; border-radius: 8px;
+  background: #eef2f7; color: #64748b; font-size: 13px; font-weight: 600; cursor: pointer; user-select: none; border: 1px solid transparent; }
+.rw-step .rw-step-n { display: inline-grid; place-items: center; width: 20px; height: 20px; border-radius: 50%;
+  background: #cbd5e1; color: #fff; font-size: 12px; }
+.rw-step.active { background: #0f2b46; color: #fff; }
+.rw-step.active .rw-step-n { background: #fff; color: #0f2b46; }
+.rw-panes { min-height: 240px; }
+.rw-pane-title { font-weight: 700; margin-bottom: 10px; color: #0f2b46; }
+.rw-toolbar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+.rw-nav { display: flex; justify-content: space-between; align-items: center; gap: 8px; margin-top: 16px; padding-top: 12px; border-top: 1px solid var(--slate-200); }
+.rw-nav-left, .rw-nav-right { display: flex; gap: 8px; align-items: center; }
+.rn-custcard { background: #f1f5f9; border: 1px solid var(--slate-200); border-radius: 10px; padding: 10px 12px; margin-bottom: 6px; }
+.rw-note { font-size: 12px; }
+.rw-inv-head { display: flex; justify-content: space-between; gap: 12px; }
+.rw-invoice { border-color: var(--slate-200); }
+.rw-inv-table th { font-size: 12px; text-transform: uppercase; color: #64748b; }
+.rw-totals { max-width: 340px; margin-left: auto; }
+.rw-big { font-size: 18px; }
