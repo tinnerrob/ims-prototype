@@ -1,0 +1,177 @@
+/* =========================================================
+   IMS — handoff.js
+   Equipment Hand-Off / Check In-Out  +  Chain of Custody.
+   Append-only audit log per serialized asset (a physical
+   Check-Out / Check-In to a customer contract). While an asset
+   is checked out it is flagged unavailable for scheduling.
+   ========================================================= */
+"use strict";
+
+/* ---- chain-of-custody helpers ---- */
+const hoEvents = assetId => (IMS.handoffs || []).filter(h => h.assetId === assetId);
+/* Latest immutable event for an asset (or null). */
+function hoLatest(assetId){
+  const evs = hoEvents(assetId);
+  return evs.length ? evs[evs.length - 1] : null;
+}
+/* True while an asset is physically out with a customer (last event = Check-Out). */
+function assetOutInfo(assetId){
+  const last = hoLatest(assetId);
+  if (!last || last.direction !== "Check-Out") return null;
+  return {
+    assetId,
+    asset: getResource({ type: "serialized", refId: assetId }),
+    contractId: last.contractId,
+    contract: getContract(last.contractId),
+    custodian: last.custodian,
+    at: last.at,
+    by: last.by
+  };
+}
+function hoScheduledIds(contractId){
+  const c = getContract(contractId);
+  return (c && c.lineItems || []).filter(li => li.type === "serialized").map(li => li.refId);
+}
+function hoCustodian(c){
+  if (!c) return "Customer";
+  const cust = getCustomer(c.customerId);
+  return cust ? cust.contact : (c.customer || "Customer");
+}
+function hoStamp(){
+  const d = new Date(); const p = n => String(n).padStart(2, "0");
+  return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}T${p(d.getHours())}:${p(d.getMinutes())}`;
+}
+function hoNext(){
+  let n = 0;
+  (IMS.handoffs || []).forEach(h => { const m = parseInt(String(h.id).split("-")[1], 10); if (m > n) n = m; });
+  return "HO-" + pad2(n + 1);
+}
+/* Immutable write: append an event (never mutate an existing record). */
+function hoLog(assetId, contractId, direction, custodian, note){
+  IMS.handoffs = IMS.handoffs || [];
+  IMS.handoffs.push({ id: hoNext(), assetId, contractId, direction, custodian, at: hoStamp(), by: "D. Reynolds", note: note || "" });
+}
+function hoCheckOut(assetId, contractId){
+  if (assetOutInfo(assetId)) return;                       // already out — no double hand-off
+  const c = getContract(contractId);
+  hoLog(assetId, contractId, "Check-Out", hoCustodian(c), "Checked out to " + (c ? c.contractId : contractId));
+  const a = getResource({ type: "serialized", refId: assetId });
+  if (a){ a.status = "On Rent"; a.contractId = contractId; }
+  renderHandoff();
+}
+function hoCheckIn(assetId){
+  const info = assetOutInfo(assetId);
+  if (!info) return;
+  hoLog(assetId, info.contractId, "Check-In", info.custodian, "Returned to yard / available.");
+  const a = getResource({ type: "serialized", refId: assetId });
+  if (a){ a.status = "Available"; a.contractId = null; }
+  renderHandoff();
+}
+
+/* ---- audit (chain of custody) modal ---- */
+function hoAuditModal(assetId){
+  const a = getResource({ type: "serialized", refId: assetId }) || {};
+  const rows = hoEvents(assetId).map(h => `<div class="list-line">
+    <span class="l"><span class="mono strong">${h.id}</span> · <span class="badge-status ${h.direction === "Check-Out" ? "st-out" : "st-available"}">${h.direction}</span> ${h.contractId || ""}</span>
+    <span class="r"><span class="mono">${fmtDT(h.at)}</span></span>
+    <div class="text-muted2" style="grid-column:1/-1">Custodian: <strong>${h.custodian}</strong> · by ${h.by}${h.note ? " · " + h.note : ""}</div>
+  </div>`).join("");
+  openRawModal({
+    id: "mdl-audit", title: "Chain of Custody — " + assetId, icon: "bi-fingerprint",
+    body: `<div class="text-muted2 mb-2" style="font-size:12px">${assetId} · ${a.make || ""} ${a.model || ""} — immutable audit log (${hoEvents(assetId).length} events)</div>${rows || `<p class="text-muted2">No hand-off events.</p>`}`,
+    footer: `<button type="button" class="btn btn-ims-outline" data-bs-dismiss="modal">Close</button>`
+  });
+}
+
+/* ---- page ---- */
+function renderHandoff(){
+  const active = IMS.contracts.filter(c => c.status === "active").sort((a, b) => a.contractId < b.contractId ? -1 : 1);
+  const all = IMS.serializedAssets;
+  const outN = all.reduce((s, a) => s + (assetOutInfo(a.id) ? 1 : 0), 0);
+  const onSite = all.filter(a => assetOutInfo(a.id));
+  const scheduled = active.reduce((s, c) => s + hoScheduledIds(c.contractId).length, 0);
+
+  let body = "";
+  active.forEach(c => {
+    const ids = hoScheduledIds(c.contractId).filter(id => !assetOutInfo(id) || assetOutInfo(id).contractId === c.contractId);
+    if (!ids.length) return;
+    body += `<tr class="ho-sec"><td colspan="8"><span class="mono strong">${c.contractId}</span> · ${c.projectName}
+      <span class="text-muted2">${fmtDate(c.startDate)} → ${fmtDate(c.endDate)}</span></td></tr>`;
+    ids.forEach(id => {
+      const a = getResource({ type: "serialized", refId: id }) || { id };
+      const out = assetOutInfo(id);
+      const state = out ? "out" : "scheduled";
+      body += `<tr>
+        <td class="strong">${a.id}</td>
+        <td class="text-muted2">${a.make || ""} ${a.model || ""}</td>
+        <td>${fmtDate(c.startDate)} → ${fmtDate(c.endDate)}</td>
+        <td>${out ? out.custodian : hoCustodian(c)}</td>
+        <td>${out ? fmtDT(out.at) : "—"}</td>
+        <td><span class="badge-status ${state === "out" ? "st-out" : "st-reorder"}">${state === "out" ? "On Site" : "Scheduled"}</span></td>
+        <td><button class="btn btn-ims-outline btn-sm2" data-audit="${a.id}"><i class="bi bi-fingerprint"></i> ${hoEvents(a.id).length}</button></td>
+        <td class="text-end text-nowrap">
+          ${state === "out"
+            ? `<button class="btn btn-ims btn-sm2" data-ho="in" data-asset="${a.id}"><i class="bi bi-box-arrow-in-down"></i> Check In</button>`
+            : `<button class="btn btn-ims-outline btn-sm2" data-ho="out" data-asset="${a.id}" data-contract="${c.contractId}"><i class="bi bi-box-arrow-up-right"></i> Check Out</button>`}
+        </td>
+      </tr>`;
+    });
+  });
+
+  const onSiteRows = onSite.map(o => `<div class="list-line">
+      <span class="l"><span class="strong mono">${o.assetId}</span> · ${o.asset ? o.asset.make + " " + o.asset.model : ""} — on <span class="mono strong">${o.contractId}</span></span>
+      <span class="r text-nowrap"><span class="text-muted2">${o.custodian}</span>
+        <button class="btn btn-ims-outline btn-sm2" data-audit="${o.assetId}" title="Audit trail"><i class="bi bi-fingerprint"></i></button>
+        <button class="btn btn-ims btn-sm2" data-ho="in" data-asset="${o.assetId}">Return</button></span>
+    </div>`).join("") || `<p class="text-muted2">No equipment currently out.</p>`;
+
+  const audit = (IMS.handoffs || []).slice().sort((x, y) => x.at < y.at ? 1 : -1)
+    .map(h => `<tr>
+      <td class="mono strong">${h.id}</td><td class="strong">${h.assetId}</td>
+      <td>${h.contractId || "—"}</td>
+      <td><span class="badge-status ${h.direction === "Check-Out" ? "st-out" : "st-available"}">${h.direction}</span></td>
+      <td>${h.custodian}</td><td class="mono">${fmtDT(h.at)}</td><td>${h.by}</td>
+    </tr>`).join("");
+
+  $("#content").innerHTML = `
+    <div class="page-head"></div>
+    <div class="row g-3 mb-3">
+      <div class="col-md-4"><div class="card"><div class="card-body ho-stat">
+        <div class="ho-stat-num">${outN}</div><div class="text-muted2">Equipment on site (out)</div></div></div></div>
+      <div class="col-md-4"><div class="card"><div class="card-body ho-stat">
+        <div class="ho-stat-num">${scheduled}</div><div class="text-muted2">Scheduled this period</div></div></div></div>
+      <div class="col-md-4"><div class="card"><div class="card-body ho-stat">
+        <div class="ho-stat-num">${all.length - outN}</div><div class="text-muted2">In yard / available</div></div></div></div>
+    </div>
+    <div class="card mb-3">
+      <div class="card-header"><span class="card-title"><i class="bi bi-truck"></i> Equipment by Contract — Dispatch &amp; Return</span>
+        <span class="badge-status ${outN ? "st-out" : "st-available"}">${outN} on site</span></div>
+      <div class="card-body table-wrap">
+        <table class="table"><thead><tr>
+          <th>Asset</th><th>Model</th><th>Rental window</th><th>Custodian</th><th>Checked out</th><th>Status</th><th class="num">Custody</th><th class="text-end">Action</th>
+        </tr></thead><tbody id="hoTable">${body || `<tr><td colspan="8" class="text-center text-muted2 py-4">No serialized equipment scheduled on active contracts.</td></tr>`}</tbody></table>
+      </div>
+    </div>
+    <div class="split-layout">
+      <div class="card"><div class="card-header"><span class="card-title"><i class="bi bi-geo"></i> Currently On Site</span></div>
+        <div class="card-body">${onSiteRows}</div></div>
+      <div class="card"><div class="card-header"><span class="card-title"><i class="bi bi-fingerprint"></i> Audit Trail / Chain of Custody</span>
+        <span class="badge-status st-inshop">${(IMS.handoffs || []).length} events</span></div>
+        <div class="card-body table-wrap">
+          <table class="table"><thead><tr><th>Ref</th><th>Asset</th><th>Contract</th><th>Action</th><th>Custodian</th><th>When</th><th>By</th></tr></thead>
+          <tbody>${audit}</tbody></table>
+        </div></div>
+    </div>`;
+
+  delegate($("#hoTable"), "click", "button[data-ho]", (el) => {
+    if (el.dataset.ho === "out") hoCheckOut(el.dataset.asset, el.dataset.contract);
+    else hoCheckIn(el.dataset.asset);
+  });
+  delegate($("#hoTable"), "click", "button[data-audit]", (el) => hoAuditModal(el.dataset.audit));
+  delegate($("#content"), "click", ".card button[data-audit], .card button[data-ho]", (el) => {
+    if (el.closest("#hoTable")) return;                     // already handled by the table delegation
+    if (el.dataset.audit) hoAuditModal(el.dataset.audit);
+    else if (el.dataset.ho === "in") hoCheckIn(el.dataset.asset);
+  });
+}
+

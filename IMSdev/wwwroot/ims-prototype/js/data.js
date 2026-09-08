@@ -358,3 +358,17 @@ IMS.settings = {
     depreciationAnnual:0.10
   }
 };
+
+/* ---------------------------------------------------------
+   TABLE: handoffs (Equipment Hand-Off / Chain of Custody)
+   Append-only audit log: one immutable record per physical
+   Check-Out / Check-In of a serialized asset to a customer
+   contract. Never edited or deleted once written.
+   --------------------------------------------------------- */
+IMS.handoffs = [
+  { id:"HO-001", assetId:"BL-119", contractId:"CT-2024-001", direction:"Check-Out", custodian:"M. Halstead", at:"2026-08-20T07:15", by:"D. Reynolds", note:"Delivered to Downtown Plaza site." },
+  { id:"HO-002", assetId:"FL-401", contractId:"CT-2024-001", direction:"Check-Out", custodian:"M. Halstead", at:"2026-08-20T08:05", by:"D. Reynolds", note:"Forklift offloaded with operator handoff." },
+  { id:"HO-003", assetId:"SS-204", contractId:"CT-2024-002", direction:"Check-Out", custodian:"L. Bishop",  at:"2026-09-01T06:45", by:"D. Reynolds", note:"Skid steer delivered to bridge site." },
+  { id:"HO-004", assetId:"TL-605", contractId:"CT-2024-002", direction:"Check-Out", custodian:"L. Bishop",  at:"2026-09-01T07:10", by:"D. Reynolds", note:"Telehandler staged for Riverside Bridge." },
+  { id:"HO-005", assetId:"GN-511", contractId:"CT-2024-003", direction:"Check-Out", custodian:"R. Vance",   at:"2026-09-02T06:30", by:"D. Reynolds", note:"Generator placed at refinery skid." }
+];

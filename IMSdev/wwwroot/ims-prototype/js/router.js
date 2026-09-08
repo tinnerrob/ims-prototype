@@ -7,13 +7,14 @@
 /* =========================================================
    NAVIGATION / ROUTER
    ========================================================= */
-const TITLES = { dashboard:"Dashboard", inventory:"Inventory & Assets", contracts:"Customers & Contracts", scheduler:"Scheduler", geo:"Geo Asset Tracking", logistics:"Logistics Board", maintenance:"Service & Maintenance", timesheet:"Labor & Timesheets", yard:"Yard Inspections", invoicing:"Cycle Invoicing", rerents:"Sub-Rentals", branches:"Branch / Yard Profiles", pricing:"Pricing Rules", categories:"Resource Categories" };
-const RENDER = { dashboard: renderDashboard, inventory: renderInventory, contracts: renderCustomersContracts, scheduler: renderScheduler, geo: renderGeo, logistics: renderLogistics, maintenance: renderMaintenance, timesheet: renderTimesheet, yard: renderYard, invoicing: renderInvoicing, rerents: renderRerents, branches: renderBranches, pricing: renderPricing, categories: renderCategories };
+const TITLES = { dashboard:"Dashboard", inventory:"Inventory & Assets", contracts:"Customers & Contracts", scheduler:"Scheduler", handoff:"Equipment Hand-Off", geo:"Geo Asset Tracking", logistics:"Logistics Board", maintenance:"Service & Maintenance", timesheet:"Labor & Timesheets", yard:"Yard Inspections", invoicing:"Cycle Invoicing", rerents:"Sub-Rentals", branches:"Branch / Yard Profiles", pricing:"Pricing Rules", categories:"Resource Categories" };
+const RENDER = { dashboard: renderDashboard, inventory: renderInventory, contracts: renderCustomersContracts, scheduler: renderScheduler, handoff: renderHandoff, geo: renderGeo, logistics: renderLogistics, maintenance: renderMaintenance, timesheet: renderTimesheet, yard: renderYard, invoicing: renderInvoicing, rerents: renderRerents, branches: renderBranches, pricing: renderPricing, categories: renderCategories };
 const DESCRIPTIONS = {
   dashboard:"Aggregated business metrics from all mocked data engines.",
   inventory:"Structural database tables driving scheduling, costing and dispatch.",
   contracts:"Customer records, their rental contracts, and status control (active ↔ closed).",
   scheduler:"Stage multi-resource line items on a contract timeline and tune the pricing rules engine.",
+  handoff:"Check equipment out to customer contracts and back in, with an immutable chain-of-custody audit trail.",
   geo:"Dispatch control — live fleet telemetry and geofence monitoring.",
   logistics:"Dispatch board for deliveries, pickups and route assignment.",
   maintenance:"Work orders, service actions and parts drawn from consumables inventory.",
