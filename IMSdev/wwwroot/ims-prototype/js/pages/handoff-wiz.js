@@ -158,11 +158,16 @@ function rwBody(seq, type, used){
             <label class="form-check-label" for="rn_x_${seq}">Refundable deposit</label></div></div>
         </div>`);
     }
+    cols.push(`<div class="row g-2">
+        <div class="col-3 field-group"><label class="form-label">Payment due</label>
+          <select class="form-select rn-due" id="rn_due_${seq}"><option value="pickup">At pick-up</option><option value="return">At return</option></select></div>
+        <div class="col-9 field-group d-flex align-items-end"><span class="text-muted2 rw-note"><i class="bi bi-calendar2-check"></i> Bill this item when it is picked up or when it is returned.</span></div>
+      </div>`);
   } else {
     cols.push(`<div class="row g-2">
         <div class="col-3 field-group"><label class="form-label">Qty</label><input class="form-control rn-q" id="rn_q_${seq}" type="number" min="1" step="1" value="1"></div>
         <div class="col-4 field-group"><label class="form-label">Price each ($)</label><input class="form-control rn-up" id="rn_u_${seq}" type="number" step="0.01" min="0" placeholder="0.00"></div>
-        <div class="col-5 field-group d-flex align-items-end"><span class="text-muted2 rw-note"><i class="bi bi-info-circle"></i> Charged once at check-out — not time-based</span></div>
+        <div class="col-5 field-group d-flex align-items-end"><span class="text-muted2 rw-note"><i class="bi bi-info-circle"></i> Due at pick-up · charged once at check-out — not time-based</span></div>
       </div>`);
   }
   return cols.join("\n");
@@ -231,7 +236,7 @@ function rwCompute(seg){
   if (!time){
     const uEl = seg.querySelector("#rn_u_" + seq);
     const unit = uEl ? (parseFloat(uEl.value) || 0) : 0;
-    return { seq, type, ref, label: rwLabel(type, ref), qty, unit, time: false,
+    return { seq, type, ref, label: rwLabel(type, ref), qty, unit, time: false, dueAt: "pickup",
              units: qty, uLabel: "each", subtotal: Math.round(unit * qty * 100) / 100, deposit: 0, depPct: 0 };
   }
   const sEl = seg.querySelector("#rn_s_" + seq), eEl = seg.querySelector("#rn_e_" + seq);
@@ -250,15 +255,32 @@ function rwCompute(seg){
   const depPct = pEl ? Math.min(100, Math.max(0, parseFloat(pEl.value) || 0)) : 0;
   const rEl = seg.querySelector("#rn_x_" + seq);
   const refundable = rEl ? rEl.checked : true;
+  const dueEl = seg.querySelector("#rn_due_" + seq);
+  const dueAt = dueEl ? (dueEl.value === "return" ? "return" : "pickup") : "pickup";
   return { seq, type, ref, label: rwLabel(type, ref), qty, start, end, days, freq, rates,
            units, uLabel, subtotal, depPct, deposit: Math.round(subtotal * depPct / 100 * 100) / 100,
-           refundable, time: true };
+           refundable, dueAt, time: true };
 }
 
 /* Recompute every section's headline total + label and refresh live previews. */
+function rwAggregate(items){
+  const rate = taxRate();
+  let subP = 0, taxP = 0, subR = 0, taxR = 0, dep = 0;
+  items.forEach(it => {
+    const tx = Math.round(it.subtotal * rate * 100) / 100;
+    if (it.time && it.dueAt === "return"){ subR += it.subtotal; taxR += tx; }
+    else { subP += it.subtotal; taxP += tx; }
+    dep += it.deposit || 0;
+  });
+  const round2 = n => Math.round(n * 100) / 100;
+  return { subP, taxP, subR, taxR, dep,
+    collectP: round2(subP + taxP), collectR: round2(subR + taxR), grand: round2(subP + subR + taxP + taxR) };
+}
+
 function rwRefreshAll(){
-  let subtotal = 0, deposits = 0, count = 0;
-  Array.from(document.querySelectorAll("#rn-items .rn-item")).forEach(seg => {
+  const segs = Array.from(document.querySelectorAll("#rn-items .rn-item"));
+  const items = [];
+  segs.forEach(seg => {
     const seq = seg.dataset.seq;
     const c = rwCompute(seg);
     const tEl = seg.querySelector(".rn-t");
@@ -266,22 +288,23 @@ function rwRefreshAll(){
     if (c){
       if (c.time) txt += " · " + (c.qty > 1 ? c.qty + " × " : "") + c.units + " " + c.uLabel + (c.units !== 1 ? "s" : "");
       else txt += " · " + c.qty + " each";
+      if (c.time && c.dueAt === "return") txt += " · on return";
     }
     if (tEl) tEl.textContent = txt;
     const labEl = seg.querySelector(".rn-headlbl");
     if (labEl){
-      const idx = Array.from(document.querySelectorAll("#rn-items .rn-item")).indexOf(seg) + 1;
+      const idx = segs.indexOf(seg) + 1;
       labEl.textContent = RW_TYPE_LABEL[seg.dataset.type] + " " + idx + (c ? " · " + c.label : "");
     }
-    if (c){ subtotal += c.subtotal; deposits += c.deposit; count++; }
+    if (c) items.push(c);
   });
   const mini = $("#rn-summary2"); if (!mini) return;
-  const tax = subtotal * taxRate();
+  const a = rwAggregate(items);
   mini.innerHTML = `<div class="divider"></div>
-    <div class="list-line"><span class="l">${count} line item${count === 1 ? "" : "s"}</span><span class="r strong">${fmtMoney(subtotal)}</span></div>
-    <div class="list-line"><span class="l">Sales tax (${Math.round(taxRate() * 100)}%)</span><span class="r">${fmtMoney(tax)}</span></div>
-    <div class="list-line"><span class="l">Deposits (held)</span><span class="r">${fmtMoney(deposits)}</span></div>
-    <div class="list-line"><span class="l strong">Total due at pick-up</span><span class="r strong">${fmtMoney(subtotal + tax)}</span></div>`;
+    <div class="list-line"><span class="l">${items.length} line item${items.length === 1 ? "" : "s"}</span><span class="r strong">${fmtMoney(a.grand)}</span></div>
+    <div class="list-line"><span class="l strong">Due at pick-up</span><span class="r strong">${fmtMoney(a.collectP)}</span></div>
+    <div class="list-line"><span class="l">Due at return</span><span class="r">${fmtMoney(a.collectR)}</span></div>
+    <div class="list-line"><span class="l">Deposits (held at pick-up)</span><span class="r">${fmtMoney(a.dep)}</span></div>`;
   if (rwStep === 3 && $("#rn-invoice")) rwRenderInvoice();
 }
 /* Add one typed item section. `type` defaults to the last-used type. */
@@ -320,6 +343,8 @@ function rwWireBody(seq){
   if (a) a.addEventListener("change", () => rwFill(seq));
   const f = seg.querySelector(".rn-freq");
   if (f) f.addEventListener("change", () => { rwApplyFreq(seq); rwRefreshAll(); });
+  const due = seg.querySelector(".rn-due");
+  if (due) due.addEventListener("change", rwRefreshAll);
   seg.querySelectorAll(".rn-date, .rn-rate, .rn-q, .rn-up, .rn-dep").forEach(i =>
     i.addEventListener("input", rwRefreshAll));
   const rf = seg.querySelector(".rn-ref");
@@ -367,14 +392,13 @@ function rwRenderInvoice(){
     if (custId === "__new__"){ custName = ($("#rn-name").value || "").trim() || "New customer"; custContact = ($("#rn-contact").value || "").trim() || custName; custAddr = ($("#rn-address").value || "").trim() || "Front counter pickup"; }
     else { const c = getCustomer(custId); if (c){ custName = c.name; custContact = c.contact || c.name; custAddr = c.billingAddress || "Front counter pickup"; } }
   }
+  const dueText = c => c.time ? ("Due " + (c.dueAt === "return" ? "at return" : "at pick-up")) : "Due at pick-up";
   const rows = items.map(c => `<tr>
       <td class="num">${fmtInt(c.qty)}</td>
-      <td><span class="strong">${c.label}</span><div class="text-muted2">${c.time ? (RW_TYPE_LABEL[c.type] + " · " + c.start + " → " + c.end) : RW_TYPE_LABEL[c.type] + " (sale)"}</div></td>
+      <td><span class="strong">${c.label}</span><div class="text-muted2">${c.time ? (RW_TYPE_LABEL[c.type] + " · " + c.start + " → " + c.end) : RW_TYPE_LABEL[c.type] + " (sale)"} · <span class="badge-status ${c.dueAt === "return" ? "st-out" : "st-available"}">${dueText(c)}</span></div></td>
       <td class="text-muted2">${rwBasisText(c)}</td>
       <td class="num">${fmtMoney(c.subtotal)}</td></tr>`).join("");
-  const subtotal = items.reduce((s, c) => s + c.subtotal, 0);
-  const deposits = items.reduce((s, c) => s + c.deposit, 0);
-  const tax = Math.round(subtotal * taxRate() * 100) / 100;
+  const a = rwAggregate(items);
   box.innerHTML = `<div class="rw-invoice card">
       <div class="card-body">
         <div class="rw-inv-head">
@@ -394,12 +418,17 @@ function rwRenderInvoice(){
           : `<p class="text-muted2 py-2">No items added yet.</p>`}
         <div class="divider"></div>
         <div class="rw-totals">
-          <div class="list-line"><span class="l">Subtotal</span><span class="r">${fmtMoney(subtotal)}</span></div>
-          <div class="list-line"><span class="l">Sales tax (${Math.round(taxRate() * 100)}%)</span><span class="r">${fmtMoney(tax)}</span></div>
-          <div class="list-line"><span class="l">Deposits (held, refundable)</span><span class="r">${fmtMoney(deposits)}</span></div>
-          <div class="list-line"><span class="l strong">Total due at pick-up</span><span class="r strong rw-big">${fmtMoney(subtotal + tax)}</span></div>
+          <div class="list-line"><span class="l strong">Due at pick-up</span><span class="r strong">${fmtMoney(a.collectP)}</span></div>
+          <div class="list-line text-muted2"><span class="l">Pick-up subtotal</span><span class="r">${fmtMoney(a.subP)}</span></div>
+          <div class="list-line text-muted2"><span class="l">Pick-up sales tax (${Math.round(taxRate() * 100)}%)</span><span class="r">${fmtMoney(a.taxP)}</span></div>
+          <div class="list-line"><span class="l strong">Due at return</span><span class="r strong">${fmtMoney(a.collectR)}</span></div>
+          <div class="list-line text-muted2"><span class="l">Return subtotal</span><span class="r">${fmtMoney(a.subR)}</span></div>
+          <div class="list-line text-muted2"><span class="l">Return sales tax (${Math.round(taxRate() * 100)}%)</span><span class="r">${fmtMoney(a.taxR)}</span></div>
+          <div class="list-line"><span class="l">Deposits (held at pick-up)</span><span class="r">${fmtMoney(a.dep)}</span></div>
+          <div class="divider"></div>
+          <div class="list-line"><span class="l strong">Grand total</span><span class="r strong rw-big">${fmtMoney(a.grand)}</span></div>
         </div>
-        <div class="text-muted2" style="margin-top:10px"><i class="bi bi-info-circle"></i> Deposits are held and returned when the last item is checked back in.</div>
+        <div class="text-muted2" style="margin-top:10px"><i class="bi bi-info-circle"></i> Deposits are held at pick-up and returned when the last item is checked back in. Items marked "due at return" are billed on return.</div>
       </div>
     </div>`;
 }
@@ -574,7 +603,8 @@ function rwCreate(root){
   const cid = nextContractId();
   const lineItems = items.map(it => {
     const base = { id: nextLiId(), type: it.type, refId: it.ref, qty: it.qty,
-      pricingMatrix: "standard", weekendPolicy: "bill", riskPremium: "standard", flatTotal: 0 };
+      pricingMatrix: "standard", weekendPolicy: "bill", riskPremium: "standard", flatTotal: 0,
+      dueAt: it.dueAt || "pickup" };
     if (it.time){
       base.startDate = it.start + "T09:00"; base.endDate = it.end + "T17:00";
       base.customRates = it.rates; base.freq = it.freq;
