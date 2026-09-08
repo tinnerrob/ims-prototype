@@ -263,9 +263,11 @@ function rnAddItem(){
         <span class="strong">Equipment ${rnSeq}</span>
         <span class="rn-item-head-right">
           <span class="rn-t mono" id="rn_t_${seq}"></span>
+          <button type="button" class="btn btn-ims-outline btn-sm2 rn-toggle" data-seq="${seq}" title="Collapse / expand"><i class="bi bi-chevron-up"></i></button>
           <button type="button" class="btn btn-ims-outline btn-sm2 rn-del" data-seq="${seq}" title="Remove"><i class="bi bi-x-lg"></i></button>
         </span>
       </div>
+      <div class="rn-body">
       <div class="row g-2">
         <div class="col-md-12 field-group"><label class="form-label">Equipment</label>
           <select class="form-select rn-a" id="rn_a_${seq}">${rnOpts(used)}</select></div>
@@ -283,6 +285,7 @@ function rnAddItem(){
         <div class="col-3 field-group"><label class="form-label">Deposit (%)</label><input class="form-control rn-dep" id="rn_p_${seq}" type="number" min="0" max="100" step="1" value="25"></div>
         <div class="col-9 field-group" style="padding-top:24px"><div class="form-check form-switch"><input class="form-check-input rn-ref" type="checkbox" id="rn_x_${seq}" checked><label class="form-check-label" for="rn_x_${seq}">Refundable deposit</label></div></div>
       </div>
+      </div>
     </div>`;
   box.insertAdjacentHTML("beforeend", html);
   rnFill(seq); // load default rates for the first option and refresh
@@ -292,6 +295,12 @@ function rnAddItem(){
   seg.querySelector(".rn-freq").addEventListener("change", () => { rnApplyFreq(seq); rnRefreshPreview(); });
   seg.querySelectorAll(".rn-rate, .rn-date, .rn-dep, .rn-ref").forEach(i => i.addEventListener("input", rnRefreshPreview));
   seg.querySelector(".rn-ref").addEventListener("change", rnRefreshPreview);
+  const togg = seg.querySelector(".rn-toggle");
+  if (togg) togg.addEventListener("click", () => {
+    seg.classList.toggle("rn-collapsed");
+    const ic = togg.querySelector("i");
+    if (ic) ic.className = "bi " + (seg.classList.contains("rn-collapsed") ? "bi-chevron-down" : "bi-chevron-up");
+  });
   seg.querySelector(".rn-del").addEventListener("click", () => { seg.remove(); rnRefreshPreview(); });
 }
 
