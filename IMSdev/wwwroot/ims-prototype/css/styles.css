@@ -1305,3 +1305,4 @@ tr.ho-sec td .mono { font-size: 12px; }
 .rw-inv-table th { font-size: 12px; text-transform: uppercase; color: #64748b; }
 .rw-totals { max-width: 340px; margin-left: auto; }
 .rw-big { font-size: 18px; }
+.rw-additem-wrap { display: flex; justify-content: center; margin: 10px 0 2px; }

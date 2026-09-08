@@ -464,9 +464,9 @@ function rwCustPane(){
 }
 function rwItemsPane(){
   return `<div class="pane" id="rn-p2">
-      <div class="rw-toolbar"><span class="strong"><i class="bi bi-box-seam"></i> Items to rent / sell</span>
-        <button type="button" class="btn btn-ims-outline btn-sm2" id="rn-add"><i class="bi bi-plus-lg"></i> Add item</button></div>
+      <div class="rw-toolbar"><span class="strong"><i class="bi bi-box-seam"></i> Items to rent / sell</span></div>
       <div id="rn-items"></div>
+      <div class="rw-additem-wrap"><button type="button" class="btn btn-ims-outline btn-sm2" id="rn-add"><i class="bi bi-plus-lg"></i> Add item</button></div>
       <div id="rn-summary2" class="ho-preview"></div>
     </div>`;
 }
@@ -476,7 +476,6 @@ function rwReviewPane(){
 function rwNavHTML(){
   return `<div class="rw-nav">
       <div class="rw-nav-left">
-        <button type="button" class="btn btn-ims-outline" data-bs-dismiss="modal"><i class="bi bi-x-lg"></i> Cancel</button>
         <button type="button" class="btn btn-ims-outline" id="rn-back"><i class="bi bi-chevron-left"></i> Back</button>
       </div>
       <div class="rw-nav-right">
