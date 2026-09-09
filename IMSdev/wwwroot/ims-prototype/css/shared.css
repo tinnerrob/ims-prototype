@@ -418,3 +418,9 @@ a { color: var(--brand); }
 
 
 
+
+/* ---- Phase C: modal scroll + persistent footer ---- */
+.modal-dialog { max-height: 92vh; }
+.modal-content { max-height: 92vh; display: flex; flex-direction: column; }
+.modal-header, .modal-footer { flex: 0 0 auto; }
+.modal-body { flex: 1 1 auto; overflow-y: auto; }
