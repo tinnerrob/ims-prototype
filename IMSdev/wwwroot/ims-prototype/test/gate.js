@@ -62,6 +62,30 @@ addScript(`(() => {
     catch (e) { failures++; out.push("  FAIL: view '" + id + "' threw: " + (e && e.message)); }
   }
 
+  /* 1.5 MODULE DISCONNECT PROOFS (T2.3): with each module OFF the core must
+       still render; the off module's nav must hide and its route must fall back
+       to the dashboard. This locks the "modules never break core" guarantee. */
+  out.push("Module disconnect proofs (T2.3)...");
+  const modViews = Object.keys(MODULE_VIEW || {});
+  const coreIds = Object.keys(TITLES).filter(id => !(id in (MODULE_VIEW || {})));
+  const flagsBefore = Object.assign({}, (IMS.settings.featureModules || {}));
+  modViews.forEach(mv => {
+    const mk = MODULE_VIEW[mv];
+    IMS.settings.featureModules = Object.assign({}, flagsBefore);
+    IMS.settings.featureModules[mk] = false;                 // turn this module off
+    if (typeof applyModuleNav === "function") applyModuleNav();
+    const navEl = doc.querySelector('.nav-item[data-view="' + mv + '"]');
+    assert(navEl && navEl.classList.contains("hidden"), "nav '" + mv + "' hidden when module '" + mk + "' off");
+    showView(mv);                                            // must fall back to core
+    assert(App.view === "dashboard", "routing to disabled module '" + mv + "' falls back to dashboard");
+    coreIds.forEach(cid => {
+      try { showView(cid); assert(true, "core view '" + cid + "' renders with '" + mk + "' off"); }
+      catch (e) { failures++; out.push("  FAIL: core view '" + cid + "' threw with module '" + mk + "' off: " + (e && e.message)); }
+    });
+  });
+  IMS.settings.featureModules = flagsBefore;                 // restore all on
+  if (typeof applyModuleNav === "function") applyModuleNav();
+
   /* 2. openFormModal structure + focus + save/close */
   showView("inventory");
   let saved = null;
