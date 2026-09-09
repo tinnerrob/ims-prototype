@@ -94,14 +94,14 @@ function init(){
   $$(".nav-item").forEach(b => b.addEventListener("click", () => showView(b.dataset.view)));
   applyModuleNav();   /* hide nav entries for disabled modules */
   $("#menuToggle").addEventListener("click", () => $("#sidebar").classList.toggle("open"));
-  $("#notifBtn").addEventListener("click", () => showView("geo"));
+  $("#notifBtn").addEventListener("click", () => showView(moduleEnabled("geo") ? "geo" : "dashboard"));
 
   $("#globalSearch").addEventListener("keydown", e => {
     if (e.key === "Enter") {
       const q = e.target.value.trim();
       if (!q) return;
       App.geoFilter = q;
-      showView("geo");
+      showView(moduleEnabled("geo") ? "geo" : "inventory");
       e.target.value = "";
     }
   });
@@ -119,9 +119,11 @@ function init(){
     }
   });
 
-  initSim();
+  if (moduleEnabled("geo")) {
+    initSim();
+    App.simTimer = setInterval(geoSimTick, 2500);  /* live GPS telemetry loop */
+  }
   updateBadges();
-  App.simTimer = setInterval(geoSimTick, 2500);  /* live GPS telemetry loop */
 
   showView("dashboard");
 }

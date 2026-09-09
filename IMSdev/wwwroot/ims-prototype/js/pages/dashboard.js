@@ -28,6 +28,20 @@ function renderDashboard(){
     ...IMS.itemRegistry.getByType("part").filter(p => p.qtyOnHand <= p.reorderPoint).map(p => ({ type:"part", ref:p.partId, label:p.description, qtyOnHand:p.qtyOnHand, reorderPoint:p.reorderPoint }))
   ];
   const recent = App.breachAlerts.slice().reverse().slice(0, 6);
+  const telemetryOn = typeof moduleEnabled === "function" && moduleEnabled("geo");
+  if (!telemetryOn) recent.length = 0;
+  const geoKpi = telemetryOn
+    ? `<div class="bento bento--kpi c-3">
+        <div class="kpi-row">
+          <div class="kpi-icon kpi-red"><i class="bi bi-sign-stop"></i></div>
+          <div>
+            <div class="kpi-label">Out-of-Geofence Alerts</div>
+            <div class="kpi-value">${k.alerts}</div>
+            <div class="text-muted2 small">live breach stream</div>
+          </div>
+        </div>
+      </div>`
+    : "";
   const byStatus = {};
   IMS.itemRegistry.getByType("serialized").forEach(a => byStatus[a.status] = (byStatus[a.status] || 0) + 1);
   const stKeys = ["Available", "On Rent", "In Shop", "Staged"];
@@ -54,16 +68,7 @@ function renderDashboard(){
           </div>
         </div>
       </div>
-      <div class="bento bento--kpi c-3">
-        <div class="kpi-row">
-          <div class="kpi-icon kpi-red"><i class="bi bi-sign-stop"></i></div>
-          <div>
-            <div class="kpi-label">Out-of-Geofence Alerts</div>
-            <div class="kpi-value">${k.alerts}</div>
-            <div class="text-muted2 small">live breach stream</div>
-          </div>
-        </div>
-      </div>
+      ${geoKpi}
       <div class="bento bento--kpi c-3">
         <div class="kpi-row">
           <div class="kpi-icon kpi-purple"><i class="bi bi-graph-up-arrow"></i></div>
