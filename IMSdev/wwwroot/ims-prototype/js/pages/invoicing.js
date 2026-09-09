@@ -242,8 +242,8 @@ function invoiceDetailModal(inv){
   const body = `
     <div class="mb-3">
       <div class="strong">${con ? con.orderId : inv.orderId} — ${con ? con.projectName : "Unknown project"}</div>
-      <div class="text-muted2" style="font-size:12px">${cust}</div>
-      <div class="text-muted2" style="font-size:12px">Cycle ${inv.cycle} · ${fmtDate(inv.cycleStart)} — ${fmtDate(inv.cycleEnd)}</div>
+      <div class="text-muted2 text-12">${cust}</div>
+      <div class="text-muted2 text-12">Cycle ${inv.cycle} · ${fmtDate(inv.cycleStart)} — ${fmtDate(inv.cycleEnd)}</div>
       <div class="row g-3 mt-1">
         <div class="col-md-6"><div class="strong mb-1">Status</div>${invStatusBadge(inv)}</div>
         <div class="col-md-6 field-group mb-0"><label class="form-label">Change Status</label>
