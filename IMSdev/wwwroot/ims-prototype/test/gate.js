@@ -576,6 +576,17 @@ addScript(`(() => {
   } catch (e) { failures++; out.push("  FAIL: openVerticalExtras: " + (e && e.message)); }
   IMS.metadata.setVertical("HeavyEquipment");
 
+  /* 26. Base grids show the active vertical's extended columns (Lumberyard) */
+  IMS.metadata.setVertical("Lumberyard");
+  App.invTab = "bulk"; renderInventory();
+  const bHeads = Array.from(doc.querySelectorAll("#invPanel .table thead th")).map(t => t.textContent.trim());
+  assert(bHeads.includes("Species") && bHeads.includes("Grade") && bHeads.includes("Moisture (%)"), "bulk grid shows Lumberyard extended columns when vertical = Lumberyard");
+  const bRow = doc.querySelector('#invPanel tr[data-edit="' + bulkRec.sku + '"]');
+  const bCells = bRow ? Array.from(bRow.querySelectorAll("td")).map(t => t.textContent.trim()) : [];
+  assert(bCells[bHeads.indexOf("Species")] === "Southern Yellow Pine", "saved Lumberyard species value renders in the bulk grid");
+  IMS.metadata.setVertical("HeavyEquipment");
+  renderInventory();
+
   window.__gateFailures = failures;
   window.__gateLog = out;
 })();

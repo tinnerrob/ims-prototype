@@ -35,6 +35,25 @@ const VERTICAL_INV_TABS = {
 };
 const invTabKeys = () => VERTICAL_INV_TABS[IMS.metadata.vertical()] || VERTICAL_INV_TABS.HeavyEquipment;
 
+/* For the shared base catalogs (bulk/consumable/parts), surface the active
+   vertical's registry attributes as read-only columns when that vertical is a
+   stock vertical (Lumberyard / Warehouse). Equipment/Medical attrs belong to
+   their own catalogs, so nothing extra is added for those. */
+function baseVerticalExtCols(){
+  const v = IMS.metadata.vertical();
+  if (v !== "Lumberyard" && v !== "Warehouse") return [];
+  return IMS.metadata.registryFor(v).map(e => ({
+    key: e.field_key,
+    header: e.display_label,
+    render: r => {
+      const val = IMS.metadata.ext(r, e.field_key);
+      if (val == null || val === "") return "—";
+      if (e.data_type === "boolean") return val ? "Yes" : "No";
+      return val;
+    }
+  }));
+}
+
 function renderInventory(){
   const tabMeta = {
     serialized:  { label:"Items (Serialized)", icon:"bi-truck-front",      count: IMS.itemRegistry.getByType("serialized").length },
@@ -143,7 +162,7 @@ function bulkTable(){
     { key:"status", header:"Status", render: b => activeCell(b) },
     { key:"actions", header:"Actions", th:"text-end", td:"text-end text-nowrap", always:true, render: b => `<button class="btn btn-ims-outline btn-sm2" data-iview="${b.sku}"><i class="bi bi-eye"></i> View</button><button class="btn btn-ims-outline btn-sm2" data-iedit="${b.sku}"><i class="bi bi-pencil"></i> Edit</button><button class="btn btn-ims-outline btn-sm2" data-vattr="${b.sku}" title="Extended attributes"><i class="bi bi-database-add"></i> Attrs</button>` }
   ];
-  return IMSGrid.render("inv-bulk", cols, IMS.itemRegistry.getByType("bulk"),
+  return IMSGrid.render("inv-bulk", cols.concat(baseVerticalExtCols()), IMS.itemRegistry.getByType("bulk"),
     { empty:"No bulk resources.", trAttrs: b => `data-edit="${b.sku}"` });
 }
 
@@ -163,7 +182,7 @@ function consumableTable(){
     { key:"status", header:"Status", render: c => stockBadge(c) },
     { key:"actions", header:"Actions", th:"text-end", td:"text-end text-nowrap", always:true, render: c => `<button class="btn btn-ims-outline btn-sm2" data-iview="${c.sku}"><i class="bi bi-eye"></i> View</button><button class="btn btn-ims-outline btn-sm2" data-iedit="${c.sku}"><i class="bi bi-pencil"></i> Edit</button><button class="btn btn-ims-outline btn-sm2" data-vattr="${c.sku}" title="Extended attributes"><i class="bi bi-database-add"></i> Attrs</button>` }
   ];
-  return IMSGrid.render("inv-consumable", cols, IMS.itemRegistry.getByType("consumable"),
+  return IMSGrid.render("inv-consumable", cols.concat(baseVerticalExtCols()), IMS.itemRegistry.getByType("consumable"),
     { empty:"No consumables.", trAttrs: c => `data-edit="${c.sku}"` });
 }
 
@@ -348,7 +367,7 @@ function partsTable(){
     { key:"status", header:"Status", render: p => stockBadge(p) },
     { key:"actions", header:"Actions", th:"text-end", td:"text-end text-nowrap", always:true, render: p => `<button class="btn btn-ims-outline btn-sm2" data-iview="${p.partId}"><i class="bi bi-eye"></i> View</button><button class="btn btn-ims-outline btn-sm2" data-iedit="${p.partId}"><i class="bi bi-pencil"></i> Edit</button><button class="btn btn-ims-outline btn-sm2" data-vattr="${p.partId}" title="Extended attributes"><i class="bi bi-database-add"></i> Attrs</button>` }
   ];
-  return IMSGrid.render("inv-parts", cols, IMS.itemRegistry.getByType("part"),
+  return IMSGrid.render("inv-parts", cols.concat(baseVerticalExtCols()), IMS.itemRegistry.getByType("part"),
     { empty:"No stock parts.", trAttrs: p => `data-edit="${p.partId}"` });
 }
 
