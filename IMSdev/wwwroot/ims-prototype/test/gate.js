@@ -77,6 +77,8 @@ addScript(`(() => {
   assert(fRoot && fRoot.getAttribute("aria-labelledby") === "tform-title", "aria-labelledby points at title id");
   assert(!!doc.getElementById("tform-title"), "form modal has h5#tform-title");
   assert(!!doc.querySelector(".modal-body .field-group input#tform-name"), "form field input rendered in .field-group");
+  assert(doc.querySelectorAll(".modal-body .field-group").length === 4, "each field renders as its own .field-group (no stray commas)");
+  assert(doc.querySelector(".modal-body").textContent.indexOf(",") === -1, "form modal body has no comma-join artifacts");
   assert(!!doc.getElementById("tform-save"), "form modal has primary Save button");
   assert(doc.activeElement && doc.activeElement.id === "tform-name", "first field focused on open (activeElement=" + (doc.activeElement && doc.activeElement.id) + ")");
   assert(!!doc.querySelector('.modal-footer .btn[data-bs-dismiss="modal"]'), "form modal footer has Cancel (dismiss) button");
