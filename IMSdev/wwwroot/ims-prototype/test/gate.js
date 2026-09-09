@@ -493,6 +493,14 @@ addScript(`(() => {
   assert(IMS.metadata.ext({ extended_attributes: { meter_hours: 999 } }, "meter_hours") === 999, "ext() prefers extended_attributes over flat path");
   assert(IMS.metadata.getPath({ extended_attributes: { expiration_date: "2029-04-12" } }, "extended_attributes.expiration_date") === "2029-04-12", "getPath reads nested JSONB-style path");
 
+  let extSaved = null;
+  openFormModal({ id: "tfext", title: "X", fields: [
+    { key: "a", label: "A", type: "text", value: "x" },
+    { key: "lot", label: "Lot Number", type: "text", value: "L1", bucket: "extended_attributes" }
+  ], onSave: v => { extSaved = v; } });
+  doc.getElementById("tfext-save").click();
+  assert(extSaved && extSaved.a === "x" && extSaved.extended_attributes && extSaved.extended_attributes.lot === "L1", "openFormModal bucket field saves into extended_attributes");
+
   window.__gateFailures = failures;
   window.__gateLog = out;
 })();

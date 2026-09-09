@@ -447,9 +447,14 @@ function openFormModal(opts){
     fields.forEach(f => {
       const input = $("#" + id + "-" + f.key);
       if (!input) return;
-      if (f.type === "checkbox") vals[f.key] = input.checked;
-      else if (f.type === "number") vals[f.key] = parseFloat(input.value) || 0;
-      else vals[f.key] = input.value;
+      let v;
+      if (f.type === "checkbox") v = input.checked;
+      else if (f.type === "number") v = parseFloat(input.value) || 0;
+      else v = input.value;
+      /* A field may declare a JSONB-style bucket (e.g. "extended_attributes")
+         so its value saves under vals[bucket][key] instead of flat. */
+      if (f.bucket){ vals[f.bucket] = vals[f.bucket] || {}; vals[f.bucket][f.key] = v; }
+      else vals[f.key] = v;
     });
     onSave(vals);
     dismissModal(el);
