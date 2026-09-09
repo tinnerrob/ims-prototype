@@ -51,9 +51,6 @@ function schedCols(){
   if (App.schedView === "day") return 96; // quarter-hour (15-min) blocks
   return 7;
 }
-/* Milliseconds per scheduling block: 15 min in day view, otherwise 1 day. */
-function blockMs(){ return App.schedView === "day" ? 900000 : 86400000; }
-
 /* Position a bar within the current view (day = by time-of-day, week/month = by day). */
 function tlGeom(startISO, endISO){
   if (App.schedView === "day") return dayGeom(startISO, endISO, schedAnchor());
@@ -566,12 +563,6 @@ function bookedQtyOnWindow(type, ref, startISO, endISO, excludeId){
     }
   }
   return q;
-}
-
-/* Total qty booked for (type, ref) across all active orders (display only). */
-function globalBookedQty(type, ref){
-  return IMS.orders.filter(c => c.status === "active").reduce((sum, c) =>
-    sum + (c.lineItems || []).filter(li => li.type === type && li.refId === ref).reduce((x, li) => x + (li.qty || 1), 0), 0);
 }
 
 /* =====================================================================

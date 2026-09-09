@@ -35,8 +35,6 @@ function medicalTable(){
   return IMSGrid.render("inv-medical", healthcareCols(), IMS.healthcare, { empty:"No medical devices.", trAttrs: r => `data-edit="${r.id}"` });
 }
 
-const getMedical = id => IMS.healthcare.find(x => x.id === id);
-
 function healthcareModal(existing){
   const isEdit = !!existing;
   const now = new Date().toISOString().slice(0, 19);

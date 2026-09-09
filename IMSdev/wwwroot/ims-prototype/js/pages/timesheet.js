@@ -178,24 +178,6 @@ function labLeftHTML(){
   </div>`;
 }
 
-/* ---- RIGHT pane: selected employee ---- */
-function labInspectorHTML(){
-  const emp = getEmp(LAB.empSel) || { empId: LAB.empSel, name: LAB.empSel, role: "" };
-  const live = openSeg(emp.empId);
-  const win = labSegs(emp.empId);
-  const totH = r2(win.reduce((s, t) => s + segHours(t), 0));
-  const lines = win.slice().sort((a, b) => (a.date < b.date ? -1 : 1)).slice(0, 10).map(t =>
-    `<div class="list-line"><span class="l"><i class="bi ${tsKind(t.targetType).icon} ${tsKind(t.targetType).cls}"></i>${fmtDate(t.date)} ${t.clockIn}${t.clockOut ? "–" + t.clockOut : ""} · ${segLabel(t)}</span><span class="r">${isLive(t) ? "running" : segHours(t) + "h"}</span></div>`).join("");
-  return `<div class="lab-insp">
-    <div class="d-flex align-items-center gap-2 mb-1"><span class="strong">${emp.name}</span>${live ? `<span class="badge-status st-reorder">Clocked in</span>` : `<span class="badge-status st-out">Clocked out</span>`}</div>
-    <div class="text-muted2 mb-2" style="font-size:11px">${emp.empId} · ${emp.role} · ${r2(totH)} hr in ${LAB.view}</div>
-    <button class="btn btn-ims btn-sm2 w-100 mb-3" id="tsInspPunch"><i class="bi bi-stopwatch"></i> ${live ? "Clock Out" : "Clock In"}</button>
-    <div class="strong mb-1" style="font-size:12px">This ${LAB.view}:</div>
-    ${lines || `<p class="text-muted2">No time logged.</p>`}
-    <div class="lab-insp-tot"><span class="l">Total</span><span class="r strong">${totH} hr · ${fmtMoney(r2(win.reduce((s, t) => s + segBill(t), 0)))}</span></div>
-  </div>`;
-}
-
 function legendHTML(){
   const L = [["ts-order", "Job"], ["ts-wo", "WO"], ["ts-shop", "Shop"], ["ts-overhead", "Overhead"], ["ts-idle", "Idle"], ["ts-lunch", "Lunch"]];
   return `<span class="lab-legend-item"><i class="bi bi-arrow-down-left-circle"></i>Drag a chip onto a row to clock in</span>` +

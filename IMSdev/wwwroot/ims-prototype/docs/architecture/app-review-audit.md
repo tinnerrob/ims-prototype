@@ -71,6 +71,10 @@ with findings are updated as passes land.
 1. **[x] `handoff.js` dead entry (FIXED, T1):** legacy single-scroll New-Order modal
    (`openNewRentalModal`, `createRentalFromModal` + `rn*` helpers) removed — it was
    shadowed by `handoff-wiz.js`. Shared `taxRate()` relocated to `common.js`. Gates green.
+2. **[x] Dead-code sweep (FIXED, T1):** removed six top-level defs referenced nowhere
+   else (whole-corpus scan): `blockMs` + `globalBookedQty` (scheduler.js),
+   `hoScheduledIds` + `mvKindLabel` (handoff.js), `labInspectorHTML` (timesheet.js),
+   `getMedical` (healthcare.js). Re-scan = 0 candidates. Gates green.
 2. **ASP.NET Razor scaffold (FIX):** default template dead weight vs the static SPA;
    owner decision on strip-vs-keep.
 3. **CSS consolidation (FIX):** `dashboard.css` (and overlaps in `styles.css`) → token

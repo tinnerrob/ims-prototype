@@ -16,7 +16,6 @@
    physical movement of an item — issue (custody to a party/order), return,
    receive, transfer, adjust — is one immutable movement record. Serialized /
    rental / loan workflows are one consumer of this generic model. */
-const mvKindLabel = k => ({ issue:"Issue", return:"Return", receive:"Receive", transfer:"Transfer", adjust:"Adjust" })[k] || k;
 const hoEvents = itemId => (IMS.movements || []).filter(m => m.refType === "serialized" && m.refId === itemId);
 function hoLatest(itemId){
   const evs = hoEvents(itemId);
@@ -35,10 +34,6 @@ function assetOutInfo(assetId){
     at: last.at,
     by: last.by
   };
-}
-function hoScheduledIds(orderId){
-  const c = getOrder(orderId);
-  return (c && c.lineItems || []).filter(li => li.type === "serialized").map(li => li.refId);
 }
 function hoCustodian(c){
   if (!c) return "Customer";
