@@ -9,10 +9,19 @@ is committed/pushed to `main`.
   gating + dependency validation (P5/B), JSON store/API seam + persisted writes
   (Phase A), Phase C modal restyle **complete** (C3 chrome → C4 per‑modal →
   C5 open/close/save verified for every modal across all modules).
-- Latest work: Phase C finished (steps below are all done; see
-  `modal-design-spec.md` completion notes for details).
-- All gates: `node --check` every JS file + jsdom 16‑view render suite that also
-  opens/saves/closes every modal in the inventory.
+- **Column profiles (Track A) complete**: every data grid (inventory 6, parties &
+  orders 2, yard, invoicing, categories, rerents, geo, pricing ×2, logistics,
+  healthcare) renders through `js/grid.js` with per‑table hide/show + persistence
+  (`ims.cols.<id>`). See `docs/architecture/column-profiles.md`.
+- **Metadata registry + multi‑vertical (Track B) complete end‑to‑end**:
+  `js/metadata.js` registry; `extended_attributes` JSONB bucket; HeavyEquipment
+  registry fields relocated (`serial_vin/make/model/meter_hours/fuel_type`); a
+  working 2nd **Healthcare** vertical catalog. See
+  `docs/architecture/metadata-extended-attributes.md`.
+- Latest work: multi‑vertical Healthcare catalog + docs/cleanup (see git log).
+- All gates: `npm run check` (`node --check` every JS file) + `npm test`
+  (jsdom suite: all views render, every modal + grid opens/saves/closes,
+  store/persistence seam, metadata registry/relocation, healthcare round‑trip).
 
 ## Running a check gate (jsdom)
 Load `index.html` (CDN scripts are skipped in tests), inline every local script
