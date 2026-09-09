@@ -450,7 +450,7 @@ function scheduleTimeModal(orderId, liId){
   const datePart = iso => { const d = parseDT(iso); const p = n => String(n).padStart(2, "0"); return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`; };
   const timePart = iso => { const d = parseDT(iso); const p = n => String(n).padStart(2, "0"); return `${p(d.getHours())}:${p(d.getMinutes())}`; };
   const body = `
-    <div class="mb-2"><span class="strong">${name}</span> <span class="text-muted2" style="font-size:12px">· times snap to 15-min</span></div>
+    <div class="mb-2"><span class="strong">${name}</span> <span class="text-muted2 text-12">· times snap to 15-min</span></div>
     <div class="row g-3">
       <div class="col-6">
         <label class="form-label">Start</label>
@@ -754,7 +754,7 @@ function bookQtyModal(type, ref, order, dropBlock){
   const av = availabilityFor(type, ref, order);
   const body = `
     <div class="mb-1"><span class="strong">${label}</span></div>
-    <div class="text-muted2 mb-3" style="font-size:12px">${fmtInt(av.total)} owned · ${fmtInt(av.booked)} booked elsewhere · <span class="strong">${fmtInt(av.available)} available</span></div>
+    <div class="text-muted2 text-12 mb-3">${fmtInt(av.total)} owned · ${fmtInt(av.booked)} booked elsewhere · <span class="strong">${fmtInt(av.available)} available</span></div>
     <div class="field-group"><label class="form-label">Quantity to book</label>
       <input class="form-control" type="number" min="1" id="bq-qty" value="1"></div>`;
   const footer = `<button type="button" class="btn btn-ims-outline" data-bs-dismiss="modal">Cancel</button>
@@ -777,13 +777,13 @@ function overbookModal(type, ref, order, qty, chk, dropBlock){
     <div class="d-flex align-items-center gap-2 mb-3"><i class="bi bi-exclamation-triangle-fill text-danger" style="font-size:24px"></i>
       <div>
         <div class="strong">Overbooking Warning</div>
-        <div class="text-muted2" style="font-size:12px">${label} is already booked on another order for this period.</div>
+        <div class="text-muted2 text-12">${label} is already booked on another order for this period.</div>
       </div></div>
     <div class="list-line"><span class="l">Total owned</span><span class="r">${fmtInt(chk.total)}</span></div>
     <div class="list-line"><span class="l">Booked elsewhere</span><span class="r">${fmtInt(chk.booked)}</span></div>
     <div class="list-line"><span class="l">Available</span><span class="r">${fmtInt(chk.available)}</span></div>
     <div class="list-line"><span class="l">You are booking</span><span class="r strong">${fmtInt(qty)}</span></div>
-    <div class="text-muted2" style="font-size:12px;margin-top:10px">This exceeds the units available. Proceed anyway?</div>`;
+    <div class="text-muted2 text-12 mt-3">This exceeds the units available. Proceed anyway?</div>`;
   const footer = `<button type="button" class="btn btn-ims-outline" data-bs-dismiss="modal">Cancel</button>
     <button type="button" class="btn btn-ims" id="ob-yes"><i class="bi bi-check2"></i> Accept Overbooking</button>`;
   const root = openRawModal({ id:"mdl-overbook", title:"Overbooking Confirmation", icon:"bi-exclamation-triangle", body, footer });

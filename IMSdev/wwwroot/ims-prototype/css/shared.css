@@ -396,6 +396,7 @@ a { color: var(--brand); }
 /* Tiny muted captions (drop inline font-size hints) */
 .text-xs { font-size: 11px; }
 .text-xs2 { font-size: 11.5px; }
+.text-12 { font-size: 12px; }
 /* Modal long-form section headers (used with .divider) */
 .section-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
 
