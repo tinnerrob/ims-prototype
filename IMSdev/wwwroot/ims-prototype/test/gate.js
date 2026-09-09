@@ -390,6 +390,20 @@ addScript(`(() => {
   localStorage.removeItem("ims.cols.cc-contracts");
   App.ccTab = "customers"; renderCcPanel();
 
+  /* 17. Column-profile grid (Yard inspections) */
+  showView("yard");
+  renderInspLog();
+  const yHeads = () => Array.from(doc.querySelectorAll("#inspGridWrap .table thead th")).map(t => t.textContent.trim());
+  let yh = yHeads();
+  assert(yh.length === 9 && yh[0] === "Insp #" && yh[yh.length - 1] === "Overage", "yard inspection grid renders default columns");
+  assert(doc.querySelectorAll("#inspGridWrap tbody tr").length > 0, "yard inspection grid has rows");
+  localStorage.setItem("ims.cols.yard-insp", JSON.stringify({ overage: false }));
+  renderInspLog();
+  yh = yHeads();
+  assert(yh.length === 8 && !yh.includes("Overage"), "yard grid honors hidden column");
+  localStorage.removeItem("ims.cols.yard-insp");
+  renderInspLog();
+
   window.__gateFailures = failures;
   window.__gateLog = out;
 })();

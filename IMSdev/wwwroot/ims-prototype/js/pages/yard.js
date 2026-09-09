@@ -63,10 +63,7 @@ function renderYard(){
         <div class="card">
           <div class="card-header"><span class="card-title"><i class="bi bi-list-check"></i> Inspection Log</span>
             <span class="text-muted2" style="font-weight:500">${IMS.inspections.length} records</span></div>
-          <div class="card-body table-wrap">
-            <table class="table"><thead><tr><th>Insp #</th><th>Asset</th><th>Dir</th><th class="num">Meter Out</th><th class="num">Meter In</th><th class="num">Fuel</th><th class="num">Checks</th><th>Status</th><th>Overage</th></tr></thead>
-            <tbody id="inspTbody"></tbody></table>
-          </div>
+          <div class="card-body" id="inspGridWrap"></div>
         </div>
       </div>
     </div>`;
@@ -94,28 +91,34 @@ function renderYard(){
 }
 
 function renderInspLog(){
-  const tbody = $("#inspTbody");
-  if (!tbody) return;
-  tbody.innerHTML = IMS.inspections.map(insp => {
-    const a = getAsset(insp.assetId);
-    const ov = meterOverage(insp);
-    const checksDone = Object.values(insp.checks || {}).filter(Boolean).length;
-    return `<tr data-edit="${insp.inspId}">
-      <td class="strong mono">${insp.inspId}</td>
-      <td class="strong">${insp.assetId} <span class="text-muted2">${a ? a.model : ""}</span></td>
-      <td>${insp.direction}</td>
-      <td class="num">${insp.meterOut ?? "—"}</td>
-      <td class="num">${insp.meterIn ?? "—"}</td>
-      <td class="num">${insp.fuelOut}%${insp.fuelIn != null ? " → " + insp.fuelIn + "%" : ""}</td>
-      <td class="num">${checksDone}/5</td>
-      <td>${statusBadge(insp.status)}</td>
-      <td>${ov ? `<span class="badge-status st-reorder"><i class="bi bi-exclamation-triangle"></i>${fmtInt(ov.overage)} hr</span>` : `<span class="text-muted2">—</span>`}</td>
-    </tr>`;
-  }).join("") || `<tr><td colspan="9" class="text-center text-muted2 py-3">No inspections logged.</td></tr>`;
-  /* Clicking an inspection row opens the edit modal. */
-  delegate($("#inspTbody"), "click", "tr[data-edit]", (el, e) => {
-    if (e.target.closest("button, a, input, select, label, .form-check")) return;
-    const insp = IMS.inspections.find(x => x.inspId === el.dataset.edit);
+  const wrap = $("#inspGridWrap");
+  if (!wrap) return;
+  const assetName = id => { const a = getAsset(id); return a ? `<span class="text-muted2">${a.model}</span>` : ""; };
+  const cols = [
+    { key:"inspId", header:"Insp #", td:"strong mono", always:true, render: i => i.inspId },
+    { key:"asset", header:"Asset", render: i => `<span class="strong">${i.assetId}</span> ${assetName(i.assetId)}` },
+    { key:"dir", header:"Dir", render: i => i.direction },
+    { key:"meterOut", header:"Meter Out", td:"num", render: i => i.meterOut ?? "—" },
+    { key:"meterIn", header:"Meter In", td:"num", render: i => i.meterIn ?? "—" },
+    { key:"fuel", header:"Fuel", td:"num", render: i => `${i.fuelOut}%${i.fuelIn != null ? " → " + i.fuelIn + "%" : ""}` },
+    { key:"checks", header:"Checks", td:"num", render: i => `${Object.values(i.checks || {}).filter(Boolean).length}/5` },
+    { key:"status", header:"Status", render: i => statusBadge(i.status) },
+    { key:"overage", header:"Overage", render: i => {
+        const ov = meterOverage(i);
+        return ov ? `<span class="badge-status st-reorder"><i class="bi bi-exclamation-triangle"></i>${fmtInt(ov.overage)} hr</span>` : `<span class="text-muted2">—</span>`;
+      } }
+  ];
+  wrap.innerHTML = IMSGrid.render("yard-insp", cols, IMS.inspections,
+    { empty:"No inspections logged.", trAttrs: i => `data-edit="${i.inspId}"` });
+  IMSGrid.ensure("yard-insp", renderInspLog);
+  /* Clicking an inspection row opens the edit modal. (Listener on the fresh
+     tbody so re-renders never stack duplicate handlers.) */
+  const tbody = wrap.querySelector('[data-grid-body="yard-insp"]');
+  if (tbody) tbody.addEventListener("click", ev => {
+    if (ev.target.closest("button, a, input, select, label, .form-check")) return;
+    const tr = ev.target.closest("tr[data-edit]");
+    if (!tr) return;
+    const insp = IMS.inspections.find(x => x.inspId === tr.dataset.edit);
     if (insp) inspectionModal(insp);
   });
 }
