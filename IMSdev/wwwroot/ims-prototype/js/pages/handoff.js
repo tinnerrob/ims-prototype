@@ -261,7 +261,7 @@ function hoCheckInModal(assetId){
     <div class="list-line"><span class="l">Rental / order</span><span class="r strong">${info.orderId}${info.order ? " · " + info.order.projectName : ""}</span></div>
     <div class="list-line"><span class="l">Custodian</span><span class="r">${info.custodian}</span></div>
     <div class="list-line"><span class="l">Checked out</span><span class="r mono">${fmtDT(info.at)}</span></div>
-    <div class="field-group mb-2" style="margin-top:10px"><label class="form-label">Return condition / note (optional)</label>
+    <div class="field-group mt-3"><label class="form-label">Return condition / note (optional)</label>
       <textarea class="form-control" id="ci-note" rows="2" placeholder="Condition on return, hours, notes…"></textarea></div>`;
   const root = openRawModal({
     id: "mdl-checkin", title: "Return Equipment — " + assetId, icon: "bi-box-arrow-in-down",
@@ -317,7 +317,7 @@ function rnRefreshPreview(){
        <div class="list-line"><span class="l">Sales tax (${Math.round(taxRate() * 100)}%)</span><span class="r">${fmtMoney(tax)}</span></div>
        <div class="list-line"><span class="l">Deposits (held)</span><span class="r">${fmtMoney(deposits)}</span></div>
        <div class="list-line"><span class="l strong">Total due at pick-up</span><span class="r strong">${fmtMoney(subtotal + tax)}</span></div>`
-    : `<div class="text-muted2" style="margin-top:8px">Add equipment and set dates to preview pricing.</div>`;
+    : `<div class="text-muted2 mt-2">Add equipment and set dates to preview pricing.</div>`;
 }
 
 
