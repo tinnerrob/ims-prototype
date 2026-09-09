@@ -73,6 +73,19 @@ function mergeExtFields(existing, vals){
   return Object.keys(nx).length ? nx : undefined;
 }
 
+/* Catalog search across core text + the active vertical's is_searchable attrs. */
+function invFiltered(list){
+  const q = (App.invSearch || "").trim().toLowerCase();
+  if (!q) return list;
+  const regs = IMS.metadata.registryFor(IMS.metadata.vertical());
+  return list.filter(r => {
+    const core = [r.id, r.sku, r.name, r.status, r.category].filter(x => x != null).join(" ").toLowerCase();
+    let ext = "";
+    regs.forEach(e => { if (e.is_searchable){ const val = IMS.metadata.ext(r, e.field_key); if (val != null) ext += " " + String(val); } });
+    return (core + " " + ext).includes(q);
+  });
+}
+
 function renderInventory(){
   const tabMeta = {
     serialized:  { label:"Items (Serialized)", icon:"bi-truck-front",      count: IMS.itemRegistry.getByType("serialized").length },
@@ -86,8 +99,11 @@ function renderInventory(){
   };
   const keys = invTabKeys();
   if (!keys.includes(App.invTab)) App.invTab = keys[0];
+  const vert = IMS.metadata.vertical();
   const tabs = keys.map(k => ({ key: k, ...tabMeta[k] }));
-  const vertLabel = IMS.metadata.verticals[IMS.metadata.vertical()] || IMS.metadata.vertical();
+  const eq = tabs.find(t => t.key === "serialized");
+  if (eq && vert === "Rental") eq.label = "Rental Equipment";   // #1: equipment tab reflects the vertical
+  const vertLabel = IMS.metadata.verticals[vert] || vert;
   $("#content").innerHTML = `
     <div class="page-head"></div>
     <div class="card">
@@ -99,20 +115,22 @@ function renderInventory(){
         ${tabs.map(t => `<button class="subtab ${t.key === App.invTab ? "active" : ""}" data-tab="${t.key}">
           <i class="bi ${t.icon}"></i>${t.label}<span class="count-pill">${t.count}</span></button>`).join("")}
       </div>
+      <input class="filter-input mt-2" id="invSearch" value="${App.invSearch || ""}" placeholder="Search this catalog (id, sku/model, name, status, + vertical attributes)…">
       <div id="invPanel"></div>
     </div></div>`;
   delegate($("#content"), "click", "#invTabs .subtab", b => { App.invTab = b.dataset.tab; renderInventory(); });
   $("#invAddBtn").addEventListener("click", () => openAddModal(App.invTab));
+  $("#invSearch").addEventListener("input", e => { App.invSearch = e.target.value; renderInvPanel(); });
   renderInvPanel();
 }
 
 function renderInvPanel(){
   const p = $("#invPanel");
-  if (App.invTab === "serialized"){ p.innerHTML = serializedTable(); IMSGrid.ensure("inv-serialized", renderInvPanel); }
+  if (App.invTab === "serialized"){ p.innerHTML = serializedTable(invFiltered(IMS.itemRegistry.getByType("serialized"))); IMSGrid.ensure("inv-serialized", renderInvPanel); }
   else if (App.invTab === "medical"){ renderInvMedicalPanel(); return; }
-  else if (App.invTab === "bulk"){ p.innerHTML = bulkTable(); IMSGrid.ensure("inv-bulk", renderInvPanel); }
-  else if (App.invTab === "consumable"){ p.innerHTML = consumableTable(); IMSGrid.ensure("inv-consumable", renderInvPanel); }
-  else if (App.invTab === "parts"){ p.innerHTML = partsTable(); IMSGrid.ensure("inv-parts", renderInvPanel); }
+  else if (App.invTab === "bulk"){ p.innerHTML = bulkTable(invFiltered(IMS.itemRegistry.getByType("bulk"))); IMSGrid.ensure("inv-bulk", renderInvPanel); }
+  else if (App.invTab === "consumable"){ p.innerHTML = consumableTable(invFiltered(IMS.itemRegistry.getByType("consumable"))); IMSGrid.ensure("inv-consumable", renderInvPanel); }
+  else if (App.invTab === "parts"){ p.innerHTML = partsTable(invFiltered(IMS.itemRegistry.getByType("part"))); IMSGrid.ensure("inv-parts", renderInvPanel); }
   else if (App.invTab === "labor"){ p.innerHTML = laborTable(); IMSGrid.ensure("inv-labor", renderInvPanel); }
   else if (App.invTab === "kits") { renderInvKitsPanel(); return; }
   else if (App.invTab === "attachments") { renderInvAttachmentsPanel(); return; }
@@ -151,7 +169,7 @@ function renderInvAttachmentsPanel(){
   });
 }
 
-function serializedTable(){
+function serializedTable(list){
   const cols = [
     { key:"id", header:"Asset ID", td:"strong mono", always:true, render: a => a.id },
     { key:"serial", header:"Serial / VIN", td:"mono text-muted2", render: a => IMS.metadata.ext(a, "serial_vin") || "" },
@@ -164,11 +182,11 @@ function serializedTable(){
     { key:"status", header:"Status", render: a => activeBadge(a) + statusBadge(a.status) },
     { key:"actions", header:"Actions", th:"text-end", td:"text-end text-nowrap", always:true, render: a => `<button class="btn btn-ims-outline btn-sm2" data-iview="${a.id}"><i class="bi bi-eye"></i> View</button><button class="btn btn-ims-outline btn-sm2" data-iedit="${a.id}"><i class="bi bi-pencil"></i> Edit</button>` }
   ];
-  return IMSGrid.render("inv-serialized", cols, IMS.itemRegistry.getByType("serialized"),
+  return IMSGrid.render("inv-serialized", cols, list || IMS.itemRegistry.getByType("serialized"),
     { empty:"No serialized assets.", trAttrs: a => `data-edit="${a.id}"` });
 }
 
-function bulkTable(){
+function bulkTable(list){
   const cols = [
     { key:"sku", header:"SKU", td:"strong mono", always:true, render: b => b.sku },
     { key:"name", header:"Name", render: b => b.name },
@@ -181,11 +199,11 @@ function bulkTable(){
     { key:"status", header:"Status", render: b => activeCell(b) },
     { key:"actions", header:"Actions", th:"text-end", td:"text-end text-nowrap", always:true, render: b => `<button class="btn btn-ims-outline btn-sm2" data-iview="${b.sku}"><i class="bi bi-eye"></i> View</button><button class="btn btn-ims-outline btn-sm2" data-iedit="${b.sku}"><i class="bi bi-pencil"></i> Edit</button><button class="btn btn-ims-outline btn-sm2" data-vattr="${b.sku}" title="Extended attributes"><i class="bi bi-database-add"></i> Attrs</button>` }
   ];
-  return IMSGrid.render("inv-bulk", cols.concat(baseVerticalExtCols()), IMS.itemRegistry.getByType("bulk"),
+  return IMSGrid.render("inv-bulk", cols.concat(baseVerticalExtCols()), list || IMS.itemRegistry.getByType("bulk"),
     { empty:"No bulk resources.", trAttrs: b => `data-edit="${b.sku}"` });
 }
 
-function consumableTable(){
+function consumableTable(list){
   const lowOf = c => c.qtyOnHand <= c.reorderPoint;
   const stockBadge = c => c.active === false
     ? `<span class="badge-status st-out"><i class="bi bi-circle-fill"></i>Inactive</span>`
@@ -201,7 +219,7 @@ function consumableTable(){
     { key:"status", header:"Status", render: c => stockBadge(c) },
     { key:"actions", header:"Actions", th:"text-end", td:"text-end text-nowrap", always:true, render: c => `<button class="btn btn-ims-outline btn-sm2" data-iview="${c.sku}"><i class="bi bi-eye"></i> View</button><button class="btn btn-ims-outline btn-sm2" data-iedit="${c.sku}"><i class="bi bi-pencil"></i> Edit</button><button class="btn btn-ims-outline btn-sm2" data-vattr="${c.sku}" title="Extended attributes"><i class="bi bi-database-add"></i> Attrs</button>` }
   ];
-  return IMSGrid.render("inv-consumable", cols.concat(baseVerticalExtCols()), IMS.itemRegistry.getByType("consumable"),
+  return IMSGrid.render("inv-consumable", cols.concat(baseVerticalExtCols()), list || IMS.itemRegistry.getByType("consumable"),
     { empty:"No consumables.", trAttrs: c => `data-edit="${c.sku}"` });
 }
 
@@ -370,7 +388,7 @@ function laborView(e){
   });
 }
 
-function partsTable(){
+function partsTable(list){
   const lowOf = p => p.qtyOnHand <= p.reorderPoint;
   const stockBadge = p => p.active === false
     ? `<span class="badge-status st-out"><i class="bi bi-circle-fill"></i>Inactive</span>`
@@ -386,7 +404,7 @@ function partsTable(){
     { key:"status", header:"Status", render: p => stockBadge(p) },
     { key:"actions", header:"Actions", th:"text-end", td:"text-end text-nowrap", always:true, render: p => `<button class="btn btn-ims-outline btn-sm2" data-iview="${p.partId}"><i class="bi bi-eye"></i> View</button><button class="btn btn-ims-outline btn-sm2" data-iedit="${p.partId}"><i class="bi bi-pencil"></i> Edit</button><button class="btn btn-ims-outline btn-sm2" data-vattr="${p.partId}" title="Extended attributes"><i class="bi bi-database-add"></i> Attrs</button>` }
   ];
-  return IMSGrid.render("inv-parts", cols.concat(baseVerticalExtCols()), IMS.itemRegistry.getByType("part"),
+  return IMSGrid.render("inv-parts", cols.concat(baseVerticalExtCols()), list || IMS.itemRegistry.getByType("part"),
     { empty:"No stock parts.", trAttrs: p => `data-edit="${p.partId}"` });
 }
 

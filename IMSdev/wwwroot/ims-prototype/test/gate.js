@@ -602,6 +602,24 @@ addScript(`(() => {
   IMS.metadata.setVertical("HeavyEquipment");
   renderInventory();
 
+  /* 28. #1 Rental equipment label + #2 search over is_searchable fields */
+  IMS.metadata.setVertical("Rental");
+  App.invTab = "serialized"; App.invSearch = "";
+  renderInventory();
+  const tabTexts = Array.from(doc.querySelectorAll("#invTabs .subtab")).map(b => b.textContent);
+  assert(tabTexts.some(t => t.includes("Rental Equipment")), "Rental vertical labels the equipment tab 'Rental Equipment'");
+  const allRows = doc.querySelectorAll("#invPanel tbody tr").length;
+  App.invSearch = "diesel";             // fuel_type is searchable for Rental
+  renderInvPanel();
+  const filRows = doc.querySelectorAll("#invPanel tbody tr").length;
+  assert(allRows > 0 && filRows > 0 && filRows < allRows, "search narrows equipment rows via a searchable vertical attribute (fuel)");
+  App.invSearch = "jlg";                // matches core name (JLG …)
+  renderInvPanel();
+  assert(doc.querySelectorAll("#invPanel tbody tr").length >= 1, "search finds equipment by core text (make in name)");
+  App.invSearch = "";
+  IMS.metadata.setVertical("HeavyEquipment");
+  renderInventory();
+
   window.__gateFailures = failures;
   window.__gateLog = out;
 })();
