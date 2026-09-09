@@ -247,7 +247,7 @@ function overheadConfigModal(existing){
       { key:"pct", label:"Percentage of Equipment Total (%)", type:"number", value: e.pct || 0, step:"0.1", hint:"Used when Charge Type = Percentage" },
       { key:"cost", label:"Default Cost Price ($)", type:"number", value: e.cost || 0 },
       { key:"retail", label:"Default Billable Retail ($)", type:"number", value: e.retail || 0 },
-      { key:"locked", label:"Auto-inject into new contracts", type:"checkbox", value: e.locked === true }
+      { key:"locked", label:"Auto-inject into new orders", type:"checkbox", value: e.locked === true }
     ],
     onSave: v => {
       const rec = { ohId: e.ohId || "OH-" + String(IMS.settings.overheads.length + 1).padStart(3, "0"),

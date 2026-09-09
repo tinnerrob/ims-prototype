@@ -327,7 +327,7 @@ a { color: var(--brand); }
 .st-out { background: var(--danger-soft); color: #b91c1c; border-color: rgba(220,38,38,.15); }
 .badge-status.st-on, .st-on { background: var(--info-soft); color: #0e7490; border-color: rgba(8,145,178,.16); }
 
-/* tc-* used by contracts */
+/* tc-* used by orders */
 .tc-serialized, .tc-bulk, .tc-consumable, .tc-labor, .tc-part { border-radius: 999px; padding: 2px 8px; font-size: 10.5px; font-weight: 700; }
 .tc-serialized { background: var(--info-soft); color: #0e7490; }
 .tc-bulk { background: var(--purple-soft); color: #6d28d9; }

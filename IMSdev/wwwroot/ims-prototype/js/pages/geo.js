@@ -98,11 +98,11 @@ function renderGeoMap(){
   let html = grid;
   const y = latLngToXY(map, IMS.yard.lat, IMS.yard.lng);
   html += pinHTML("yard", y.x, y.y, "YARD");
-  IMS.contracts.filter(c => c.status !== "closed").forEach(c => {
+  IMS.orders.filter(c => c.status !== "closed").forEach(c => {
     const s = latLngToXY(map, c.siteLat, c.siteLng);
     const r = metersToPx(map, c.geofenceRadius);
     html += `<div class="geo-ring" style="left:${s.x}px;top:${s.y}px;width:${r * 2}px;height:${r * 2}px"><span class="ring-tag">${c.projectName} (${c.geofenceRadius}m)</span></div>`;
-    html += pinHTML("site", s.x, s.y, c.contractId);
+    html += pinHTML("site", s.x, s.y, c.orderId);
   });
   IMS.serializedAssets.forEach(a => {
     const p = latLngToXY(map, a.lat, a.lng);
@@ -125,7 +125,7 @@ function renderGeoAlerts(){
 function initSim(){
   IMS.serializedAssets.forEach(a => {
     a._baseLat = a.lat; a._baseLng = a.lng; a._breached = false;
-    if (a.contractId) {
+    if (a.orderId) {
       if (a.id === "BL-119") a._sim = { ampLat: 0.0015, ampLng: 0.0010, sp: 0.9 };
       else if (a.id === "GN-511") a._sim = { ampLat: 0.0005, ampLng: 0.0005, sp: 0.6 };
       else a._sim = { ampLat: 0.0004, ampLng: 0.0003, sp: 0.7 };
@@ -144,8 +144,8 @@ function geoSimTick(){
       a.lat = a._baseLat + s.ampLat * Math.sin(t * s.sp * 0.4);
       a.lng = a._baseLng + s.ampLng * Math.cos(t * s.sp * 0.33);
       a.lastReported = new Date().toISOString().slice(0, 19);
-      if (a.contractId) {
-        const c = getContract(a.contractId);
+      if (a.orderId) {
+        const c = getOrder(a.orderId);
         if (!c) return;
         const d = haversineMeters(a.lat, a.lng, c.siteLat, c.siteLng);
         if (d > c.geofenceRadius && !a._breached) { a._breached = true; addBreach(a, c); }
@@ -160,15 +160,15 @@ function geoSimTick(){
 /* Append a geo alert, capping the log length. @param {Object} a @returns {void} */
 function pushAlert(a){ App.breachAlerts.push(a); if (App.breachAlerts.length > 40) App.breachAlerts.shift(); }
 
-/* Log a geofence breach alert. @param {Object} asset @param {Object} contract */
-function addBreach(asset, contract){
-  const d = Math.round(haversineMeters(asset.lat, asset.lng, contract.siteLat, contract.siteLng));
-  pushAlert({ kind:"breach", ts: timeNow(), msg:`ALERT: Asset ${asset.id} exited Geofence boundary at Job Site: ${contract.projectName} (${d}m out)` });
+/* Log a geofence breach alert. @param {Object} asset @param {Object} order */
+function addBreach(asset, order){
+  const d = Math.round(haversineMeters(asset.lat, asset.lng, order.siteLat, order.siteLng));
+  pushAlert({ kind:"breach", ts: timeNow(), msg:`ALERT: Asset ${asset.id} exited Geofence boundary at Job Site: ${order.projectName} (${d}m out)` });
 }
 
-/* Log a geofence re-entry alert. @param {Object} asset @param {Object} contract */
-function addReentry(asset, contract){
-  pushAlert({ kind:"info", ts: timeNow(), msg:`Asset ${asset.id} re-entered Geofence at ${contract.projectName}` });
+/* Log a geofence re-entry alert. @param {Object} asset @param {Object} order */
+function addReentry(asset, order){
+  pushAlert({ kind:"info", ts: timeNow(), msg:`Asset ${asset.id} re-entered Geofence at ${order.projectName}` });
 }
 
 /* ---------- global badges / notifications ---------- */

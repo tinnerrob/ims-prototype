@@ -1,6 +1,6 @@
 /* =========================================================
    IMS — scheduler.js (split out of app.js)
-   Scheduler view: contract queue, resource pool, timeline, booking/drag-drop, conflict detection.
+   Scheduler view: order queue, resource pool, timeline, booking/drag-drop, conflict detection.
    ========================================================= */
 "use strict";
 
@@ -8,10 +8,10 @@
    STAGE 2 — CONTRACT MANAGEMENT & SCHEDULER
    ========================================================= */
 
-/* Active contracts sorted by contract id (ascending). */
+/* Active orders sorted by order id (ascending). */
 const activeContracts = () =>
-  IMS.contracts.filter(c => c.status === "active")
-    .sort((a, b) => (a.contractId < b.contractId ? -1 : a.contractId > b.contractId ? 1 : 0));
+  IMS.orders.filter(c => c.status === "active")
+    .sort((a, b) => (a.orderId < b.orderId ? -1 : a.orderId > b.orderId ? 1 : 0));
 
 /* Compare two line items: by resource type (RESOURCE_TYPE_ORDER) then ref id (ascending). */
 const compareLineItems = (a, b) => {
@@ -61,7 +61,7 @@ function tlGeom(startISO, endISO){
   return barGeom(startISO, endISO, schedAnchor(), cols);
 }
 /* Day view: show the daily start-time → end-time window across the 24-hour day.
-   Bars reflect the contract's operating hours each day, not the full day. */
+   Bars reflect the order's operating hours each day, not the full day. */
 function dayGeom(startISO, endISO, anchor){
   const a = new Date(anchor); a.setHours(0, 0, 0, 0);
   const dayEnd = new Date(a); dayEnd.setDate(a.getDate() + 1);
@@ -87,11 +87,11 @@ function barGeom(startISO, endISO, anchor, cols){
 }
 
 function shortItemLabel(li){ const r = getResource(li); if (!r) return li.refId; if (li.type === "serialized") return r.id; return r.sku || r.empId || r.partId || r.kitId || r.accId || r.id; }
-/* Does another active contract already book this resource over the given window? */
-function resourceOverlap(type, ref, contract){
-  const st = parseDT(contract.startDate), en = parseDT(contract.endDate);
-  for (const oc of IMS.contracts){
-    if (oc.contractId === contract.contractId || oc.status !== "active") continue;
+/* Does another active order already book this resource over the given window? */
+function resourceOverlap(type, ref, order){
+  const st = parseDT(order.startDate), en = parseDT(order.endDate);
+  for (const oc of IMS.orders){
+    if (oc.orderId === order.orderId || oc.status !== "active") continue;
     const oli = (oc.lineItems || []).find(o => o.type === type && o.refId === ref);
     if (!oli) continue;
     const ost = parseDT(liStart(oli, oc)), oen = parseDT(liEnd(oli, oc));
@@ -102,15 +102,15 @@ function resourceOverlap(type, ref, contract){
 
 function resourceConflict(li, c){
   const st = parseDT(liStart(li, c)), en = parseDT(liEnd(li, c));
-  for (const oc of IMS.contracts){
-    if (oc.contractId === c.contractId || oc.status !== "active") continue;
+  for (const oc of IMS.orders){
+    if (oc.orderId === c.orderId || oc.status !== "active") continue;
     const oli = (oc.lineItems || []).find(o => o.type === li.type && o.refId === li.refId);
     if (!oli) continue;
     const ost = parseDT(liStart(oli, oc)), oen = parseDT(liEnd(oli, oc));
     if (st <= oen && ost <= en){
-      // Quantity resources may be split across contracts; only unique resources (serialized/labor) hard-conflict.
-      if (isQuantityType(li.type)) return { conflict: false, booked: true, contractId: oc.contractId, start: ost, end: oen };
-      return { conflict: true, contractId: oc.contractId, start: ost, end: oen };
+      // Quantity resources may be split across orders; only unique resources (serialized/labor) hard-conflict.
+      if (isQuantityType(li.type)) return { conflict: false, booked: true, orderId: oc.orderId, start: ost, end: oen };
+      return { conflict: true, orderId: oc.orderId, start: ost, end: oen };
     }
   }
   return { conflict: false };
@@ -118,15 +118,15 @@ function resourceConflict(li, c){
 
 function renderScheduler(){
   if (!App.schedWeek) {
-    const starts = IMS.contracts.filter(c => c.status === "active").map(c => parseDT(c.startDate)).sort((a, b) => a - b);
+    const starts = IMS.orders.filter(c => c.status === "active").map(c => parseDT(c.startDate)).sort((a, b) => a - b);
     const first = starts[0] || new Date();
     App.schedWeek = mondayOf(first);
     App.schedMonth = new Date(first.getFullYear(), first.getMonth(), 1);
     App.schedDay = first ? new Date(first) : new Date();
   }
-  const contracts = IMS.contracts.filter(c => c.status === "active");
-  const sel = getContract(App.contractId);
-  if (!sel || sel.status !== "active") App.contractId = contracts[0] ? contracts[0].contractId : null;
+  const orders = IMS.orders.filter(c => c.status === "active");
+  const sel = getOrder(App.orderId);
+  if (!sel || sel.status !== "active") App.orderId = orders[0] ? orders[0].orderId : null;
 
   $("#content").innerHTML = `
     <div class="page-head"></div>
@@ -169,7 +169,7 @@ function renderScheduler(){
 
   renderSchedQueue();
   renderTimeline();
-  renderInspector(getContract(App.contractId));
+  renderInspector(getOrder(App.orderId));
   bindDnD();
 }
 
@@ -184,7 +184,7 @@ function resCard(type, ref, label, sub, avail){
   const a = avail || { key:"free", badge:"", note:"" };
   const blocked = a.key === "busy" || a.key === "inactive";
   const note = a.note ? `<div class="res-note">${a.note}</div>` : "";
-  const title = blocked ? "Booked for the whole visible period — free at other times" : "Drag to a contract block";
+  const title = blocked ? "Booked for the whole visible period — free at other times" : "Drag to a order block";
   return `<div class="res-card res-${a.key}${blocked ? " inactive" : ""}" draggable="true" data-resource-id="${ref}" data-resource-type="${type}" title="${title}">
     <div class="res-card-head"><span class="type-chip tc-${type}">${TYPE_LABEL[type] || type}</span>${a.badge || ""}</div>
     <div class="strong" style="font-size:12px">${label}</div>
@@ -193,11 +193,11 @@ function resCard(type, ref, label, sub, avail){
   </div>`;
 }
 
-/* Navigate the scheduler to a contract's start period (day/week/month) and expand it. */
+/* Navigate the scheduler to a order's start period (day/week/month) and expand it. */
 function focusContract(id){
-  const c = getContract(id);
+  const c = getOrder(id);
   if (!c) return;
-  App.contractId = id;
+  App.orderId = id;
   const st = parseDT(c.startDate);
   if (App.schedView === "month") App.schedMonth = new Date(st.getFullYear(), st.getMonth(), 1);
   else if (App.schedView === "week") App.schedWeek = mondayOf(st);
@@ -209,18 +209,18 @@ function focusContract(id){
 
 function renderSchedQueue(){
   const box = $("#schedQueue");
-  const contracts = activeContracts();
-  const cList = contracts.map(c => `<div class="queue-contract ${c.contractId === App.contractId ? "active" : ""}" data-qcid="${c.contractId}">
-    <div class="qc-head"><i class="bi bi-briefcase"></i><span class="strong" style="font-size:12px">${c.contractId}</span></div>
+  const orders = activeContracts();
+  const cList = orders.map(c => `<div class="queue-order ${c.orderId === App.orderId ? "active" : ""}" data-qcid="${c.orderId}">
+    <div class="qc-head"><i class="bi bi-briefcase"></i><span class="strong" style="font-size:12px">${c.orderId}</span></div>
     <div class="text-muted2" style="font-size:11px">${c.party}</div>
     <div class="text-muted2" style="font-size:10.5px">${fmtDate(c.startDate)} → ${fmtDate(c.endDate)}</div>
-  </div>`).join("") || `<p class="text-muted2 py-2">No active contracts.</p>`;
+  </div>`).join("") || `<p class="text-muted2 py-2">No active orders.</p>`;
   const poolLabels = { serialized:"Items (Serialized)", bulk:"Items (Bulk)", consumable:"Stock (Consumable)", parts:"Stock (Parts)", labor:"Labor / Crew", attachments:"Attachments", kits:"Kits" };
   const poolTabs = RESOURCE_TYPE_ORDER.map(k => ({ key:k, label: poolLabels[k] }));
   box.innerHTML = `
     <div class="card mb-3">
       <div class="card-header"><span class="card-title"><i class="bi bi-stack"></i> Orders &amp; Allocations</span>
-        <span class="badge-status st-onrent">${contracts.length} active</span></div>
+        <span class="badge-status st-onrent">${orders.length} active</span></div>
       <div class="card-body queue-scroll">${cList}</div>
       <div class="card-body" style="padding-top:8px"><button class="btn btn-ims btn-sm2 w-100" id="addContractBtn" type="button"><i class="bi bi-plus-lg"></i> New Order</button></div>
     </div>
@@ -242,7 +242,7 @@ function renderSchedQueue(){
     if (b) b.innerHTML = `<i class="bi bi-plus-lg"></i> ${poolAddLabel()}`;
   });
   delegate($("#schedQueue"), "click", "[data-qcid]", b => focusContract(b.dataset.qcid));
-  $("#addContractBtn").addEventListener("click", () => contractModal());
+  $("#addContractBtn").addEventListener("click", () => orderModal());
   $("#addPoolResBtn").addEventListener("click", addPoolResource);
   renderPoolList();
 }
@@ -275,7 +275,7 @@ function renderPoolList(){
   if (t === "serialized") html = byCode(IMS.serializedAssets.filter(a => recActive(a)), "id").map(a => {
     const out = typeof assetOutInfo === "function" ? assetOutInfo(a.id) : null;
     const avail = out
-      ? { key: "busy", badge: `<span class="badge-status st-out"><i class="bi bi-truck"></i>On site · ${out.contractId}</span>`, note: "Custodian " + out.custodian }
+      ? { key: "busy", badge: `<span class="badge-status st-out"><i class="bi bi-truck"></i>On site · ${out.orderId}</span>`, note: "Custodian " + out.custodian }
       : capAvailUI("serialized", a.id, a.status === "In Shop");
     return resCard("serialized", a.id, `${a.id} · ${a.make} ${a.model}`, `${a.category} · ${fmtMoney(a.baseDaily)}/d`, avail);
   }).join("");
@@ -300,7 +300,7 @@ function renderTimeline(){
   const isDay = App.schedView === "day";
   const anchor = schedAnchor();
   const days = isMonth ? monthDates(anchor) : (isDay ? dayDates(anchor) : weekDates(anchor));
-  const contracts = activeContracts();
+  const orders = activeContracts();
   const conflictKeys = new Set(collectConflicts().map(f => f.type + "|" + f.refId));
   let gridCols, minWidth, head;
   if (isDay){
@@ -319,45 +319,45 @@ function renderTimeline(){
       days.map(d => `<div class="tl-day-head">${isMonth ? d.getDate() : fmtWeekday(d)}<div class="text-muted2" style="font-size:10px">${isMonth ? fmtWeekday(d) : d.getMonth() + 1 + "/" + d.getDate()}</div></div>`).join("") + `</div>`;
   }
   let lanes = "";
-  contracts.forEach(c => {
+  orders.forEach(c => {
     const items = sortLineItems(c.lineItems);
-    const expanded = App.schedExpanded && App.schedExpanded.has(c.contractId);
+    const expanded = App.schedExpanded && App.schedExpanded.has(c.orderId);
     const g = tlGeom(c.startDate, c.endDate);
     if (!g) return;
-    const t = contractTotals(c);
-    const cTitle = `${c.contractId}<br>${c.projectName}<br>${fmtDate(c.startDate)}<br>${fmtTime(c.startDate)} →<br>${fmtDate(c.endDate)}<br>${fmtTime(c.endDate)}`;
-    let rows = `<div class="tl-row tl-row-contract ${c.contractId === App.contractId ? "selected" : ""}" data-contract-id="${c.contractId}">
-      <div class="tl-row-label">${c.contractId}<div class="text-muted2" style="font-size:10px">${c.party}</div></div>
+    const t = orderTotals(c);
+    const cTitle = `${c.orderId}<br>${c.projectName}<br>${fmtDate(c.startDate)}<br>${fmtTime(c.startDate)} →<br>${fmtDate(c.endDate)}<br>${fmtTime(c.endDate)}`;
+    let rows = `<div class="tl-row tl-row-order ${c.orderId === App.orderId ? "selected" : ""}" data-order-id="${c.orderId}">
+      <div class="tl-row-label">${c.orderId}<div class="text-muted2" style="font-size:10px">${c.party}</div></div>
       <div class="tl-row-track" style="--cols:${gridCols}">
-        <div class="tl-block ${c.contractId === App.contractId ? "selected" : ""}" data-contract-id="${c.contractId}" style="left:${g.left}%;width:${g.width}%" title="${cTitle}">
-          <span class="tl-block-chev" data-expand="${c.contractId}"><i class="bi ${expanded ? "bi-chevron-up" : "bi-chevron-down"}"></i></span>
+        <div class="tl-block ${c.orderId === App.orderId ? "selected" : ""}" data-order-id="${c.orderId}" style="left:${g.left}%;width:${g.width}%" title="${cTitle}">
+          <span class="tl-block-chev" data-expand="${c.orderId}"><i class="bi ${expanded ? "bi-chevron-up" : "bi-chevron-down"}"></i></span>
           <span class="tl-block-title">${c.projectName}</span>
           <span class="tl-block-sub">${fmtMoney(t.gross)} · ${items.length} items · ${t.days}d</span>
-          <span class="tl-h tl-h-l" data-resize="${c.contractId}"></span>
-          <span class="tl-h tl-h-r" data-resize="${c.contractId}"></span>
+          <span class="tl-h tl-h-l" data-resize="${c.orderId}"></span>
+          <span class="tl-h tl-h-r" data-resize="${c.orderId}"></span>
         </div>
       </div>
     </div>`;
     if (expanded) {
       if (!items.length) {
-        rows += `<div class="tl-row"><div class="tl-row-label">&nbsp;</div><div class="tl-row-track"><div class="tl-empty-wrap">Drag resources onto the contract block.</div></div></div>`;
+        rows += `<div class="tl-row"><div class="tl-row-label">&nbsp;</div><div class="tl-row-track"><div class="tl-empty-wrap">Drag resources onto the order block.</div></div></div>`;
       } else {
         items.forEach(li => {
           const lg = tlGeom(liStart(li, c), liEnd(li, c));
           if (!lg) return;
           const cf = resourceConflict(li, c);
           const inConflict = conflictKeys.has(li.type + "|" + li.refId);
-          const status = inConflict ? (cf.conflict ? ("Booked " + cf.contractId) : "Overbooked") : (cf.booked ? ("Shared " + cf.contractId) : "Available");
+          const status = inConflict ? (cf.conflict ? ("Booked " + cf.orderId) : "Overbooked") : (cf.booked ? ("Shared " + cf.orderId) : "Available");
           const sub = `${liDays(li, c)}d · ${status}`;
           const liTitle = `${itemLabel(li)}<br>${TYPE_LABEL[li.type] || li.type}<br>${fmtDate(liStart(li, c))}<br>${fmtTime(liStart(li, c))} →<br>${fmtDate(liEnd(li, c))}<br>${fmtTime(liEnd(li, c))}`;
           rows += `<div class="tl-row ${inConflict ? "conflict" : ""}">
             <div class="tl-row-label res">${TYPE_LABEL[li.type] || li.type}<div class="text-muted2" style="font-size:10px">${shortItemLabel(li)}</div></div>
             <div class="tl-row-track" style="--cols:${gridCols}">
-              <div class="tl-block tl-res tl-res-${li.type} ${inConflict ? "conflict" : ""}" data-contract-id="${c.contractId}" data-li-id="${li.id}" style="left:${lg.left}%;width:${lg.width}%" title="${liTitle}">
+              <div class="tl-block tl-res tl-res-${li.type} ${inConflict ? "conflict" : ""}" data-order-id="${c.orderId}" data-li-id="${li.id}" style="left:${lg.left}%;width:${lg.width}%" title="${liTitle}">
                 <span class="tl-block-title">${itemName(li)}</span>
                 <span class="tl-block-sub">${sub}</span>
-                <span class="tl-h tl-h-l" data-resize="${c.contractId}" data-li="${li.id}"></span>
-                <span class="tl-h tl-h-r" data-resize="${c.contractId}" data-li="${li.id}"></span>
+                <span class="tl-h tl-h-l" data-resize="${c.orderId}" data-li="${li.id}"></span>
+                <span class="tl-h tl-h-r" data-resize="${c.orderId}" data-li="${li.id}"></span>
               </div>
             </div>
           </div>`;
@@ -369,34 +369,34 @@ function renderTimeline(){
   $("#wkLabel").textContent = isMonth ? anchor.toLocaleDateString("en-US", { month:"long", year:"numeric" })
     : isDay ? anchor.toLocaleDateString("en-US", { weekday:"long", month:"short", day:"numeric" })
     : "Week of " + anchor.toLocaleDateString("en-US", { month:"short", day:"numeric" });
-  week.innerHTML = `<div class="tl-inner" style="min-width:${minWidth}px">${head}<div class="tl-body">${lanes || `<p class="text-muted2 py-3 text-center">No active contracts this period.</p>`}</div></div>`;
+  week.innerHTML = `<div class="tl-inner" style="min-width:${minWidth}px">${head}<div class="tl-body">${lanes || `<p class="text-muted2 py-3 text-center">No active orders this period.</p>`}</div></div>`;
   $$(".tl-block:not(.tl-res)").forEach(b => {
     let singleTimer;
     b.addEventListener("click", () => {
       if (window.__suppressClick) { window.__suppressClick = false; return; }
-      App.contractId = b.dataset.contractId;
+      App.orderId = b.dataset.orderId;
       clearTimeout(singleTimer);
       singleTimer = setTimeout(() => {
         if (!App.schedExpanded) App.schedExpanded = new Set();
-        const id = b.dataset.contractId;
+        const id = b.dataset.orderId;
         if (App.schedExpanded.has(id)) App.schedExpanded.delete(id); else App.schedExpanded.add(id);
-        renderSchedQueue(); renderTimeline(); renderInspector(getContract(id));
+        renderSchedQueue(); renderTimeline(); renderInspector(getOrder(id));
       }, 250);
     });
     b.addEventListener("dblclick", () => {
       clearTimeout(singleTimer);
-      const c = getContract(b.dataset.contractId);
-      if (c) contractEditModal(c);
+      const c = getOrder(b.dataset.orderId);
+      if (c) orderEditModal(c);
     });
     const chev = b.querySelector("[data-expand]");
     if (chev) chev.addEventListener("click", ev => {
       ev.stopPropagation();
       clearTimeout(singleTimer);
-      const id = b.dataset.contractId;
-      App.contractId = id;
+      const id = b.dataset.orderId;
+      App.orderId = id;
       if (!App.schedExpanded) App.schedExpanded = new Set();
       if (App.schedExpanded.has(id)) App.schedExpanded.delete(id); else App.schedExpanded.add(id);
-      renderSchedQueue(); renderTimeline(); renderInspector(getContract(id));
+      renderSchedQueue(); renderTimeline(); renderInspector(getOrder(id));
     });
   });
   $$("[data-resize]").forEach(h => attachResizeDrag(h));
@@ -405,30 +405,30 @@ function renderTimeline(){
     bar.addEventListener("mousedown", e => {
       if (e.target.closest(".tl-h")) return;
       e.preventDefault();
-      startSchedDrag(bar, bar.dataset.contractId, bar.dataset.liId, "move", e.clientX);
+      startSchedDrag(bar, bar.dataset.orderId, bar.dataset.liId, "move", e.clientX);
     });
     bar.addEventListener("click", () => {
       if (window.__suppressClick) { window.__suppressClick = false; return; }
-      App.contractId = bar.dataset.contractId;
+      App.orderId = bar.dataset.orderId;
       clearTimeout(singleTimer);
       singleTimer = setTimeout(() => {
-        renderSchedQueue(); renderInspector(getContract(bar.dataset.contractId));
+        renderSchedQueue(); renderInspector(getOrder(bar.dataset.orderId));
       }, 250);
     });
     bar.addEventListener("dblclick", () => {
       clearTimeout(singleTimer);
-      App.contractId = bar.dataset.contractId;
-      scheduleTimeModal(bar.dataset.contractId, bar.dataset.liId);
+      App.orderId = bar.dataset.orderId;
+      scheduleTimeModal(bar.dataset.orderId, bar.dataset.liId);
     });
   });
   initTlTooltips();
 }
 
-function scheduleTimeModal(contractId, liId){
-  const c = getContract(contractId);
+function scheduleTimeModal(orderId, liId){
+  const c = getOrder(orderId);
   if (!c) return;
   const li = liId ? (c.lineItems || []).find(x => x.id === liId) : null;
-  const name = li ? itemLabel(li) : `${c.contractId} · ${c.projectName}`;
+  const name = li ? itemLabel(li) : `${c.orderId} · ${c.projectName}`;
   const startISO = li ? liStart(li, c) : c.startDate;
   const endISO = li ? liEnd(li, c) : c.endDate;
   const datePart = iso => { const d = parseDT(iso); const p = n => String(n).padStart(2, "0"); return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`; };
@@ -469,15 +469,15 @@ function initTlTooltips(){
 }
 
 
-/* All resources booked on two+ active contracts with overlapping windows.
+/* All resources booked on two+ active orders with overlapping windows.
    serialized/labor = hard conflict; quantity = conflict only when overbooked (sum booked
    in the overlap exceeds capacity), otherwise it's a legitimate shared allocation. */
 function collectConflicts(){
-  const active = IMS.contracts.filter(c => c.status === "active");
+  const active = IMS.orders.filter(c => c.status === "active");
   const groups = {};
   active.forEach(c => (c.lineItems || []).forEach(li => {
     const key = li.type + "|" + li.refId;
-    (groups[key] = groups[key] || { type: li.type, refId: li.refId, bookings: [] }).bookings.push({ contract: c, li });
+    (groups[key] = groups[key] || { type: li.type, refId: li.refId, bookings: [] }).bookings.push({ order: c, li });
   }));
   const conflicts = [];
   Object.keys(groups).forEach(key => {
@@ -485,22 +485,22 @@ function collectConflicts(){
     for (let i = 0; i < b.length; i++){
       for (let j = i + 1; j < b.length; j++){
         const a = b[i], d = b[j];
-        const ast = parseDT(liStart(a.li, a.contract)), aen = parseDT(liEnd(a.li, a.contract));
-        const dst = parseDT(liStart(d.li, d.contract)), den = parseDT(liEnd(d.li, d.contract));
+        const ast = parseDT(liStart(a.li, a.order)), aen = parseDT(liEnd(a.li, a.order));
+        const dst = parseDT(liStart(d.li, d.order)), den = parseDT(liEnd(d.li, d.order));
         if (!(ast <= den && dst <= aen)) continue;
         const hard = !isQuantityType(g.type);
         if (!hard){
           const r = getResource({ type: g.type, refId: g.refId });
           const cap = r ? resourceCapacity(g.type, r) : 0;
           const qsum = b.reduce((s, x) => {
-            const xst = parseDT(liStart(x.li, x.contract)), xen = parseDT(liEnd(x.li, x.contract));
+            const xst = parseDT(liStart(x.li, x.order)), xen = parseDT(liEnd(x.li, x.order));
             return s + ((ast <= xen && xst <= aen) ? (x.li.qty || 1) : 0);
           }, 0);
           if (qsum <= cap) continue; /* legitimately split, not a conflict */
         }
         conflicts.push({
           type: g.type, refId: g.refId,
-          contractA: a.contract.contractId, contractB: d.contract.contractId,
+          contractA: a.order.orderId, contractB: d.order.orderId,
           ovStart: ast > dst ? ast : dst,
           ovEnd: aen < den ? aen : den,
           hard
@@ -511,7 +511,7 @@ function collectConflicts(){
   return conflicts.sort((x, y) => x.ovStart - y.ovStart);
 }
 
-/* Right-hand pane: a live scheduling-conflict list (replaces contract details). */
+/* Right-hand pane: a live scheduling-conflict list (replaces order details). */
 function renderInspector(c){
   const box = $("#schedInspector");
   if (!box) return;
@@ -523,7 +523,7 @@ function renderInspector(c){
     return `<div class="conflict-item ${f.hard ? "hard" : "shared"}">
       <div class="ci-head"><span class="type-chip tc-${f.type}">${TYPE_LABEL[f.type] || f.type}</span><span class="strong">${name}</span>${badge}</div>
       <div class="ci-dates">${fmtDate(f.ovStart)} → ${fmtDate(f.ovEnd)}</div>
-      <div class="ci-contracts"><span class="mono">${f.contractA}</span><i class="bi bi-arrow-right"></i><span class="mono">${f.contractB}</span></div>
+      <div class="ci-orders"><span class="mono">${f.contractA}</span><i class="bi bi-arrow-right"></i><span class="mono">${f.contractB}</span></div>
     </div>`;
   }).join("");
   box.innerHTML = `
@@ -537,12 +537,12 @@ function renderInspector(c){
 /* ---- quantity-aware availability & collision ---- */
 
 
-/* Sum of qty already booked for (type, ref) on OTHER active contracts overlapping [startISO, endISO]. */
+/* Sum of qty already booked for (type, ref) on OTHER active orders overlapping [startISO, endISO]. */
 function bookedQtyOnWindow(type, ref, startISO, endISO, excludeId){
   let q = 0;
   const s = parseDT(startISO), e = parseDT(endISO);
-  for (const oc of IMS.contracts){
-    if (oc.contractId === excludeId || oc.status !== "active") continue;
+  for (const oc of IMS.orders){
+    if (oc.orderId === excludeId || oc.status !== "active") continue;
     for (const li of (oc.lineItems || [])){
       if (li.type !== type || li.refId !== ref) continue;
       const ost = parseDT(liStart(li, oc)), oen = parseDT(liEnd(li, oc));
@@ -552,9 +552,9 @@ function bookedQtyOnWindow(type, ref, startISO, endISO, excludeId){
   return q;
 }
 
-/* Total qty booked for (type, ref) across all active contracts (display only). */
+/* Total qty booked for (type, ref) across all active orders (display only). */
 function globalBookedQty(type, ref){
-  return IMS.contracts.filter(c => c.status === "active").reduce((sum, c) =>
+  return IMS.orders.filter(c => c.status === "active").reduce((sum, c) =>
     sum + (c.lineItems || []).filter(li => li.type === type && li.refId === ref).reduce((x, li) => x + (li.qty || 1), 0), 0);
 }
 
@@ -565,9 +565,9 @@ function globalBookedQty(type, ref){
    resource is:
      free    - no booking in the visible period
      partial - busy some days but free others (still draggable; the drop is
-               validated against the exact contract window)
+               validated against the exact order window)
      busy    - booked for the whole visible period (droppable only if the
-               target contract avoids the busy days)
+               target order avoids the busy days)
    The busy *dates* are always surfaced so the user can see exactly when a
    partially-booked unit is taken.
    ===================================================================== */
@@ -599,13 +599,13 @@ function viewScopeLabel(){
   return a.toLocaleDateString("en-US", { weekday:"long", month:"short", day:"numeric" });
 }
 
-/* All active bookings (contract, line item) that reference (type, ref). */
+/* All active bookings (order, line item) that reference (type, ref). */
 function resourceBookings(type, ref){
   const out = [];
-  for (const c of IMS.contracts){
+  for (const c of IMS.orders){
     if (c.status !== "active") continue;
     for (const li of (c.lineItems || [])){
-      if (li.type === type && li.refId === ref) out.push({ contractId: c.contractId, s: parseDT(liStart(li, c)), e: parseDT(liEnd(li, c)) });
+      if (li.type === type && li.refId === ref) out.push({ orderId: c.orderId, s: parseDT(liStart(li, c)), e: parseDT(liEnd(li, c)) });
     }
   }
   return out;
@@ -660,12 +660,12 @@ function capAvailUI(type, ref, inShop){
   return { key: "free", badge: `<span class="badge-status st-available"><i class="bi bi-check-circle-fill"></i>Available</span>`, note: "" };
 }
 
-/* Qty booked for (type, ref) on active contracts overlapping the visible window
+/* Qty booked for (type, ref) on active orders overlapping the visible window
    (replaces the all-time figure, which is misleading when paging the view). */
 function bookedQtyInView(type, ref){
   const w = viewWindow();
   let q = 0;
-  for (const c of IMS.contracts){
+  for (const c of IMS.orders){
     if (c.status !== "active") continue;
     for (const li of (c.lineItems || [])){
       if (li.type !== type || li.refId !== ref) continue;
@@ -676,66 +676,66 @@ function bookedQtyInView(type, ref){
   return q;
 }
 
-function availabilityFor(type, ref, contract){
+function availabilityFor(type, ref, order){
   const r = getResource({ type, refId: ref });
   if (!r) return { total: 0, booked: 0, available: 0 };
   if (type === "bulk" || type === "kit" || type === "attachment"){
     const total = resourceCapacity(type, r);
-    const booked = bookedQtyOnWindow(type, ref, contract.startDate, contract.endDate, contract.contractId);
+    const booked = bookedQtyOnWindow(type, ref, order.startDate, order.endDate, order.orderId);
     return { total, booked, available: Math.max(0, total - booked) };
   }
   if (type === "consumable" || type === "part"){
     const total = r.qtyOnHand || 0;
-    return { total, booked: bookedQtyOnWindow(type, ref, contract.startDate, contract.endDate, contract.contractId), available: total };
+    return { total, booked: bookedQtyOnWindow(type, ref, order.startDate, order.endDate, order.orderId), available: total };
   }
   return { total: 1, booked: 0, available: 1 };
 }
 
-function canAllocate(type, ref, contract, qty){
+function canAllocate(type, ref, order, qty){
   qty = Math.max(1, parseInt(qty, 10) || 1);
   const r = getResource({ type, refId: ref });
   if (!r || !recActive(r)) return { ok: false, reason: "Resource inactive" };
-  if ((contract.lineItems || []).some(li => li.type === type && li.refId === ref)) return { ok: false, reason: "Already allocated to this contract" };
+  if ((order.lineItems || []).some(li => li.type === type && li.refId === ref)) return { ok: false, reason: "Already allocated to this order" };
   if (type === "serialized" && r.status === "In Shop") return { ok: false, reason: "Resource in shop — unavailable for scheduling" };
   if (type === "serialized"){
     const out = typeof assetOutInfo === "function" ? assetOutInfo(ref) : null;
-    if (out && out.contractId !== contract.contractId) return { ok: false, reason: `On site with ${out.contractId} — return it before scheduling elsewhere` };
-    if (out && out.contractId === contract.contractId) return { ok: false, reason: "Already checked out to this contract" };
+    if (out && out.orderId !== order.orderId) return { ok: false, reason: `On site with ${out.orderId} — return it before scheduling elsewhere` };
+    if (out && out.orderId === order.orderId) return { ok: false, reason: "Already checked out to this order" };
   }
   if (type === "serialized" || type === "labor"){
-    const ov = resourceOverlap(type, ref, contract);
-    if (ov) return { ok: true, conflict: true, reason: `Booked on ${ov.contractId} — booking anyway (conflict)` };
+    const ov = resourceOverlap(type, ref, order);
+    if (ov) return { ok: true, conflict: true, reason: `Booked on ${ov.orderId} — booking anyway (conflict)` };
     return { ok: true, reason: "" };
   }
-  const av = availabilityFor(type, ref, contract);
-  if (qty > av.available) return { ok: true, overbook: true, total: av.total, booked: av.booked, available: av.available, reason: `Only ${av.available} of ${av.total} available — ${av.booked} booked on another contract for this period` };
+  const av = availabilityFor(type, ref, order);
+  if (qty > av.available) return { ok: true, overbook: true, total: av.total, booked: av.booked, available: av.available, reason: `Only ${av.available} of ${av.total} available — ${av.booked} booked on another order for this period` };
   return { ok: true, overbook: false, total: av.total, booked: av.booked, available: av.available, reason: "" };
 }
 
-function allocateResource(type, ref, contract, qty){
+function allocateResource(type, ref, order, qty){
   qty = Math.max(1, parseInt(qty, 10) || 1);
-  contract.lineItems = contract.lineItems || [];
-  contract.lineItems.push({ id:"LI-" + Date.now(), type, refId:ref, qty, startDate: contract.startDate, endDate: contract.endDate, pricingMatrix:type === "labor" ? "flat" : "standard", weekendPolicy:"bill", riskPremium:"standard", flatTotal:0 });
-  /* Keep the contract's line items sorted by type then code so any consumer that reads
+  order.lineItems = order.lineItems || [];
+  order.lineItems.push({ id:"LI-" + Date.now(), type, refId:ref, qty, startDate: order.startDate, endDate: order.endDate, pricingMatrix:type === "labor" ? "flat" : "standard", weekendPolicy:"bill", riskPremium:"standard", flatTotal:0 });
+  /* Keep the order's line items sorted by type then code so any consumer that reads
      lineItems directly sees the canonical grouped/sorted order. */
-  contract.lineItems.sort(compareLineItems);
-  syncInventoryOnStage(type, ref, qty, true, contract);
+  order.lineItems.sort(compareLineItems);
+  syncInventoryOnStage(type, ref, qty, true, order);
 }
 
 /* Commit a quantity allocation, refresh the inspector/timeline/pool, and flash a check. */
-function doAllocate(type, ref, contract, qty, dropBlock){
-  allocateResource(type, ref, contract, qty);
+function doAllocate(type, ref, order, qty, dropBlock){
+  allocateResource(type, ref, order, qty);
   if (dropBlock) showDropCheck(dropBlock);
-  /* Reveal the target contract so the added resource appears in its sorted lane. */
+  /* Reveal the target order so the added resource appears in its sorted lane. */
   if (!App.schedExpanded) App.schedExpanded = new Set();
-  App.schedExpanded.add(contract.contractId);
-  renderInspector(contract); renderTimeline(); renderSchedQueue();
+  App.schedExpanded.add(order.orderId);
+  renderInspector(order); renderTimeline(); renderSchedQueue();
 }
 
 /* Quantity booking prompt shown when a multi-unit resource is dropped on a block. */
-function bookQtyModal(type, ref, contract, dropBlock){
+function bookQtyModal(type, ref, order, dropBlock){
   const label = itemLabel({ type, refId: ref });
-  const av = availabilityFor(type, ref, contract);
+  const av = availabilityFor(type, ref, order);
   const body = `
     <div class="mb-1"><span class="strong">${label}</span></div>
     <div class="text-muted2 mb-3" style="font-size:12px">${fmtInt(av.total)} owned · ${fmtInt(av.booked)} booked elsewhere · <span class="strong">${fmtInt(av.available)} available</span></div>
@@ -746,22 +746,22 @@ function bookQtyModal(type, ref, contract, dropBlock){
   const root = openRawModal({ id:"mdl-bookqty", title:"Book " + (TYPE_LABEL[type] || type), icon:"bi-box-seam", body, footer });
   root.querySelector("#bq-save").addEventListener("click", () => {
     const qty = Math.max(1, parseInt(root.querySelector("#bq-qty").value, 10) || 1);
-    const chk = canAllocate(type, ref, contract, qty);
+    const chk = canAllocate(type, ref, order, qty);
     if (!chk.ok) { showDndError(chk.reason); dismissModal(root); return; }
     dismissModal(root);
-    if (chk.overbook) overbookModal(type, ref, contract, qty, chk, dropBlock);
-    else doAllocate(type, ref, contract, qty, dropBlock);
+    if (chk.overbook) overbookModal(type, ref, order, qty, chk, dropBlock);
+    else doAllocate(type, ref, order, qty, dropBlock);
   });
 }
 
 /* Overbooking accept/cancel warning shown when the requested qty exceeds availability. */
-function overbookModal(type, ref, contract, qty, chk, dropBlock){
+function overbookModal(type, ref, order, qty, chk, dropBlock){
   const label = itemLabel({ type, refId: ref });
   const body = `
     <div class="d-flex align-items-center gap-2 mb-3"><i class="bi bi-exclamation-triangle-fill text-danger" style="font-size:24px"></i>
       <div>
         <div class="strong">Overbooking Warning</div>
-        <div class="text-muted2" style="font-size:12px">${label} is already booked on another contract for this period.</div>
+        <div class="text-muted2" style="font-size:12px">${label} is already booked on another order for this period.</div>
       </div></div>
     <div class="list-line"><span class="l">Total owned</span><span class="r">${fmtInt(chk.total)}</span></div>
     <div class="list-line"><span class="l">Booked elsewhere</span><span class="r">${fmtInt(chk.booked)}</span></div>
@@ -771,7 +771,7 @@ function overbookModal(type, ref, contract, qty, chk, dropBlock){
   const footer = `<button type="button" class="btn btn-ims-outline" data-bs-dismiss="modal">Cancel</button>
     <button type="button" class="btn btn-ims" id="ob-yes"><i class="bi bi-check2"></i> Accept Overbooking</button>`;
   const root = openRawModal({ id:"mdl-overbook", title:"Overbooking Confirmation", icon:"bi-exclamation-triangle", body, footer });
-  root.querySelector("#ob-yes").addEventListener("click", () => { doAllocate(type, ref, contract, qty, dropBlock); dismissModal(root); });
+  root.querySelector("#ob-yes").addEventListener("click", () => { doAllocate(type, ref, order, qty, dropBlock); dismissModal(root); });
 }
 
 function parseDrag(e){
@@ -805,7 +805,7 @@ function bindDnD(){
     if (!block) return;
     e.preventDefault();
     const parsed = parseDrag(e);
-    const chk = parsed && canAllocate(parsed.type, parsed.ref, getContract(block.dataset.contractId));
+    const chk = parsed && canAllocate(parsed.type, parsed.ref, getOrder(block.dataset.orderId));
     if (chk && chk.ok) { block.classList.add("drop-ok"); block.classList.remove("drop-deny"); e.dataTransfer.dropEffect = "copy"; }
     else { block.classList.add("drop-deny"); block.classList.remove("drop-ok"); e.dataTransfer.dropEffect = "none"; showDndError(chk ? chk.reason : "Unknown resource"); }
   });
@@ -819,7 +819,7 @@ function bindDnD(){
     e.preventDefault();
     block.classList.remove("drop-ok", "drop-deny");
     const parsed = parseDrag(e);
-    const c = getContract(block.dataset.contractId);
+    const c = getOrder(block.dataset.orderId);
     if (!parsed || !c) return;
     const chk = canAllocate(parsed.type, parsed.ref, c);
     if (!chk.ok) { showDndError(chk.reason); return; }
@@ -828,9 +828,9 @@ function bindDnD(){
     } else {
       allocateResource(parsed.type, parsed.ref, c, 1);
       showDropCheck(block);
-      /* Reveal the target contract so the added resource shows in its sorted lane. */
+      /* Reveal the target order so the added resource shows in its sorted lane. */
       if (!App.schedExpanded) App.schedExpanded = new Set();
-      App.schedExpanded.add(c.contractId);
+      App.schedExpanded.add(c.orderId);
       renderInspector(c); renderTimeline(); renderSchedQueue();
     }
   });
@@ -852,9 +852,9 @@ function attachResizeDrag(h){
   h.addEventListener("click", e => e.stopPropagation());
 }
 
-function startSchedDrag(blockEl, contractId, liId, mode, clientX){
+function startSchedDrag(blockEl, orderId, liId, mode, clientX){
   const track = blockEl.closest(".tl-row-track");
-  const c = getContract(contractId);
+  const c = getOrder(orderId);
   if (!c || !track) return;
   const cols = schedCols();
   const rect = track.getBoundingClientRect();
@@ -863,7 +863,7 @@ function startSchedDrag(blockEl, contractId, liId, mode, clientX){
   const sD = isContract ? parseDT(c.startDate) : parseDT(liStart(li, c));
   const eD = isContract ? parseDT(c.endDate)   : parseDT(liEnd(li, c));
   schedDrag = {
-    blockEl, contractId, liId, isContract, mode,
+    blockEl, orderId, liId, isContract, mode,
     sD: new Date(sD), eD: new Date(eD),
     grabClientX: clientX,          // pixel anchor for stable, monotonic snapping
     pxPerUnit: rect.width / cols   // px per day (week/month) or per 15-min block (day view)
@@ -872,11 +872,11 @@ function startSchedDrag(blockEl, contractId, liId, mode, clientX){
   document.addEventListener("mouseup", onSchedDragUp);
 }
 /* Commit a bar's date range with parent/child guardrails:
-   - A resource (child) is always confined to the contract (parent). Resizing or moving
-     a resource therefore NEVER changes the contract's own dates, so you don't have to
-     manually "fix the contract back" after nudging a resource.
-   - Resizing the contract only trims any resource that would stick out of the new
-     bounds; growing the contract leaves existing resources where they were. */
+   - A resource (child) is always confined to the order (parent). Resizing or moving
+     a resource therefore NEVER changes the order's own dates, so you don't have to
+     manually "fix the order back" after nudging a resource.
+   - Resizing the order only trims any resource that would stick out of the new
+     bounds; growing the order leaves existing resources where they were. */
 function commitBarDates(c, liId, s, en){
   if (s > en) en = new Date(s); // never allow an inverted/empty range
   if (!liId){
@@ -885,17 +885,17 @@ function commitBarDates(c, liId, s, en){
     c.startDate = toISO(newStart); c.endDate = toISO(newEnd);
     (c.lineItems || []).forEach(li => {
       /* Freeze each resource to its own dates so it doesn't ride along with the
-         contract (a resource that had no explicit dates inherits the OLD bounds). */
+         order (a resource that had no explicit dates inherits the OLD bounds). */
       if (!li.startDate) li.startDate = toISO(oldStart);
       if (!li.endDate) li.endDate = toISO(oldEnd);
-      /* Only adjust if the resource is now out of range (before/after the contract). */
+      /* Only adjust if the resource is now out of range (before/after the order). */
       const ls = parseDT(li.startDate), le = parseDT(li.endDate);
       if (ls < newStart) li.startDate = toISO(newStart);
       if (le > newEnd) li.endDate = toISO(newEnd);
     });
     return { sStr: c.startDate, eStr: c.endDate, s: newStart, en: newEnd };
   }
-  /* resource (child): confined to the parent envelope — never grows the contract */
+  /* resource (child): confined to the parent envelope — never grows the order */
   const li = c.lineItems.find(x => x.id === liId);
   if (!li) return { sStr: toISO(s), eStr: toISO(en), s, en };
   const cs = parseDT(c.startDate), ce = parseDT(c.endDate);
@@ -910,7 +910,7 @@ function commitBarDates(c, liId, s, en){
 
 function onSchedDragMove(e){
   if (!schedDrag) return;
-  const c = getContract(schedDrag.contractId);
+  const c = getOrder(schedDrag.orderId);
   if (!c) return;
   const d = schedDrag;
   /* Snapping: round the NET movement from the original grip, never the absolute pointer.
@@ -945,7 +945,7 @@ function onSchedDragMove(e){
   const bg = tlGeom(sStr, eStr);
   if (bg && d.blockEl){ d.blockEl.style.left = bg.left + "%"; d.blockEl.style.width = bg.width + "%"; }
   const cg = tlGeom(c.startDate, c.endDate);
-  const cEl = document.querySelector(".tl-block[data-contract-id=\"" + d.contractId + "\"]:not([data-li-id])");
+  const cEl = document.querySelector(".tl-block[data-order-id=\"" + d.orderId + "\"]:not([data-li-id])");
   if (cg && cEl){ cEl.style.left = cg.left + "%"; cEl.style.width = cg.width + "%"; }
 }
 
@@ -953,7 +953,7 @@ function onSchedDragUp(){
   document.removeEventListener("mousemove", onSchedDragMove);
   document.removeEventListener("mouseup", onSchedDragUp);
   if (!schedDrag) return;
-  const c = getContract(schedDrag.contractId);
+  const c = getOrder(schedDrag.orderId);
   const changed = (() => {
     if (!c) return false;
     if (schedDrag.isContract) return parseDT(c.startDate).getTime() !== schedDrag.sD.getTime() || parseDT(c.endDate).getTime() !== schedDrag.eD.getTime();
@@ -972,9 +972,9 @@ function onSchedDragUp(){
   }
 }
 
-function contractModal(){ openContractModal(null); }
+function orderModal(){ openOrderModal(null); }
 
-function contractEditModal(contract){ openContractModal(contract); }
+function orderEditModal(order){ openOrderModal(order); }
 
 function overheadPickOptions(ohs){
   const have = new Set(ohs.map(o => o.ohId));
@@ -988,7 +988,7 @@ function cloneOh(o){
     chargeType:o.chargeType, cost:o.cost, retail:o.retail, pct:o.pct || 0, qty:1, locked: !!o.locked };
 }
 
-function openContractModal(existing){
+function openOrderModal(existing){
   const isEdit = !!existing;
   const e = existing || {};
   const ohs = (existing && existing.overheads !== undefined)
@@ -1001,10 +1001,10 @@ function openContractModal(existing){
   const body = `
     <div class="d-flex align-items-center gap-2 mb-3">
       <div class="form-check form-switch mb-0"><input class="form-check-input" type="checkbox" id="c-active" ${(e.status ? e.status === "active" : true) ? "checked" : ""}><label class="form-check-label" for="c-active"><strong>Active</strong></label></div>
-      <span class="text-muted2" style="font-size:11.5px">Active contracts bill normally; inactive are closed/archived</span>
+      <span class="text-muted2" style="font-size:11.5px">Active orders bill normally; inactive are closed/archived</span>
     </div>
     <div class="row g-3">
-      <div class="col-md-4 field-group"><label class="form-label">Contract ID</label><input class="form-control" id="c-id" value="${e.contractId || "CT-2024-" + pad2(IMS.contracts.length + 1)}"></div>
+      <div class="col-md-4 field-group"><label class="form-label">Contract ID</label><input class="form-control" id="c-id" value="${e.orderId || "CT-2024-" + pad2(IMS.orders.length + 1)}"></div>
       <div class="col-md-4 field-group"><label class="form-label">Customer</label><select class="form-select" id="c-cust">${custOpts}</select></div>
       <div class="col-md-4 field-group"><label class="form-label">Project Name</label><input class="form-control" id="c-project" value="${e.projectName || ""}"></div>
       <div class="col-md-6 field-group"><label class="form-label">Job Site Address</label><input class="form-control" id="c-site" value="${e.jobSite || ""}"></div>
@@ -1019,14 +1019,14 @@ function openContractModal(existing){
     <div class="row g-2 mb-2">
       <div class="col-md-6"><select class="form-select" id="oh-pick">${overheadPickOptions(ohs)}</select></div>
       <div class="col-md-3"><button class="btn btn-ims btn-sm2 w-100" type="button" id="oh-add"><i class="bi bi-plus-lg"></i> Add Overhead</button></div>
-      <div class="col-md-3"><span class="text-muted2" style="font-size:11px">Locked defaults auto-injected · override cost/retail per contract</span></div>
+      <div class="col-md-3"><span class="text-muted2" style="font-size:11px">Locked defaults auto-injected · override cost/retail per order</span></div>
     </div>
     <div id="oh-list"></div>
     <div class="divider"></div>
     <div class="profit-panel" id="oh-fin"></div>`;
   const footer = `<button type="button" class="btn btn-ims-outline" data-bs-dismiss="modal">Cancel</button>
     <button type="button" class="btn btn-ims" id="c-save"><i class="bi bi-check2"></i> Save Contract</button>`;
-  const root = openRawModal({ id:"mdl-contract", size:"lg", title:(isEdit ? "Edit" : "New") + " Contract / Job", icon:"bi-file-earmark-text", body, footer });
+  const root = openRawModal({ id:"mdl-order", size:"lg", title:(isEdit ? "Edit" : "New") + " Contract / Job", icon:"bi-file-earmark-text", body, footer });
   const tmpContract = () => ({ startDate: combineDT(root.querySelector("#c-start-date").value, root.querySelector("#c-start-time").value), endDate: combineDT(root.querySelector("#c-end-date").value, root.querySelector("#c-end-time").value), lineItems: existing ? existing.lineItems || [] : [], overheads: ohs });
   renderOhList(root, ohs);
   const renderFin = () => renderOhFinance(root, tmpContract());
@@ -1054,7 +1054,7 @@ function openContractModal(existing){
     const cust = getParty(root.querySelector("#c-cust").value);
     const active = root.querySelector("#c-active").checked;
     const obj = {
-      contractId: root.querySelector("#c-id").value,
+      orderId: root.querySelector("#c-id").value,
       partyId: root.querySelector("#c-cust").value,
       party: cust ? cust.name : root.querySelector("#c-cust").value,
       projectName: root.querySelector("#c-project").value,
@@ -1068,9 +1068,9 @@ function openContractModal(existing){
       overheads: ohs
     };
     if (isEdit) Object.assign(existing, obj);
-    else IMS.contracts.unshift(Object.assign({ lineItems: [] }, obj));
-    App.contractId = obj.contractId;
-    App.ccTab = "contracts";
+    else IMS.orders.unshift(Object.assign({ lineItems: [] }, obj));
+    App.orderId = obj.orderId;
+    App.ccTab = "orders";
     App.contractFilter = "active";
     showView(App.view);
     dismissModal(root);
@@ -1091,11 +1091,11 @@ function renderOhList(root, ohs){
       <label>Retail <input class="form-control form-control-sm" data-ohretail="${i}" type="number" value="${oh.retail}"></label>
       ${oh.locked ? "" : `<button class="remove" data-ohrem="${i}" title="Remove"><i class="bi bi-x-circle"></i></button>`}
     </div>
-  </div>`).join("") || `<p class="text-muted2 py-2">No overhead adjustments for this contract.</p>`;
+  </div>`).join("") || `<p class="text-muted2 py-2">No overhead adjustments for this order.</p>`;
 }
 
 function renderOhFinance(root, tmpContract){
-  const t = contractTotals(tmpContract);
+  const t = orderTotals(tmpContract);
   root.querySelector("#oh-fin").innerHTML = `
     <div class="label"><i class="bi bi-calculator"></i> Contract Financial Preview</div>
     <table class="totals-table">
@@ -1106,7 +1106,7 @@ function renderOhFinance(root, tmpContract){
       <tr><td>− Labor + Consumable + Depreciation</td><td>${fmtMoney(t.laborCost + t.consumableCost + t.depreciation)}</td></tr>
       <tr class="grand"><td>Estimated Net Profit</td><td>${fmtMoney(t.net)}</td></tr>
     </table>
-    <div class="label" style="margin-top:8px">Net Margin ${fmtPct(t.margin)} · ${t.days}-day contract</div>`;
+    <div class="label" style="margin-top:8px">Net Margin ${fmtPct(t.margin)} · ${t.days}-day order</div>`;
 }
 
 

@@ -228,9 +228,9 @@ function chainOfCustodyHTML(assetId){
 function serializedView(a){
   const cons = contractRefs("serialized", a.id);
   const wos = IMS.workOrders.filter(w => w.assetId === a.id);
-  const consList = cons.map(({contract, lines}) => lines.map(li => {
-    const t = contractTotals(contract);
-    return `<div class="list-line"><span class="l"><span class="strong mono">${contract.contractId}</span> — ${contract.projectName} ${statusBadge(contract.status)}</span><span class="r">${fmtMoney(computeLineTotal(li, contract))}</span></div>`;
+  const consList = cons.map(({order, lines}) => lines.map(li => {
+    const t = orderTotals(order);
+    return `<div class="list-line"><span class="l"><span class="strong mono">${order.orderId}</span> — ${order.projectName} ${statusBadge(order.status)}</span><span class="r">${fmtMoney(computeLineTotal(li, order))}</span></div>`;
   }).join("")).join("");
   const woList = wos.map(w => {
     const x = woComputed(w);
@@ -257,8 +257,8 @@ function serializedView(a){
 
 function bulkView(b){
   const cons = contractRefs("bulk", b.sku);
-  const consList = cons.map(({contract, lines}) => lines.map(li =>
-    `<div class="list-line"><span class="l"><span class="strong mono">${contract.contractId}</span> — ${contract.projectName} ${statusBadge(contract.status)}</span><span class="r">${fmtInt(li.qty)} units · ${fmtMoney(computeLineTotal(li, contract))}</span></div>`).join("")).join("");
+  const consList = cons.map(({order, lines}) => lines.map(li =>
+    `<div class="list-line"><span class="l"><span class="strong mono">${order.orderId}</span> — ${order.projectName} ${statusBadge(order.status)}</span><span class="r">${fmtInt(li.qty)} units · ${fmtMoney(computeLineTotal(li, order))}</span></div>`).join("")).join("");
   openRawModal({
     id: "mdl-bview", size: "lg", title: "Bulk Resource — " + b.sku, icon: "bi-boxes",
     body: detailGrid([
@@ -273,8 +273,8 @@ function bulkView(b){
 
 function consumableView(c){
   const cons = contractRefs("consumable", c.sku);
-  const consList = cons.map(({contract, lines}) => lines.map(li =>
-    `<div class="list-line"><span class="l"><span class="strong mono">${contract.contractId}</span> — ${contract.projectName} ${statusBadge(contract.status)}</span><span class="r">${fmtInt(li.qty)} × ${fmtMoney(computeLineTotal(li, contract))}</span></div>`).join("")).join("");
+  const consList = cons.map(({order, lines}) => lines.map(li =>
+    `<div class="list-line"><span class="l"><span class="strong mono">${order.orderId}</span> — ${order.projectName} ${statusBadge(order.status)}</span><span class="r">${fmtInt(li.qty)} × ${fmtMoney(computeLineTotal(li, order))}</span></div>`).join("")).join("");
   const wos = IMS.workOrders.filter(w => (w.parts || []).some(p => p.sku === c.sku));
   const woList = wos.map(w => { const x = woComputed(w); return `<div class="list-line"><span class="l"><span class="strong mono">${w.woId}</span> — ${w.assetId} ${statusBadge(w.status)}</span><span class="r">${fmtMoney(x.total)}</span></div>`; }).join("");
   openRawModal({
@@ -292,11 +292,11 @@ function consumableView(c){
 
 function laborView(e){
   const cons = contractRefs("labor", e.empId);
-  const consList = cons.map(({contract, lines}) => lines.map(li =>
-    `<div class="list-line"><span class="l"><span class="strong mono">${contract.contractId}</span> — ${contract.projectName} ${statusBadge(contract.status)}</span><span class="r">${fmtInt(li.qty)} hr · ${fmtMoney(computeLineTotal(li, contract))}</span></div>`).join("")).join("");
+  const consList = cons.map(({order, lines}) => lines.map(li =>
+    `<div class="list-line"><span class="l"><span class="strong mono">${order.orderId}</span> — ${order.projectName} ${statusBadge(order.status)}</span><span class="r">${fmtInt(li.qty)} hr · ${fmtMoney(computeLineTotal(li, order))}</span></div>`).join("")).join("");
   const ts = IMS.timesheets.filter(x => x.empId === e.empId);
   const tsList = ts.map(x => {
-    const nm = x.targetType === "contract" ? "Job " + x.targetId
+    const nm = x.targetType === "order" ? "Job " + x.targetId
       : x.targetType === "workorder" ? "WO " + x.targetId
       : x.targetType ? (x.targetType.charAt(0).toUpperCase() + x.targetType.slice(1)) : "WO";
     return `<div class="list-line"><span class="l">${fmtDate(x.date)} · ${nm}</span><span class="r">${x.hours == null ? "live" : x.hours} hr · ${fmtMoney((x.hours || 0) * e.hourlyCost)}</span></div>`;
@@ -385,8 +385,8 @@ const getBulk = id => IMS.bulkResources.find(b => b.sku === id);
 const getConsumable = id => IMS.consumables.find(c => c.sku === id);
 const getLabor = id => IMS.labor.find(e => e.empId === id);
 const getPart = id => IMS.parts.find(p => p.partId === id);
-const contractRefs = (type, ref) => IMS.contracts
-  .map(c => ({ contract: c, lines: (c.lineItems || []).filter(li => li.type === type && li.refId === ref) }))
+const contractRefs = (type, ref) => IMS.orders
+  .map(c => ({ order: c, lines: (c.lineItems || []).filter(li => li.type === type && li.refId === ref) }))
   .filter(x => x.lines.length);
 const detailGrid = pairs => `<div class="row g-3">${pairs.map(p => `<div class="col-md-4 field-group"><label class="form-label">${p[0]}</label><div class="form-control-plaintext strong">${p[1]}</div></div>`).join("")}</div>`;
 const section = (title, html) => `<div class="divider"></div><div class="strong mb-2">${title}</div>${html || `<p class="text-muted2 py-2">None.</p>`}`;
@@ -449,7 +449,7 @@ function serializedModal(existing){
       if (isEdit) {
         Object.assign(existing, { active:v.active !== false, serial:v.serial, make:v.make, model:v.model, category:v.category, meterHours:v.meterHours, fuelType:v.fuelType, purchaseValue:v.purchaseValue, baseDaily:v.baseDaily, baseWeekly:v.baseWeekly, baseMonthly:v.baseMonthly, depositPct:v.depositPct, lat:v.lat, lng:v.lng, status:v.status });
       } else {
-        IMS.serializedAssets.push({ id:v.id, active:v.active !== false, serial:v.serial, make:v.make, model:v.model, category:v.category, meterHours:v.meterHours, fuelType:v.fuelType, purchaseValue:v.purchaseValue, baseDaily:v.baseDaily, baseWeekly:v.baseWeekly, baseMonthly:v.baseMonthly, depositPct:v.depositPct, lat:v.lat, lng:v.lng, status:v.status, battery:100, lastReported: new Date().toISOString().slice(0,19), contractId:null });
+        IMS.serializedAssets.push({ id:v.id, active:v.active !== false, serial:v.serial, make:v.make, model:v.model, category:v.category, meterHours:v.meterHours, fuelType:v.fuelType, purchaseValue:v.purchaseValue, baseDaily:v.baseDaily, baseWeekly:v.baseWeekly, baseMonthly:v.baseMonthly, depositPct:v.depositPct, lat:v.lat, lng:v.lng, status:v.status, battery:100, lastReported: new Date().toISOString().slice(0,19), orderId:null });
       }
       renderInventory();
     }

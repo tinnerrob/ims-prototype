@@ -6,8 +6,8 @@
 
 function meterOverage(insp){
   if (insp.direction !== "Check-In" || insp.meterIn == null || insp.meterOut == null) return null;
-  const contract = getContract(insp.contractId);
-  const days = contract ? daysBetween(contract.startDate, contract.endDate) : 1;
+  const order = getOrder(insp.orderId);
+  const days = order ? daysBetween(order.startDate, order.endDate) : 1;
   const P = IMS.settings.pricing;
   const allowed = days >= 7 ? P.weeklyHours : P.dailyMinHours * days;
   const used = insp.meterIn - insp.meterOut;
@@ -24,7 +24,7 @@ function renderYard(){
   const checks = ["tires","fluids","guards","lights","engine"];
   const checkLabels = { tires:"Tires / Tracks", fluids:"Fluids", guards:"Safety Guards", lights:"Lights", engine:"Engine" };
   const assetOpts = IMS.serializedAssets.map(a => `<option value="${a.id}">${a.id} — ${a.make} ${a.model}</option>`).join("");
-  const contractOpts = IMS.contracts.map(c => `<option value="${c.contractId}">${c.contractId} — ${c.projectName}</option>`).join("");
+  const contractOpts = IMS.orders.map(c => `<option value="${c.orderId}">${c.orderId} — ${c.projectName}</option>`).join("");
   $("#content").innerHTML = `
     <div class="page-head"></div>
     <div class="split-layout">
@@ -35,7 +35,7 @@ function renderYard(){
           <div class="card-body">
             <div class="row g-2">
               <div class="col-md-6 field-group"><label class="form-label">Asset</label><select class="form-select" id="i-asset">${assetOpts}</select></div>
-              <div class="col-md-6 field-group"><label class="form-label">Contract</label><select class="form-select" id="i-contract"><option value="">— none —</option>${contractOpts}</select></div>
+              <div class="col-md-6 field-group"><label class="form-label">Contract</label><select class="form-select" id="i-order"><option value="">— none —</option>${contractOpts}</select></div>
               <div class="col-md-6 field-group"><label class="form-label">Direction</label><select class="form-select" id="i-dir"><option>Check-Out</option><option>Check-In</option></select></div>
               <div class="col-md-6 field-group"><label class="form-label">Date</label><input class="form-control" id="i-date" type="date" value="${new Date().toISOString().slice(0,10)}"></div>
             </div>
@@ -73,14 +73,14 @@ function renderYard(){
   $$("[data-filebtn]").forEach(b => b.addEventListener("click", () => b.parentElement.querySelector("input[type=file]").click()));
   $("#i-meter").addEventListener("input", updateOveragePreview);
   $("#i-dir").addEventListener("change", updateOveragePreview);
-  $("#i-contract").addEventListener("change", updateOveragePreview);
+  $("#i-order").addEventListener("change", updateOveragePreview);
   $("#inspSave").addEventListener("click", () => {
     const dir = $("#i-dir").value;
     const meter = parseFloat($("#i-meter").value) || 0;
     const assetId = $("#i-asset").value;
     IMS.inspections.push({
       inspId:"INSP-" + String(IMS.inspections.length + 1).padStart(3, "0"),
-      assetId, contractId: $("#i-contract").value || null, direction: dir, date: $("#i-date").value,
+      assetId, orderId: $("#i-order").value || null, direction: dir, date: $("#i-date").value,
       meterOut: dir === "Check-Out" ? meter : getLastMeter(assetId),
       meterIn: dir === "Check-In" ? meter : null,
       fuelOut: parseFloat($("#i-fuel").value) || 0, fuelIn: null,
@@ -161,8 +161,8 @@ function updateOveragePreview(){
   if (dir !== "Check-In") { box.innerHTML = ""; return; }
   const meterIn = parseFloat($("#i-meter").value) || 0;
   const meterOut = getLastMeter(assetId);
-  const contract = getContract($("#i-contract").value) || null;
-  const days = contract ? daysBetween(contract.startDate, contract.endDate) : 1;
+  const order = getOrder($("#i-order").value) || null;
+  const days = order ? daysBetween(order.startDate, order.endDate) : 1;
   const P = IMS.settings.pricing;
   const allowed = days >= 7 ? P.weeklyHours : P.dailyMinHours * days;
   const used = meterIn - meterOut;

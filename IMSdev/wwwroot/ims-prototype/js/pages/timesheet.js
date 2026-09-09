@@ -16,7 +16,7 @@
 const LAB = { view: "week", anchor: null, empSel: "EMP-001" };
 
 const TS_KIND = {
-  contract:  { label: "Job",        icon: "bi-briefcase",         cls: "ts-contract" },
+  order:  { label: "Job",        icon: "bi-briefcase",         cls: "ts-order" },
   workorder: { label: "Work Order", icon: "bi-tools",             cls: "ts-wo" },
   shop:      { label: "Shop",       icon: "bi-wrench-adjustable", cls: "ts-shop" },
   overhead:  { label: "Overhead",   icon: "bi-diagram-3",         cls: "ts-overhead" },
@@ -44,11 +44,11 @@ const segHours = ts => {
 const segBill = ts => { if (isLunch(ts)) return 0; const e = getEmp(ts.empId); return r2(segHours(ts) * (e ? e.hourlyBillable : 0)); };
 const segCost = ts => { if (isLunch(ts)) return 0; const e = getEmp(ts.empId); return r2(segHours(ts) * (e ? e.hourlyCost : 0)); };
 const segLabel = ts => {
-  if (ts.targetType === "contract") { const c = getContract(ts.targetId); return c ? `${c.contractId} · ${c.projectName}` : ts.targetId; }
+  if (ts.targetType === "order") { const c = getOrder(ts.targetId); return c ? `${c.orderId} · ${c.projectName}` : ts.targetId; }
   if (ts.targetType === "workorder") return ts.targetId;
   return tsKind(ts.targetType).label;
 };
-const tsShort = seg => (seg.targetType === "contract" || seg.targetType === "workorder") ? seg.targetId : tsKind(seg.targetType).label;
+const tsShort = seg => (seg.targetType === "order" || seg.targetType === "workorder") ? seg.targetId : tsKind(seg.targetType).label;
 
 /* ---- calendar window ---- */
 const dISO = d => `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}`;
@@ -151,12 +151,12 @@ function blockHTML(it, showTxt, isDay){
 }
 
 
-/* ---- LEFT pane: employees + active contracts ---- */
+/* ---- LEFT pane: employees + active orders ---- */
 function labLeftHTML(){
-  const active = IMS.contracts.filter(c => c.status === "active").slice().sort((a, b) => a.contractId < b.contractId ? -1 : 1);
+  const active = IMS.orders.filter(c => c.status === "active").slice().sort((a, b) => a.orderId < b.orderId ? -1 : 1);
   const chip = (t, id, label, cls) => `<button type="button" class="lab-chip ${cls}" draggable="true" data-type="${t}" data-id="${id || ""}" title="Drag onto an employee row to clock in">${label}</button>`;
-  const crows = active.map(c => `<div class="queue-contract lab-poolrow ts-contract" draggable="true" data-type="contract" data-id="${c.contractId}" title="Drag onto an employee row to clock in">
-      <div class="lab-prow-head"><span class="strong mono">${c.contractId}</span><span class="badge-status st-onrent">Active</span></div>
+  const crows = active.map(c => `<div class="queue-order lab-poolrow ts-order" draggable="true" data-type="order" data-id="${c.orderId}" title="Drag onto an employee row to clock in">
+      <div class="lab-prow-head"><span class="strong mono">${c.orderId}</span><span class="badge-status st-onrent">Active</span></div>
       <div class="lab-prow-name">${c.projectName}</div>
       <div class="text-muted2" style="font-size:10.5px">${fmtDate(c.startDate)} → ${fmtDate(c.endDate)}</div></div>`).join("");
   const tasks = ["shop", "overhead", "idle"].map(t => chip(t, "", tsKind(t).label, tsKind(t).cls)).join("");
@@ -165,7 +165,7 @@ function labLeftHTML(){
     <div class="card">
       <div class="card-header"><span class="card-title"><i class="bi bi-briefcase"></i> Active Contracts</span>
         <span class="badge-status st-onrent">${active.length}</span></div>
-      <div class="card-body ts-contract-list">${crows || `<p class="text-muted2">None active.</p>`}</div>
+      <div class="card-body ts-order-list">${crows || `<p class="text-muted2">None active.</p>`}</div>
     </div>
     <div class="card">
       <div class="card-header"><span class="card-title"><i class="bi bi-lightning-charge"></i> Quick Tasks</span></div>
@@ -174,7 +174,7 @@ function labLeftHTML(){
         ${wos ? `<div class="ts-chip-label">Work orders</div>${wos}` : ""}
       </div>
     </div>
-    <div class="text-muted2 ts-side-note">Drag a contract or task onto an employee's row to clock them in. Click the <i class="bi bi-stopwatch"></i> on a row to punch (includes Lunch).</div>
+    <div class="text-muted2 ts-side-note">Drag a order or task onto an employee's row to clock them in. Click the <i class="bi bi-stopwatch"></i> on a row to punch (includes Lunch).</div>
   </div>`;
 }
 
@@ -197,7 +197,7 @@ function labInspectorHTML(){
 }
 
 function legendHTML(){
-  const L = [["ts-contract", "Job"], ["ts-wo", "WO"], ["ts-shop", "Shop"], ["ts-overhead", "Overhead"], ["ts-idle", "Idle"], ["ts-lunch", "Lunch"]];
+  const L = [["ts-order", "Job"], ["ts-wo", "WO"], ["ts-shop", "Shop"], ["ts-overhead", "Overhead"], ["ts-idle", "Idle"], ["ts-lunch", "Lunch"]];
   return `<span class="lab-legend-item"><i class="bi bi-arrow-down-left-circle"></i>Drag a chip onto a row to clock in</span>` +
     L.map(x => `<span class="lab-legend-item"><i class="bi bi-square-fill ${x[0]}"></i>${x[1]}</span>`).join("");
 }
@@ -258,7 +258,7 @@ function renderTimesheet(){
           <button class="btn btn-ims-outline btn-sm2" id="tsNext"><i class="bi bi-chevron-right"></i></button>
           <div class="btn-group ms-auto" id="tsViewToggle">${viewBtns}</div>
         </div>
-        <div class="ts-hint"><i class="bi bi-arrow-down-left-circle"></i> Drag a contract or task onto an employee row to clock in · drag a bar to move/resize · click a bar to edit · clock icon = punch</div>
+        <div class="ts-hint"><i class="bi bi-arrow-down-left-circle"></i> Drag a order or task onto an employee row to clock in · drag a bar to move/resize · click a bar to edit · clock icon = punch</div>
         <div class="tl-week" id="tsWeek"><div class="tl-inner" style="min-width:${minW}px">
           ${headCols}
           <div class="tl-body">${lanes}</div>
@@ -388,7 +388,7 @@ function punchIn(empId, targetType, targetId, startMin, dateISO){
   IMS.timesheets.push({
     tsId: nextTsId(), empId, date: dateISO || dISO(new Date()),
     clockIn: minHM(startMin), clockOut: null,
-    targetType, targetId: (targetType === "contract" || targetType === "workorder") ? targetId : null,
+    targetType, targetId: (targetType === "order" || targetType === "workorder") ? targetId : null,
     hours: null
   });
   LAB.empSel = empId; renderTimesheet();
@@ -400,7 +400,7 @@ function lunchIn(empId, min){ closeOpen(empId, min); renderTimesheet(); } // clo
 
 function openPunch(empId){
   const emp = getEmp(empId) || { name: empId, role: "" };
-  const active = IMS.contracts.filter(c => c.status === "active");
+  const active = IMS.orders.filter(c => c.status === "active");
   const wos = IMS.workOrders.filter(w => w.status !== "Completed");
   const open = openSeg(empId);
   const onLunch = open && isLunch(open);
@@ -422,7 +422,7 @@ function openPunch(empId){
         <input type="time" class="form-control" id="punch-time" value="${minHM(nowMin)}"></div>
     </div>
     ${lunchBtns}
-    <div class="punch-label">Job</div><div class="punch-grid">${active.map(c => tgt("contract", c.contractId, `${c.contractId} · ${c.projectName}`, "ts-contract")).join("")}</div>
+    <div class="punch-label">Job</div><div class="punch-grid">${active.map(c => tgt("order", c.orderId, `${c.orderId} · ${c.projectName}`, "ts-order")).join("")}</div>
     <div class="punch-label">Work order</div><div class="punch-grid">${wos.length ? wos.map(w => tgt("workorder", w.woId, `${w.woId} · ${w.assetId}`, "ts-wo")).join("") : `<span class="text-muted2" style="font-size:12px">None open.</span>`}</div>
     <div class="punch-label">Other</div><div class="punch-grid">${tgt("shop", "", "Shop", "ts-shop")}${tgt("overhead", "", "Overhead", "ts-overhead")}${tgt("idle", "", "Idle", "ts-idle")}</div>`;
   const footer = `
@@ -448,12 +448,12 @@ function segEdit(tsId){
   const ts = getTS(tsId); if (!ts) return;
   const emp = getEmp(ts.empId) || { name: ts.empId };
   const live = isLive(ts);
-  const active = IMS.contracts.filter(c => c.status === "active");
+  const active = IMS.orders.filter(c => c.status === "active");
   const wos = IMS.workOrders.filter(w => w.status !== "Completed");
   const selVal = ts.targetType + "|" + (ts.targetId || "");
   const opt = (label, arr) => `<optgroup label="${label}">` + arr.map(o => `<option value="${o[0]}" ${selVal === o[0] ? "selected" : ""}>${o[1]}</option>`).join("") + `</optgroup>`;
   const targetSel = `<select class="form-control" id="seg-target">` +
-    opt("Job", active.map(c => ["contract|" + c.contractId, c.contractId + " · " + c.projectName])) +
+    opt("Job", active.map(c => ["order|" + c.orderId, c.orderId + " · " + c.projectName])) +
     opt("Work order", wos.map(w => ["workorder|" + w.woId, w.woId + " · " + w.assetId])) +
     opt("Other", [["shop|", "Shop"], ["overhead|", "Overhead"], ["idle|", "Idle"], ["lunch|", "Lunch"]]) + `</select>`;
   const body = `
@@ -481,7 +481,7 @@ function segEdit(tsId){
     ts.date = v.date; ts.clockIn = minHM(v.inMin);                       // manual entry: exact, never rounds
     if (v.outMin != null){ ts.clockOut = minHM(v.outMin); ts.hours = r2((v.outMin - v.inMin) / 60); }
     else { ts.clockOut = null; ts.hours = null; }
-    ts.targetType = tt; ts.targetId = (tt === "contract" || tt === "workorder") ? (tid || null) : null;
+    ts.targetType = tt; ts.targetId = (tt === "order" || tt === "workorder") ? (tid || null) : null;
     dismissModal(root); renderTimesheet();
   });
   const now = root.querySelector("#seg-now");

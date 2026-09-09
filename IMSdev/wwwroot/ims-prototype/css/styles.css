@@ -649,7 +649,7 @@ body {
   min-height: 46px;
   align-items: stretch;
 }
-.tl-row-contract { min-height: 58px; }
+.tl-row-order { min-height: 58px; }
 .tl-row-label {
   position: sticky;
   left: 0;
@@ -678,7 +678,7 @@ body {
   border-radius: 6px;
   min-height: 40px;
 }
-.tl-row-contract .tl-row-track { min-height: 52px; }
+.tl-row-order .tl-row-track { min-height: 52px; }
 .tl-block {
   position: absolute;
   top: 4px;
@@ -693,7 +693,7 @@ body {
 }
 .tl-res { cursor: grab; }
 /* Resource bars: a touch taller, and flex-centered so the label/sub text has even space
-   above and below it. Applies only to resource rows — contract bars are untouched. */
+   above and below it. Applies only to resource rows — order bars are untouched. */
 .tl-row:has(.tl-res) { min-height: 54px; }
 .tl-row:has(.tl-res) .tl-row-track { min-height: 50px; }
 .tl-block.tl-res {
@@ -809,14 +809,14 @@ body {
   gap: 6px;
   padding: 2px 8px 4px 8px;
 }
-.queue-contract, .res-card {
+.queue-order, .res-card {
   border: 1px solid var(--slate-200);
   border-radius: 8px;
   padding: 7px 9px;
   background: #fff;
   margin: 0 3px;
 }
-.queue-contract { cursor: pointer; }
+.queue-order { cursor: pointer; }
 .qc-head { display: flex; align-items: center; gap: 6px; }
 .qc-head i { color: var(--accent); }
 .res-card { cursor: grab; }
@@ -852,8 +852,8 @@ body {
 .conflict-item.shared { border-left: 3px solid var(--warning); background: #fffbeb; }
 .ci-head { display: flex; align-items: center; gap: 6px; font-size: 12px; flex-wrap: wrap; }
 .ci-dates { font-size: 11px; color: var(--slate-600); margin-top: 3px; font-weight: 600; }
-.ci-contracts { display: flex; align-items: center; gap: 6px; font-size: 11px; margin-top: 3px; color: var(--slate-600); }
-.ci-contracts .mono { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 11px; font-weight: 700; color: var(--slate-800); }
+.ci-orders { display: flex; align-items: center; gap: 6px; font-size: 11px; margin-top: 3px; color: var(--slate-600); }
+.ci-orders .mono { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 11px; font-weight: 700; color: var(--slate-800); }
 
 
 /* ---------- Geo view ---------- */
@@ -1049,7 +1049,7 @@ body {
 }
 .cat-btn:hover { background: var(--slate-200); color: var(--ink); }
 
-/* ---------- Overhead rows (contract modal) ---------- */
+/* ---------- Overhead rows (order modal) ---------- */
 .overhead-row {
   display: flex;
   align-items: center;
@@ -1109,7 +1109,7 @@ body {
 .lab-live-tag { color: var(--success); font-weight: 600; }
 .lab-dot { width: 8px; height: 8px; border-radius: 50%; background: #cbd5e1; display: inline-block; flex: 0 0 auto; }
 .lab-dot.live { background: #16a34a; }
-.ts-contracts { display: flex; flex-direction: column; gap: 8px; max-height: 280px; overflow-y: auto; font-size: 11px; }
+.ts-orders { display: flex; flex-direction: column; gap: 8px; max-height: 280px; overflow-y: auto; font-size: 11px; }
 
 /* right inspector */
 .lab-insp { display: flex; flex-direction: column; min-height: 0; }
@@ -1127,7 +1127,7 @@ body {
 .lab-nowline { position: absolute; top: 0; bottom: 0; width: 2px; background: #dc2626; opacity: .55; pointer-events: none; }
 
 /* target colours (bars, icons, mini-bars, punch chips) */
-.ts-contract { --tcol: #2563eb; }
+.ts-order { --tcol: #2563eb; }
 .ts-wo { --tcol: #0d9488; }
 .ts-shop { --tcol: #7c3aed; }
 .ts-overhead { --tcol: #d97706; }
@@ -1151,7 +1151,7 @@ body {
 .ts-h-r { right: 0; border-radius: 0 4px 4px 0; }
 .ts-block:hover .ts-h { opacity: .95; }
 
-i.ts-contract { color: #2563eb; }
+i.ts-order { color: #2563eb; }
 i.ts-wo { color: #0d9488; }
 i.ts-shop { color: #7c3aed; }
 i.ts-overhead { color: #d97706; }
@@ -1176,7 +1176,7 @@ i.ts-idle { color: #94a3b8; }
 .punch-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 6px; margin-bottom: 12px; }
 .punch-tgt { border: 1px solid var(--slate-200); border-radius: 6px; padding: 7px 9px; text-align: left; background: #fff; cursor: pointer; font-size: 11px; color: var(--slate-700); }
 .punch-tgt:hover { border-color: var(--accent); background: #f8fafc; }
-.punch-tgt.ts-contract { border-left: 3px solid #2563eb; }
+.punch-tgt.ts-order { border-left: 3px solid #2563eb; }
 .punch-tgt.ts-wo { border-left: 3px solid #0d9488; }
 .punch-tgt.ts-shop { border-left: 3px solid #7c3aed; }
 .punch-tgt.ts-overhead { border-left: 3px solid #d97706; }
@@ -1204,7 +1204,7 @@ i.ts-idle { color: #94a3b8; }
 }
 .lab-chip:active { cursor: grabbing; }
 .lab-chip:hover { border-color: var(--slate-400); }
-.lab-chip.ts-contract { border-left-color: #2563eb; }
+.lab-chip.ts-order { border-left-color: #2563eb; }
 .lab-chip.ts-wo { border-left-color: #0d9488; }
 .lab-chip.ts-shop { border-left-color: #7c3aed; }
 .lab-chip.ts-overhead { border-left-color: #d97706; }
@@ -1222,11 +1222,11 @@ i.ts-lunch { color: #9ca3af; }
 .ts-page .tl-body { gap: 6px; padding-bottom: 6px; }
 .ts-page .tl-inner { padding: 0 0 0 0; }
 
-/* timesheet: active contracts as a vertical stack + centered bars + 4-line employee label */
-.ts-contract-list { display: flex; flex-direction: column; gap: 6px; max-height: 320px; overflow-y: auto; }
+/* timesheet: active orders as a vertical stack + centered bars + 4-line employee label */
+.ts-order-list { display: flex; flex-direction: column; gap: 6px; max-height: 320px; overflow-y: auto; }
 .lab-poolrow { cursor: grab; }
 .lab-poolrow:active { cursor: grabbing; }
-.lab-poolrow.ts-contract { border-left: 4px solid #2563eb; }
+.lab-poolrow.ts-order { border-left: 4px solid #2563eb; }
 .lab-prow-head { display: flex; justify-content: space-between; align-items: center; gap: 6px; }
 .lab-prow-name { font-size: 11px; color: var(--slate-700); margin: 1px 0; line-height: 1.2; }
 

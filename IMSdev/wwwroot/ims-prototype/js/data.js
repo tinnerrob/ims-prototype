@@ -15,20 +15,20 @@ const IMS = {};
    battery_pct | last_reported | contract_id (FK, when on rent)
    --------------------------------------------------------- */
 IMS.serializedAssets = [
-  { id:"BL-118", serial:"JLG-450AJ-88F2201", make:"JLG", model:"450AJ", category:"Boom Lift", meterHours:1245, fuelType:"Diesel", purchaseValue:145000, baseDaily:450, baseWeekly:2250, baseMonthly:6750, lat:33.7495, lng:-84.3882, status:"Available", battery:92, lastReported:"2026-09-01T08:05:00", contractId:null },
-  { id:"BL-119", serial:"JLG-600S-77D3314", make:"JLG", model:"600S", category:"Boom Lift", meterHours:2210, fuelType:"Diesel", purchaseValue:178000, baseDaily:520, baseWeekly:2600, baseMonthly:7800, lat:33.7571, lng:-84.3892, status:"On Rent", battery:78, lastReported:"2026-09-01T08:12:00", contractId:"CT-2024-001" },
-  { id:"BL-120", serial:"GEN-S65-12A8870", make:"Genie", model:"S-65", category:"Boom Lift", meterHours:980, fuelType:"Diesel", purchaseValue:156000, baseDaily:480, baseWeekly:2400, baseMonthly:7200, lat:33.7490, lng:-84.3876, status:"Available", battery:88, lastReported:"2026-09-01T07:58:00", contractId:null },
-  { id:"SS-204", serial:"BOB-S650-55B1004", make:"Bobcat", model:"S650", category:"Skid Steer", meterHours:4150, fuelType:"Diesel", purchaseValue:62000, baseDaily:265, baseWeekly:1325, baseMonthly:3975, lat:33.7312, lng:-84.4292, status:"On Rent", battery:84, lastReported:"2026-09-01T08:02:00", contractId:"CT-2024-002" },
-  { id:"SS-205", serial:"CAT-262D-71C2219", make:"Caterpillar", model:"262D", category:"Skid Steer", meterHours:8400, fuelType:"Diesel", purchaseValue:68000, baseDaily:290, baseWeekly:1450, baseMonthly:4350, lat:33.7492, lng:-84.3878, status:"In Shop", battery:61, lastReported:"2026-09-01T07:40:00", contractId:null },
-  { id:"ET-310", serial:"KUB-KX040-99E5540", make:"Kubota", model:"KX040-4", category:"Mini Excavator", meterHours:1730, fuelType:"Diesel", purchaseValue:88000, baseDaily:340, baseWeekly:1700, baseMonthly:5100, lat:33.7497, lng:-84.3888, status:"Staged", battery:95, lastReported:"2026-09-01T08:00:00", contractId:null },
-  { id:"ET-311", serial:"CAT-3055-43A0901", make:"Caterpillar", model:"305.5E2", category:"Mini Excavator", meterHours:1490, fuelType:"Diesel", purchaseValue:92000, baseDaily:355, baseWeekly:1775, baseMonthly:5325, lat:33.7488, lng:-84.3872, status:"Available", battery:90, lastReported:"2026-09-01T07:52:00", contractId:null },
-  { id:"FL-401", serial:"CAT-EP25-88J6602", make:"Caterpillar", model:"EP25", category:"Forklift", meterHours:3670, fuelType:"Electric", purchaseValue:48000, baseDaily:215, baseWeekly:1075, baseMonthly:3225, lat:33.7553, lng:-84.3912, status:"On Rent", battery:66, lastReported:"2026-09-01T08:08:00", contractId:"CT-2024-001" },
-  { id:"FL-402", serial:"TYT-8FGU25-10H8821", make:"Toyota", model:"8FGU25", category:"Forklift", meterHours:2980, fuelType:"LPG", purchaseValue:45000, baseDaily:205, baseWeekly:1025, baseMonthly:3075, lat:33.7493, lng:-84.3884, status:"Available", battery:87, lastReported:"2026-09-01T08:01:00", contractId:null },
-  { id:"GN-510", serial:"GEN-100KW-22K1105", make:"Generac", model:"SD100", category:"Generator", meterHours:1220, fuelType:"Diesel", purchaseValue:38000, baseDaily:175, baseWeekly:875, baseMonthly:2625, lat:33.7489, lng:-84.3880, status:"Available", battery:58, lastReported:"2026-09-01T07:47:00", contractId:null },
-  { id:"GN-511", serial:"CAT-XQ60-03M7741", make:"Caterpillar", model:"XQ60", category:"Generator", meterHours:2310, fuelType:"Diesel", purchaseValue:29000, baseDaily:135, baseWeekly:675, baseMonthly:2025, lat:33.7206, lng:-84.3611, status:"On Rent", battery:73, lastReported:"2026-09-01T08:04:00", contractId:"CT-2024-003" },
-  { id:"TL-605", serial:"JCB-540170-66P9910", make:"JCB", model:"540-170", category:"Telehandler", meterHours:1960, fuelType:"Diesel", purchaseValue:105000, baseDaily:395, baseWeekly:1975, baseMonthly:5925, lat:33.7307, lng:-84.4311, status:"On Rent", battery:81, lastReported:"2026-09-01T08:03:00", contractId:"CT-2024-002" },
-  { id:"AB-201", serial:"WAN-VMS812-55A1023", make:"Wanco", model:"VMS-812", category:"Traffic Control", meterHours:410, fuelType:"Solar", purchaseValue:34000, baseDaily:95, baseWeekly:380, baseMonthly:1140, lat:33.7490, lng:-84.3882, status:"Available", battery:71, lastReported:"2026-09-01T07:30:00", contractId:null },
-  { id:"GA-610", serial:"IS-MX4-22C5510", make:"Industrial Sci", model:"Ventis MX4", category:"Safety", meterHours:520, fuelType:"Battery", purchaseValue:5200, baseDaily:35, baseWeekly:140, baseMonthly:420, lat:33.7491, lng:-84.3883, status:"Available", battery:88, lastReported:"2026-09-01T07:40:00", contractId:null }
+  { id:"BL-118", serial:"JLG-450AJ-88F2201", make:"JLG", model:"450AJ", category:"Boom Lift", meterHours:1245, fuelType:"Diesel", purchaseValue:145000, baseDaily:450, baseWeekly:2250, baseMonthly:6750, lat:33.7495, lng:-84.3882, status:"Available", battery:92, lastReported:"2026-09-01T08:05:00", orderId:null },
+  { id:"BL-119", serial:"JLG-600S-77D3314", make:"JLG", model:"600S", category:"Boom Lift", meterHours:2210, fuelType:"Diesel", purchaseValue:178000, baseDaily:520, baseWeekly:2600, baseMonthly:7800, lat:33.7571, lng:-84.3892, status:"On Rent", battery:78, lastReported:"2026-09-01T08:12:00", orderId:"CT-2024-001" },
+  { id:"BL-120", serial:"GEN-S65-12A8870", make:"Genie", model:"S-65", category:"Boom Lift", meterHours:980, fuelType:"Diesel", purchaseValue:156000, baseDaily:480, baseWeekly:2400, baseMonthly:7200, lat:33.7490, lng:-84.3876, status:"Available", battery:88, lastReported:"2026-09-01T07:58:00", orderId:null },
+  { id:"SS-204", serial:"BOB-S650-55B1004", make:"Bobcat", model:"S650", category:"Skid Steer", meterHours:4150, fuelType:"Diesel", purchaseValue:62000, baseDaily:265, baseWeekly:1325, baseMonthly:3975, lat:33.7312, lng:-84.4292, status:"On Rent", battery:84, lastReported:"2026-09-01T08:02:00", orderId:"CT-2024-002" },
+  { id:"SS-205", serial:"CAT-262D-71C2219", make:"Caterpillar", model:"262D", category:"Skid Steer", meterHours:8400, fuelType:"Diesel", purchaseValue:68000, baseDaily:290, baseWeekly:1450, baseMonthly:4350, lat:33.7492, lng:-84.3878, status:"In Shop", battery:61, lastReported:"2026-09-01T07:40:00", orderId:null },
+  { id:"ET-310", serial:"KUB-KX040-99E5540", make:"Kubota", model:"KX040-4", category:"Mini Excavator", meterHours:1730, fuelType:"Diesel", purchaseValue:88000, baseDaily:340, baseWeekly:1700, baseMonthly:5100, lat:33.7497, lng:-84.3888, status:"Staged", battery:95, lastReported:"2026-09-01T08:00:00", orderId:null },
+  { id:"ET-311", serial:"CAT-3055-43A0901", make:"Caterpillar", model:"305.5E2", category:"Mini Excavator", meterHours:1490, fuelType:"Diesel", purchaseValue:92000, baseDaily:355, baseWeekly:1775, baseMonthly:5325, lat:33.7488, lng:-84.3872, status:"Available", battery:90, lastReported:"2026-09-01T07:52:00", orderId:null },
+  { id:"FL-401", serial:"CAT-EP25-88J6602", make:"Caterpillar", model:"EP25", category:"Forklift", meterHours:3670, fuelType:"Electric", purchaseValue:48000, baseDaily:215, baseWeekly:1075, baseMonthly:3225, lat:33.7553, lng:-84.3912, status:"On Rent", battery:66, lastReported:"2026-09-01T08:08:00", orderId:"CT-2024-001" },
+  { id:"FL-402", serial:"TYT-8FGU25-10H8821", make:"Toyota", model:"8FGU25", category:"Forklift", meterHours:2980, fuelType:"LPG", purchaseValue:45000, baseDaily:205, baseWeekly:1025, baseMonthly:3075, lat:33.7493, lng:-84.3884, status:"Available", battery:87, lastReported:"2026-09-01T08:01:00", orderId:null },
+  { id:"GN-510", serial:"GEN-100KW-22K1105", make:"Generac", model:"SD100", category:"Generator", meterHours:1220, fuelType:"Diesel", purchaseValue:38000, baseDaily:175, baseWeekly:875, baseMonthly:2625, lat:33.7489, lng:-84.3880, status:"Available", battery:58, lastReported:"2026-09-01T07:47:00", orderId:null },
+  { id:"GN-511", serial:"CAT-XQ60-03M7741", make:"Caterpillar", model:"XQ60", category:"Generator", meterHours:2310, fuelType:"Diesel", purchaseValue:29000, baseDaily:135, baseWeekly:675, baseMonthly:2025, lat:33.7206, lng:-84.3611, status:"On Rent", battery:73, lastReported:"2026-09-01T08:04:00", orderId:"CT-2024-003" },
+  { id:"TL-605", serial:"JCB-540170-66P9910", make:"JCB", model:"540-170", category:"Telehandler", meterHours:1960, fuelType:"Diesel", purchaseValue:105000, baseDaily:395, baseWeekly:1975, baseMonthly:5925, lat:33.7307, lng:-84.4311, status:"On Rent", battery:81, lastReported:"2026-09-01T08:03:00", orderId:"CT-2024-002" },
+  { id:"AB-201", serial:"WAN-VMS812-55A1023", make:"Wanco", model:"VMS-812", category:"Traffic Control", meterHours:410, fuelType:"Solar", purchaseValue:34000, baseDaily:95, baseWeekly:380, baseMonthly:1140, lat:33.7490, lng:-84.3882, status:"Available", battery:71, lastReported:"2026-09-01T07:30:00", orderId:null },
+  { id:"GA-610", serial:"IS-MX4-22C5510", make:"Industrial Sci", model:"Ventis MX4", category:"Safety", meterHours:520, fuelType:"Battery", purchaseValue:5200, baseDaily:35, baseWeekly:140, baseMonthly:420, lat:33.7491, lng:-84.3883, status:"Available", battery:88, lastReported:"2026-09-01T07:40:00", orderId:null }
 ];
 
 
@@ -105,20 +105,20 @@ IMS.parties = [
   { id:"PTY-002", name:"Meridian Civil Works", contact:"L. Bishop", phone:"(678) 555-0192", email:"ops@meridiancivil.com", billingAddress:"88 River Rd, Atlanta, GA", billingCycle:"bi-weekly", notes:"Bridge / heavy civil. Net-30 terms." },
   { id:"PTY-003", name:"Coastal Energy Group", contact:"R. Vance", phone:"(404) 555-0117", email:"supply@coastalenergy.com", billingAddress:"1 Fuel Pier, Savannah, GA", billingCycle:"monthly", notes:"Refinery/hazmat; risk premium applies." },
   { id:"PTY-004", name:"Port Authority", contact:"T. Nguyen", phone:"(912) 555-0165", email:"facilities@portauthority.gov", billingAddress:"Terminal Way, Savannah, GA", billingCycle:"quarterly", notes:"Public works; coastal surcharge." },
-  { id:"PTY-005", name:"Brightleaf General Contracting", contact:"S. Rawlins", phone:"(770) 555-0149", email:"pm@brightleafgc.com", billingAddress:"1200 Piedmont Ave, Atlanta, GA", billingCycle:"monthly", notes:"Small jobs; no active contracts." }
+  { id:"PTY-005", name:"Brightleaf General Contracting", contact:"S. Rawlins", phone:"(770) 555-0149", email:"pm@brightleafgc.com", billingAddress:"1200 Piedmont Ave, Atlanta, GA", billingCycle:"monthly", notes:"Small jobs; no active orders." }
 ];
 
 /* ---------------------------------------------------------
-   TABLE: contracts
+   TABLE: orders
    PK contract_id | cust_id (FK) | job_site | geofence_radius_m |
    project_name | start_dt | end_dt | status | site_lat |
    site_lng | line_items[]  (child table)
    --------------------------------------------------------- */
 IMS.yard = { name:"Main Yard — Buckhead Hub", lat:33.7490, lng:-84.3880 };
 
-IMS.contracts = [
+IMS.orders = [
   {
-    contractId:"CT-2024-001", partyId:"PTY-001", party:"Halstead Construction", jobSite:"Downtown Plaza, 245 Peachtree St",
+    orderId:"CT-2024-001", partyId:"PTY-001", party:"Halstead Construction", jobSite:"Downtown Plaza, 245 Peachtree St",
     geofenceRadius:300, projectName:"Downtown Plaza Renovation",
     startDate:"2026-08-20T07:00", endDate:"2026-09-10T17:00", status:"active",
     siteLat:33.7560, siteLng:-84.3905,
@@ -131,7 +131,7 @@ IMS.contracts = [
     ]
   },
   {
-    contractId:"CT-2024-002", partyId:"PTY-002", party:"Meridian Civil Works", jobSite:"Riverside Bridge, 88 River Rd",
+    orderId:"CT-2024-002", partyId:"PTY-002", party:"Meridian Civil Works", jobSite:"Riverside Bridge, 88 River Rd",
     geofenceRadius:500, projectName:"Riverside Bridge Repair",
     startDate:"2026-09-01T06:30", endDate:"2026-09-20T17:30", status:"active",
     siteLat:33.7310, siteLng:-84.4300,
@@ -143,7 +143,7 @@ IMS.contracts = [
     ]
   },
   {
-    contractId:"CT-2024-003", partyId:"PTY-003", party:"Coastal Energy Group", jobSite:"Bayport Refinery, 1 Fuel Pier",
+    orderId:"CT-2024-003", partyId:"PTY-003", party:"Coastal Energy Group", jobSite:"Bayport Refinery, 1 Fuel Pier",
     geofenceRadius:400, projectName:"Refinery Catalyst Swap",
     startDate:"2026-09-02T05:00", endDate:"2026-09-30T17:00", status:"active",
     siteLat:33.7200, siteLng:-84.3600,
@@ -155,7 +155,7 @@ IMS.contracts = [
     ]
   },
   {
-    contractId:"CT-2024-004", partyId:"PTY-004", party:"Port Authority", jobSite:"Pier 12 Bulkhead, Terminal Way",
+    orderId:"CT-2024-004", partyId:"PTY-004", party:"Port Authority", jobSite:"Pier 12 Bulkhead, Terminal Way",
     geofenceRadius:250, projectName:"Pier 12 Bulkhead Repair",
     startDate:"2026-08-01T07:00", endDate:"2026-08-25T17:00", status:"closed",
     siteLat:33.7420, siteLng:-84.3520,
@@ -185,30 +185,30 @@ IMS.workOrders = [
    --------------------------------------------------------- */
 IMS.timesheets = [
   /* 2026-08-31 (Monday) */
-  { tsId:"TS-001", empId:"EMP-001", date:"2026-08-31", clockIn:"07:00", clockOut:"11:30", hours:4.5, targetType:"contract", targetId:"CT-2024-001" },
+  { tsId:"TS-001", empId:"EMP-001", date:"2026-08-31", clockIn:"07:00", clockOut:"11:30", hours:4.5, targetType:"order", targetId:"CT-2024-001" },
   { tsId:"TS-002", empId:"EMP-001", date:"2026-08-31", clockIn:"11:30", clockOut:"12:30", hours:1,   targetType:"overhead", targetId:null },
-  { tsId:"TS-003", empId:"EMP-001", date:"2026-08-31", clockIn:"12:30", clockOut:"16:00", hours:3.5, targetType:"contract", targetId:"CT-2024-001" },
+  { tsId:"TS-003", empId:"EMP-001", date:"2026-08-31", clockIn:"12:30", clockOut:"16:00", hours:3.5, targetType:"order", targetId:"CT-2024-001" },
   { tsId:"TS-004", empId:"EMP-002", date:"2026-08-31", clockIn:"08:00", clockOut:"12:00", hours:4,   targetType:"workorder", targetId:"WO-402" },
   { tsId:"TS-005", empId:"EMP-002", date:"2026-08-31", clockIn:"12:30", clockOut:"16:30", hours:4,   targetType:"workorder", targetId:"WO-402" },
   { tsId:"TS-006", empId:"EMP-005", date:"2026-08-31", clockIn:"09:00", clockOut:"12:00", hours:3,   targetType:"workorder", targetId:"WO-401" },
   { tsId:"TS-007", empId:"EMP-005", date:"2026-08-31", clockIn:"13:00", clockOut:"15:00", hours:2,   targetType:"idle", targetId:null },
   /* 2026-09-01 (Tuesday) */
-  { tsId:"TS-008", empId:"EMP-001", date:"2026-09-01", clockIn:"07:00", clockOut:"12:00", hours:5,   targetType:"contract", targetId:"CT-2024-001" },
+  { tsId:"TS-008", empId:"EMP-001", date:"2026-09-01", clockIn:"07:00", clockOut:"12:00", hours:5,   targetType:"order", targetId:"CT-2024-001" },
   { tsId:"TS-009", empId:"EMP-001", date:"2026-09-01", clockIn:"12:00", clockOut:"13:00", hours:1,   targetType:"idle", targetId:null },
-  { tsId:"TS-010", empId:"EMP-001", date:"2026-09-01", clockIn:"13:00", clockOut:"17:00", hours:4,   targetType:"contract", targetId:"CT-2024-001" },
+  { tsId:"TS-010", empId:"EMP-001", date:"2026-09-01", clockIn:"13:00", clockOut:"17:00", hours:4,   targetType:"order", targetId:"CT-2024-001" },
   { tsId:"TS-011", empId:"EMP-002", date:"2026-09-01", clockIn:"08:00", clockOut:"12:00", hours:4,   targetType:"workorder", targetId:"WO-401" },
   { tsId:"TS-012", empId:"EMP-002", date:"2026-09-01", clockIn:"13:00", clockOut:"17:00", hours:4,   targetType:"shop", targetId:null },
-  { tsId:"TS-013", empId:"EMP-003", date:"2026-09-01", clockIn:"06:30", clockOut:"10:30", hours:4,   targetType:"contract", targetId:"CT-2024-002" },
+  { tsId:"TS-013", empId:"EMP-003", date:"2026-09-01", clockIn:"06:30", clockOut:"10:30", hours:4,   targetType:"order", targetId:"CT-2024-002" },
   { tsId:"TS-014", empId:"EMP-003", date:"2026-09-01", clockIn:"10:30", clockOut:"11:30", hours:1,   targetType:"overhead", targetId:null },
-  { tsId:"TS-015", empId:"EMP-003", date:"2026-09-01", clockIn:"11:30", clockOut:"14:30", hours:3,   targetType:"contract", targetId:"CT-2024-002" },
-  { tsId:"TS-016", empId:"EMP-004", date:"2026-09-01", clockIn:"07:00", clockOut:"12:00", hours:5,   targetType:"contract", targetId:"CT-2024-001" },
+  { tsId:"TS-015", empId:"EMP-003", date:"2026-09-01", clockIn:"11:30", clockOut:"14:30", hours:3,   targetType:"order", targetId:"CT-2024-002" },
+  { tsId:"TS-016", empId:"EMP-004", date:"2026-09-01", clockIn:"07:00", clockOut:"12:00", hours:5,   targetType:"order", targetId:"CT-2024-001" },
   { tsId:"TS-017", empId:"EMP-004", date:"2026-09-01", clockIn:"12:00", clockOut:"13:00", hours:1,   targetType:"idle", targetId:null },
-  { tsId:"TS-018", empId:"EMP-004", date:"2026-09-01", clockIn:"13:00", clockOut:"16:00", hours:3,   targetType:"contract", targetId:"CT-2024-001" },
+  { tsId:"TS-018", empId:"EMP-004", date:"2026-09-01", clockIn:"13:00", clockOut:"16:00", hours:3,   targetType:"order", targetId:"CT-2024-001" },
   { tsId:"TS-019", empId:"EMP-005", date:"2026-09-01", clockIn:"08:00", clockOut:"12:00", hours:4,   targetType:"workorder", targetId:"WO-404" },
   { tsId:"TS-020", empId:"EMP-005", date:"2026-09-01", clockIn:"13:00", clockOut:"17:00", hours:4,   targetType:"shop", targetId:null },
-  { tsId:"TS-021", empId:"EMP-006", date:"2026-09-01", clockIn:"08:00", clockOut:"12:00", hours:4,   targetType:"contract", targetId:"CT-2024-001" },
+  { tsId:"TS-021", empId:"EMP-006", date:"2026-09-01", clockIn:"08:00", clockOut:"12:00", hours:4,   targetType:"order", targetId:"CT-2024-001" },
   { tsId:"TS-022", empId:"EMP-006", date:"2026-09-01", clockIn:"12:00", clockOut:"13:00", hours:1,   targetType:"idle", targetId:null },
-  { tsId:"TS-023", empId:"EMP-006", date:"2026-09-01", clockIn:"13:00", clockOut:"16:00", hours:3,   targetType:"contract", targetId:"CT-2024-001" }
+  { tsId:"TS-023", empId:"EMP-006", date:"2026-09-01", clockIn:"13:00", clockOut:"16:00", hours:3,   targetType:"order", targetId:"CT-2024-001" }
 ];
 
 /* ---------------------------------------------------------
@@ -268,9 +268,9 @@ IMS.vehicles = [
    photos | status
    --------------------------------------------------------- */
 IMS.inspections = [
-  { inspId:"INSP-001", assetId:"BL-119", contractId:"CT-2024-001", direction:"Check-Out", date:"2026-08-20", meterOut:2210, meterIn:null, fuelOut:85, fuelIn:null, checks:{tires:true,fluids:true,guards:true,lights:true,engine:true}, photos:2, status:"Open" },
-  { inspId:"INSP-002", assetId:"SS-204", contractId:"CT-2024-002", direction:"Check-Out", date:"2026-09-01", meterOut:4150, meterIn:null, fuelOut:78, fuelIn:null, checks:{tires:true,fluids:true,guards:true,lights:false,engine:true}, photos:1, status:"Open" },
-  { inspId:"INSP-003", assetId:"BL-120", contractId:null, direction:"Check-In", date:"2026-08-28", meterOut:3190, meterIn:3200, fuelOut:60, fuelIn:40, checks:{tires:true,fluids:true,guards:true,lights:true,engine:true}, photos:3, status:"Closed" }
+  { inspId:"INSP-001", assetId:"BL-119", orderId:"CT-2024-001", direction:"Check-Out", date:"2026-08-20", meterOut:2210, meterIn:null, fuelOut:85, fuelIn:null, checks:{tires:true,fluids:true,guards:true,lights:true,engine:true}, photos:2, status:"Open" },
+  { inspId:"INSP-002", assetId:"SS-204", orderId:"CT-2024-002", direction:"Check-Out", date:"2026-09-01", meterOut:4150, meterIn:null, fuelOut:78, fuelIn:null, checks:{tires:true,fluids:true,guards:true,lights:false,engine:true}, photos:1, status:"Open" },
+  { inspId:"INSP-003", assetId:"BL-120", orderId:null, direction:"Check-In", date:"2026-08-28", meterOut:3190, meterIn:3200, fuelOut:60, fuelIn:40, checks:{tires:true,fluids:true,guards:true,lights:true,engine:true}, photos:3, status:"Closed" }
 ];
 
 /* ---------------------------------------------------------
@@ -279,11 +279,11 @@ IMS.inspections = [
    driver_id | truck_id | status
    --------------------------------------------------------- */
 IMS.dispatches = [
-  { dispatchId:"DSP-001", contractId:"CT-2024-001", assetId:"BL-119", routeSeq:1, driverId:"EMP-003", truckId:"TRK-01", status:"En Route" },
-  { dispatchId:"DSP-002", contractId:"CT-2024-001", assetId:"FL-401", routeSeq:2, driverId:null, truckId:null, status:"Staged" },
-  { dispatchId:"DSP-003", contractId:"CT-2024-002", assetId:"SS-204", routeSeq:3, driverId:"EMP-001", truckId:"TRK-02", status:"Delivered" },
-  { dispatchId:"DSP-004", contractId:"CT-2024-002", assetId:"TL-605", routeSeq:4, driverId:null, truckId:null, status:"Staged" },
-  { dispatchId:"DSP-005", contractId:"CT-2024-003", assetId:"GN-511", routeSeq:5, driverId:"EMP-003", truckId:"TRK-01", status:"Pending Return" }
+  { dispatchId:"DSP-001", orderId:"CT-2024-001", assetId:"BL-119", routeSeq:1, driverId:"EMP-003", truckId:"TRK-01", status:"En Route" },
+  { dispatchId:"DSP-002", orderId:"CT-2024-001", assetId:"FL-401", routeSeq:2, driverId:null, truckId:null, status:"Staged" },
+  { dispatchId:"DSP-003", orderId:"CT-2024-002", assetId:"SS-204", routeSeq:3, driverId:"EMP-001", truckId:"TRK-02", status:"Delivered" },
+  { dispatchId:"DSP-004", orderId:"CT-2024-002", assetId:"TL-605", routeSeq:4, driverId:null, truckId:null, status:"Staged" },
+  { dispatchId:"DSP-005", orderId:"CT-2024-003", assetId:"GN-511", routeSeq:5, driverId:"EMP-003", truckId:"TRK-01", status:"Pending Return" }
 ];
 
 /* ---------------------------------------------------------
@@ -292,9 +292,9 @@ IMS.dispatches = [
    env_fee_pct | damage_waiver | fuel_charge | status (pending|invoiced|paid)
    --------------------------------------------------------- */
 IMS.invoices = [
-  { invId:"INV-001", contractId:"CT-2024-001", cycle:1, cycleStart:"2026-08-20", cycleEnd:"2026-08-27", envFeePct:5, damageWaiver:false, fuelCharge:120, taxRate:0.08, status:"invoiced" },
-  { invId:"INV-002", contractId:"CT-2024-002", cycle:1, cycleStart:"2026-09-01", cycleEnd:"2026-09-15", envFeePct:5, damageWaiver:true, fuelCharge:0, taxRate:0.07, status:"pending" },
-  { invId:"INV-003", contractId:"CT-2024-003", cycle:1, cycleStart:"2026-09-02", cycleEnd:"2026-09-30", envFeePct:7, damageWaiver:true, fuelCharge:210, taxRate:0.07, status:"paid" }
+  { invId:"INV-001", orderId:"CT-2024-001", cycle:1, cycleStart:"2026-08-20", cycleEnd:"2026-08-27", envFeePct:5, damageWaiver:false, fuelCharge:120, taxRate:0.08, status:"invoiced" },
+  { invId:"INV-002", orderId:"CT-2024-002", cycle:1, cycleStart:"2026-09-01", cycleEnd:"2026-09-15", envFeePct:5, damageWaiver:true, fuelCharge:0, taxRate:0.07, status:"pending" },
+  { invId:"INV-003", orderId:"CT-2024-003", cycle:1, cycleStart:"2026-09-02", cycleEnd:"2026-09-30", envFeePct:7, damageWaiver:true, fuelCharge:210, taxRate:0.07, status:"paid" }
 ];
 
 /* ---------------------------------------------------------
@@ -303,9 +303,9 @@ IMS.invoices = [
    vendor_cost | retail_rate | qty
    --------------------------------------------------------- */
 IMS.rentals = [
-  { rrId:"RR-001", assetId:"GN-510", assetName:"Generac 100 kW Generator", contractId:"CT-2024-003", vendor:"PowerGen Rentals", vendorCost:110, retailRate:175, qty:1 },
-  { rrId:"RR-002", assetId:"FL-402", assetName:"Toyota Forklift 8FGU25", contractId:"CT-2024-004", vendor:"Forklift Fleet Co", vendorCost:95, retailRate:205, qty:1 },
-  { rrId:"RR-003", assetId:null, assetName:"Compaction Roller 5T", contractId:"CT-2024-002", vendor:"Meridian Tools Supply", vendorCost:140, retailRate:260, qty:1 }
+  { rrId:"RR-001", assetId:"GN-510", assetName:"Generac 100 kW Generator", orderId:"CT-2024-003", vendor:"PowerGen Rentals", vendorCost:110, retailRate:175, qty:1 },
+  { rrId:"RR-002", assetId:"FL-402", assetName:"Toyota Forklift 8FGU25", orderId:"CT-2024-004", vendor:"Forklift Fleet Co", vendorCost:95, retailRate:205, qty:1 },
+  { rrId:"RR-003", assetId:null, assetName:"Compaction Roller 5T", orderId:"CT-2024-002", vendor:"Meridian Tools Supply", vendorCost:140, retailRate:260, qty:1 }
 ];
 
 /* ---------------------------------------------------------

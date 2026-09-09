@@ -17,7 +17,7 @@
 
 /* Reused from handoff.js / common.js: getResource, recActive,
    availableSerialized, fmtMoney, fmtInt, daysBetween, hoTodayStr,
-   taxRate, nextContractId, nextPartyId, nextLiId, getParty,
+   taxRate, nextOrderId, nextPartyId, nextLiId, getParty,
    syncInventoryOnStage, hoLog, renderHandoff, dismissModal,
    openRawModal, $ (single-element selector). */
 
@@ -603,7 +603,7 @@ function rwCreate(root){
   if (!cStart) cStart = today;
   if (!cEnd) cEnd = addDays(today, 1);
 
-  const cid = nextContractId();
+  const cid = nextOrderId();
   const lineItems = items.map(it => {
     const base = { id: nextLiId(), type: it.type, refId: it.ref, qty: it.qty,
       pricingMatrix: "standard", weekendPolicy: "bill", riskPremium: "standard", flatTotal: 0,
@@ -617,8 +617,8 @@ function rwCreate(root){
     }
     return base;
   });
-  IMS.contracts.push({
-    contractId: cid, partyId: custId, party: custName,
+  IMS.orders.push({
+    orderId: cid, partyId: custId, party: custName,
     jobSite: site || custAddr || "Front counter pickup",
     projectName: "Rental / Check Out — " + custName,
     startDate: cStart + "T09:00", endDate: cEnd + "T17:00", status: "active", counter: true,
@@ -627,13 +627,13 @@ function rwCreate(root){
     siteLat: (IMS.yard && IMS.yard.lat) || 33.7490, siteLng: (IMS.yard && IMS.yard.lng) || -84.3880,
     lineItems
   });
-  const contract = getContract(cid);
+  const order = getOrder(cid);
   items.forEach(it => {
     if (it.type === "serialized"){
-      syncInventoryOnStage("serialized", it.ref, 1, true, contract);
+      syncInventoryOnStage("serialized", it.ref, 1, true, order);
       hoLog(it.ref, cid, "Check-Out", custContact, "Rental checked out at the front desk.");
     } else if (it.type === "bulk" || it.type === "consumable" || it.type === "part"){
-      syncInventoryOnStage(it.type, it.ref, it.qty, true, contract);
+      syncInventoryOnStage(it.type, it.ref, it.qty, true, order);
     }
     /* kits + attachments leave no stock-count change here */
   });

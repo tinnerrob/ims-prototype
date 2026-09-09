@@ -35,7 +35,7 @@ const App = {
   invFilter: "all",
   woFilter: "all",
   catType: "serialized",
-  contractId: "CT-2024-001",
+  orderId: "CT-2024-001",
   schedWeek: null,
   schedMonth: null,
   schedDay: null,
@@ -123,12 +123,12 @@ const RISK_PREMIUM = { standard: 0, coastal: 0.15, hazmat: 0.25 };
 /* Per-party billing cadence -> cycle length in days. */
 const BILLING_CYCLES = { daily: 1, weekly: 7, "bi-weekly": 14, monthly: 28, quarterly: 84 };
 const BILLING_CYCLE_LABEL = { daily: "Daily", weekly: "Weekly", "bi-weekly": "Bi-Weekly", monthly: "Monthly", quarterly: "Quarterly" };
-/* Billing cycle length in days for a contract (from its party), defaulting to the
+/* Billing cycle length in days for a order (from its party), defaulting to the
    global pricing.cycleDays (28) for customers without an explicit cadence.
-   @param {Object|string} contractOrId - a contract object (uses .partyId) or a party id
+   @param {Object|string} contractOrId - a order object (uses .partyId) or a party id
    @returns {number} days in the party's billing cycle */
 const partyCycleDays = contractOrId => {
-  const cust = contractOrId && contractOrId.contractId
+  const cust = contractOrId && contractOrId.orderId
     ? getParty(contractOrId.partyId)
     : getParty(contractOrId);
   if (cust && BILLING_CYCLES[cust.billingCycle] != null) return BILLING_CYCLES[cust.billingCycle];
@@ -176,8 +176,8 @@ const itemName = (item) => {
 };
 
 /* Human-readable rate basis for a line item (display in the grid). */
-const rateBasis = (item, contract) => {
-  const days = liDays(item, contract);
+const rateBasis = (item, order) => {
+  const days = liDays(item, order);
   const r = getResource(item);
   if (!r) return { basis: "", rate: 0, qty: 1, unit: "" };
   if (item.type === "labor")      return { basis: "Hourly", rate: r.hourlyBillable, qty: item.qty, unit: "hr" };
@@ -190,14 +190,14 @@ const rateBasis = (item, contract) => {
   return { basis: "Daily", rate: r.baseDaily, qty: item.qty, unit: "day" };
 };
 
-/* Grand total for a contract line item (gross billable revenue). */
-/* Grand total for a contract line item (gross billable revenue), honoring the daily /
+/* Grand total for a order line item (gross billable revenue). */
+/* Grand total for a order line item (gross billable revenue), honoring the daily /
    weekly / monthly rate basis, weekend policy, risk premium, and pricing matrix.
    @param {Object} item - line item
-   @param {Object} contract - owning contract
+   @param {Object} order - owning order
    @returns {number} rounded total revenue */
-function computeLineTotal(item, contract){
-  const days = liDays(item, contract);
+function computeLineTotal(item, order){
+  const days = liDays(item, order);
   const premium = RISK_PREMIUM[item.riskPremium || "standard"] || 0;
   const r = getResource(item);
   if (!r) return 0;
@@ -228,7 +228,7 @@ function computeLineTotal(item, contract){
     if (item.pricingMatrix === "flat") perUnit = Number(item.flatTotal) || 0;
     else {
       let billed = days;
-      if (item.weekendPolicy === "skip")            billed = countWeekdays(contract.startDate, contract.endDate);
+      if (item.weekendPolicy === "skip")            billed = countWeekdays(order.startDate, order.endDate);
       else if (item.weekendPolicy === "overtime")   billed = days * 1.5;
       perUnit = rate * billed;
     }
@@ -241,7 +241,7 @@ function computeLineTotal(item, contract){
     perUnit = Number(item.flatTotal) || 0;
   } else if (item.pricingMatrix === "min") {
     let billed = days;
-    if (item.weekendPolicy === "skip")            billed = countWeekdays(contract.startDate, contract.endDate);
+    if (item.weekendPolicy === "skip")            billed = countWeekdays(order.startDate, order.endDate);
     else if (item.weekendPolicy === "overtime")   billed = days * 1.5;
     billed = Math.max(billed, 3); /* daily minimum met */
     perUnit = r.baseDaily * billed;
@@ -251,14 +251,14 @@ function computeLineTotal(item, contract){
     perUnit = r.baseWeekly * Math.ceil(days / 7);
   } else {
     let billed = days;
-    if (item.weekendPolicy === "skip")            billed = countWeekdays(contract.startDate, contract.endDate);
+    if (item.weekendPolicy === "skip")            billed = countWeekdays(order.startDate, order.endDate);
     else if (item.weekendPolicy === "overtime")   billed = days * 1.5;
     perUnit = r.baseDaily * billed;
   }
   return round2(perUnit * item.qty * (1 + premium));
 }
 
-/* Direct cost for a contract line item. */
+/* Direct cost for a order line item. */
 function computeLineCost(item){
   const r = getResource(item);
   if (!r) return 0;
@@ -268,23 +268,23 @@ function computeLineCost(item){
   return 0;
 }
 
-/* Asset depreciation factor on a contract (10% annual on serialized fleet). */
-function computeDepreciation(item, contract){
+/* Asset depreciation factor on a order (10% annual on serialized fleet). */
+function computeDepreciation(item, order){
   const r = getResource(item);
   if (!r || item.type !== "serialized") return 0;
-  const days = liDays(item, contract);
+  const days = liDays(item, order);
   return round2(r.purchaseValue * (days / 365) * 0.10 * item.qty);
 }
 
 /* Equipment (serialized + bulk) rental gross, used as % overhead base. */
 /* Equipment (serialized + bulk) rental gross, used as the % overhead base.
-   @param {Object} contract @returns {number} */
-function contractEquipBase(contract){
-  return (contract.lineItems || []).filter(li => li.type === "serialized" || li.type === "bulk")
-    .reduce((s, li) => s + computeLineTotal(li, contract), 0);
+   @param {Object} order @returns {number} */
+function orderEquipBase(order){
+  return (order.lineItems || []).filter(li => li.type === "serialized" || li.type === "bulk")
+    .reduce((s, li) => s + computeLineTotal(li, order), 0);
 }
 
-/* Locked default overheads auto-injected into new / uninitialized contracts. */
+/* Locked default overheads auto-injected into new / uninitialized orders. */
 function defaultOverheads(){
   return IMS.settings.overheads.filter(o => o.locked).map(o => ({
     id: "OH-" + Date.now() + "-" + Math.floor(Math.random() * 1e4),
@@ -296,11 +296,11 @@ function defaultOverheads(){
 /* Compute billable retail + pass-through cost for one overhead line item. */
 /* Compute billable retail + pass-through cost for one overhead line item.
    @param {Object} oh - overhead line item
-   @param {Object} contract - owning contract
+   @param {Object} order - owning order
    @returns {{retail:number, cost:number}} */
-function overheadCalc(oh, contract){
-  const days = daysBetween(contract.startDate, contract.endDate);
-  const equip = contractEquipBase(contract);
+function overheadCalc(oh, order){
+  const days = daysBetween(order.startDate, order.endDate);
+  const equip = orderEquipBase(order);
   const qty = oh.qty || 1;
   let retail = 0, cost = 0;
   if (oh.chargeType === "Percent of Equipment Total") {
@@ -316,27 +316,27 @@ function overheadCalc(oh, contract){
   return { retail: round2(retail), cost: round2(cost) };
 }
 
-/* Full financial roll-up for a contract (resources + overheads). */
-/* Full financial roll-up for a contract (resources + overheads).
-   @param {Object} contract
+/* Full financial roll-up for a order (resources + overheads). */
+/* Full financial roll-up for a order (resources + overheads).
+   @param {Object} order
    @returns {Object} equipmentGross, equipBase, overheadRetail, overheadCost, operatingCost,
                      gross, laborCost, consumableCost, depreciation, net, margin, days */
-function contractTotals(contract){
+function orderTotals(order){
   let gross = 0, laborCost = 0, consumableCost = 0, depreciation = 0;
-  (contract.lineItems || []).forEach(li => {
-    gross          += computeLineTotal(li, contract);
+  (order.lineItems || []).forEach(li => {
+    gross          += computeLineTotal(li, order);
     laborCost      += (li.type === "labor") ? computeLineCost(li) : 0;
     consumableCost += (li.type === "consumable") ? computeLineCost(li) : 0;
-    depreciation   += computeDepreciation(li, contract);
+    depreciation   += computeDepreciation(li, order);
   });
   gross = round2(gross);
   laborCost = round2(laborCost);
   consumableCost = round2(consumableCost);
   depreciation = round2(depreciation);
 
-  const overheads = (contract.overheads !== undefined) ? contract.overheads : defaultOverheads();
+  const overheads = (order.overheads !== undefined) ? order.overheads : defaultOverheads();
   let overheadRetail = 0, overheadCost = 0;
-  overheads.forEach(oh => { const c = overheadCalc(oh, contract); overheadRetail += c.retail; overheadCost += c.cost; });
+  overheads.forEach(oh => { const c = overheadCalc(oh, order); overheadRetail += c.retail; overheadCost += c.cost; });
   overheadRetail = round2(overheadRetail);
   overheadCost = round2(overheadCost);
 
@@ -345,10 +345,10 @@ function contractTotals(contract){
   const net = round2((grossTotal - operatingCost));
   const margin = grossTotal > 0 ? (net / grossTotal) * 100 : 0;
   return {
-    equipmentGross: gross, equipBase: round2(contractEquipBase(contract)),
+    equipmentGross: gross, equipBase: round2(orderEquipBase(order)),
     overheadRetail, overheadCost, operatingCost,
     gross: grossTotal, laborCost, consumableCost, depreciation, net, margin,
-    days: daysBetween(contract.startDate, contract.endDate)
+    days: daysBetween(order.startDate, order.endDate)
   };
 }
 
@@ -475,13 +475,13 @@ function dismissModal(el){
 
 /* Empty-table placeholder row. @param {number} cols @returns {string} */
 const emptyRow = cols => `<tr><td colspan="${cols}" class="text-center text-muted2 py-4">No records — add one with “Add Record”.</td></tr>`;
-/* Find a contract by id. @param {string} id @returns {Object|undefined} */
-const getContract = id => IMS.contracts.find(c => c.contractId === id);
+/* Find a order by id. @param {string} id @returns {Object|undefined} */
+const getOrder = id => IMS.orders.find(c => c.orderId === id);
 /* Find a party by id. @param {string} id @returns {Object|undefined} */
 const getParty = id => IMS.parties.find(c => c.id === id);
-/* Customer display name for a party id (falls back to contract.party). @param {string} id @returns {string} */
-const partyName = id => { const c = getParty(id); return c ? c.name : (getContract(id) || {}).party || id; };
-/* Line-item start date string (overrides contract start if set). @param {Object} li @param {Object} c @returns {string} */
+/* Customer display name for a party id (falls back to order.party). @param {string} id @returns {string} */
+const partyName = id => { const c = getParty(id); return c ? c.name : (getOrder(id) || {}).party || id; };
+/* Line-item start date string (overrides order start if set). @param {Object} li @param {Object} c @returns {string} */
 function liStart(li, c){ return li.startDate || c.startDate; }
 
 /* Line-item end date string. @param {Object} li @param {Object} c @returns {string} */
@@ -496,7 +496,7 @@ function toISO(d){ return `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d
    resource-pool dropdown, and scheduler timeline grouping). */
 const RESOURCE_TYPE_ORDER = ["serialized", "bulk", "consumable", "parts", "labor", "attachments", "kits"];
 const TYPE_LABEL = { serialized:"Serialized", bulk:"Bulk", consumable:"Consumable", labor:"Labor", part:"Part", kit:"Kit", attachment:"Attachment" };
-/* True for multi-unit (quantity) resource types that may be split across contracts. @param {string} type @returns {boolean} */
+/* True for multi-unit (quantity) resource types that may be split across orders. @param {string} type @returns {boolean} */
 function isQuantityType(type){
   return type === "bulk" || type === "consumable" || type === "part" || type === "kit" || type === "attachment";
 }
@@ -509,13 +509,13 @@ function resourceCapacity(type, r){
 }
 
 /* Update inventory/stock when a resource is staged (add=true) or unstaged (add=false).
-   @param {string} type @param {string} ref @param {number} qty @param {boolean} add @param {Object} contract */
-function syncInventoryOnStage(type, ref, qty, add, contract){
+   @param {string} type @param {string} ref @param {number} qty @param {boolean} add @param {Object} order */
+function syncInventoryOnStage(type, ref, qty, add, order){
   const r = getResource({ type, refId: ref });
   if (!r) return;
   if (type === "serialized") {
-    r.status = contract.status === "draft" ? "Staged" : "On Rent";
-    r.contractId = contract.contractId;
+    r.status = order.status === "draft" ? "Staged" : "On Rent";
+    r.orderId = order.orderId;
     r.lastReported = new Date().toISOString().slice(0, 19);
   } else if (type === "bulk") {
     if (add) { r.qtyOut += qty; r.qtyAvailable = Math.max(0, r.qtyAvailable - qty); }

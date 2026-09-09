@@ -9,7 +9,7 @@ function renderRerents(){
     const spread = (r.retailRate - r.vendorCost) * r.qty;
     return `<tr>
       <td class="strong">${r.assetName}${r.assetId ? ` <span class="mono text-muted2">${r.assetId}</span>` : ""}</td>
-      <td class="strong mono">${r.contractId}</td>
+      <td class="strong mono">${r.orderId}</td>
       <td>${r.vendor}</td>
       <td class="num">${fmtMoney(r.vendorCost)}</td>
       <td class="num">${fmtMoney(r.retailRate)}</td>
@@ -42,14 +42,14 @@ function rerentModal(){
     id: "mdl-rr", title: "New Sub-Rental", icon: "bi-arrow-left-right",
     fields: [
       { key:"assetName", label:"Asset Name", type:"text", value:"" },
-      { key:"contractId", label:"Customer Contract", type:"select", value: IMS.contracts[0].contractId, options: IMS.contracts.map(c => ({ value:c.contractId, label:c.contractId + " — " + c.projectName })) },
+      { key:"orderId", label:"Customer Contract", type:"select", value: IMS.orders[0].orderId, options: IMS.orders.map(c => ({ value:c.orderId, label:c.orderId + " — " + c.projectName })) },
       { key:"vendor", label:"Vendor Source Name", type:"text", value:"" },
       { key:"vendorCost", label:"Wholesale Vendor Cost ($)", type:"number", value:0 },
       { key:"retailRate", label:"Retail Rental Rate ($)", type:"number", value:0 },
       { key:"qty", label:"Qty", type:"number", value:1 }
     ],
     onSave: v => {
-      IMS.rentals.push({ rrId:"RR-" + String(IMS.rentals.length + 1).padStart(3, "0"), assetId:null, assetName:v.assetName, contractId:v.contractId, vendor:v.vendor, vendorCost:v.vendorCost, retailRate:v.retailRate, qty:v.qty });
+      IMS.rentals.push({ rrId:"RR-" + String(IMS.rentals.length + 1).padStart(3, "0"), assetId:null, assetName:v.assetName, orderId:v.orderId, vendor:v.vendor, vendorCost:v.vendorCost, retailRate:v.retailRate, qty:v.qty });
       renderRerents();
     }
   });

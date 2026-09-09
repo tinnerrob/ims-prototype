@@ -1,9 +1,9 @@
 /* =========================================================
    IMS — handoff.js
    Equipment Hand-Off / Check In-Out + Chain of Custody.
-   Rented serialized equipment appears per contract with
+   Rented serialized equipment appears per order with
    Check-Out / Check-In. "New Rental" opens a full short-term
-   rental contract (multiple assets, pricing + tax) for a
+   rental order (multiple assets, pricing + tax) for a
    walk-in party. Return prompts a check-in flow. Every
    hand-off writes an immutable chain-of-custody event.
    ========================================================= */
@@ -27,15 +27,15 @@ function assetOutInfo(assetId){
   return {
     assetId,
     asset: getResource({ type: "serialized", refId: assetId }),
-    contractId: last.orderId,
-    contract: getContract(last.orderId),
+    orderId: last.orderId,
+    order: getOrder(last.orderId),
     custodian: last.party,
     at: last.at,
     by: last.by
   };
 }
-function hoScheduledIds(contractId){
-  const c = getContract(contractId);
+function hoScheduledIds(orderId){
+  const c = getOrder(orderId);
   return (c && c.lineItems || []).filter(li => li.type === "serialized").map(li => li.refId);
 }
 function hoCustodian(c){
@@ -69,27 +69,27 @@ function hoLog(refId, orderId, action, party, note){
     at: hoStamp(), by: "D. Reynolds", note: note || ""
   });
 }
-function hoCheckOut(assetId, contractId, note){
+function hoCheckOut(assetId, orderId, note){
   if (assetOutInfo(assetId)) return;                       // already out — no double hand-off
-  const c = getContract(contractId);
-  hoLog(assetId, contractId, "Check-Out", hoCustodian(c), note || ("Checked out to " + (c ? c.contractId : contractId)));
+  const c = getOrder(orderId);
+  hoLog(assetId, orderId, "Check-Out", hoCustodian(c), note || ("Checked out to " + (c ? c.orderId : orderId)));
   const a = getResource({ type: "serialized", refId: assetId });
-  if (a){ a.status = "On Rent"; a.contractId = contractId; }
+  if (a){ a.status = "On Rent"; a.orderId = orderId; }
   renderHandoff();
 }
 function hoCheckIn(assetId, note){
   const info = assetOutInfo(assetId);
   if (!info) return;
-  hoLog(assetId, info.contractId, "Check-In", info.custodian, note || "Returned to yard / available.");
+  hoLog(assetId, info.orderId, "Check-In", info.custodian, note || "Returned to yard / available.");
   const a = getResource({ type: "serialized", refId: assetId });
-  if (a){ a.status = "Available"; a.contractId = null; }
-  /* Check-in must NOT remove the contract from the scheduler. If the unit is
-     returned before its scheduled end, tighten the contract window so the
+  if (a){ a.status = "Available"; a.orderId = null; }
+  /* Check-in must NOT remove the order from the scheduler. If the unit is
+     returned before its scheduled end, tighten the order window so the
      scheduler reflects the actual (early) check-in timeframe. */
-  const c = info.contract;
+  const c = info.order;
   const returnAt = hoStamp();
   if (c){
-    const stillOut = IMS.serializedAssets.some(x => { const o = assetOutInfo(x.id); return o && o.contractId === c.contractId; });
+    const stillOut = IMS.serializedAssets.some(x => { const o = assetOutInfo(x.id); return o && o.orderId === c.orderId; });
     const liEnd = l => (l.endDate || c.endDate || "");
     const li = (c.lineItems || []).find(l => l.type === "serialized" && l.refId === assetId);
     if (li && liEnd(li) && returnAt < liEnd(li)) li.endDate = returnAt;
@@ -105,9 +105,9 @@ function hoCheckIn(assetId, note){
 
 /* ---- date / id helpers ---- */
 function hoTodayStr(){ const d = new Date(); const p = n => String(n).padStart(2, "0"); return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`; }
-function nextContractId(){ let n = 0; IMS.contracts.forEach(c => { const m = parseInt(String(c.contractId).split("-").pop(), 10); if (m > n) n = m; }); return `CT-${new Date().getFullYear()}-${String(n + 1).padStart(3, "0")}`; }
+function nextOrderId(){ let n = 0; IMS.orders.forEach(c => { const m = parseInt(String(c.orderId).split("-").pop(), 10); if (m > n) n = m; }); return `CT-${new Date().getFullYear()}-${String(n + 1).padStart(3, "0")}`; }
 function nextPartyId(){ let n = 0; IMS.parties.forEach(c => { const m = parseInt(String(c.id).split("-").pop(), 10); if (m > n) n = m; }); return "PTY-" + String(n + 1).padStart(3, "0"); }
-function nextLiId(){ let n = 0; IMS.contracts.forEach(c => (c.lineItems || []).forEach(l => { const m = parseInt(String(l.id).split("-")[1], 10); if (m > n) n = m; })); return "LI-" + String(n + 1).padStart(3, "0"); }
+function nextLiId(){ let n = 0; IMS.orders.forEach(c => (c.lineItems || []).forEach(l => { const m = parseInt(String(l.id).split("-")[1], 10); if (m > n) n = m; })); return "LI-" + String(n + 1).padStart(3, "0"); }
 function availableSerialized(){ return IMS.serializedAssets.filter(a => recActive(a) && a.status !== "In Shop" && !assetOutInfo(a.id)); }
 
 
@@ -127,7 +127,7 @@ function hoDayStr(v){ return (v || "").slice(0, 10); }
 
 function renderHandoff(){
   const D = hoAnchorDay();
-  const active = IMS.contracts.filter(c => c.status === "active").sort((a, b) => a.contractId < b.contractId ? -1 : 1);
+  const active = IMS.orders.filter(c => c.status === "active").sort((a, b) => a.orderId < b.orderId ? -1 : 1);
 
   /* Outbound = serialized units still in the yard that should go out on/before D.
      Incoming = serialized units currently on site that are due back by D. */
@@ -156,17 +156,17 @@ function renderHandoff(){
           ? `<span class="badge-status st-out">Due back today</span>`
           : `<span class="badge-status st-reorder">Overdue return</span>`);
     return `
-      <tr class="ho-row" data-hoopen="${c.contractId}">
+      <tr class="ho-row" data-hoopen="${c.orderId}">
         <td class="strong mono">${a.id}</td>
-        <td class="mono">${c.contractId}</td>
+        <td class="mono">${c.orderId}</td>
         <td class="text-muted2">${a.make || ""} ${a.model || ""}</td>
         <td>${fmtDate(s)} → ${fmtDate(e)}</td>
         <td>${isOutbound ? hoCustodian(c) : (out.custodian + `<div class="text-muted2 small">out ${fmtDT(out.at)}</div>`)}</td>
         <td>${status}</td>
         <td class="text-end text-nowrap">
-          <button class="btn btn-ims-outline btn-sm2" data-hoopen="${c.contractId}" title="Open contract"><i class="bi bi-eye"></i></button>
+          <button class="btn btn-ims-outline btn-sm2" data-hoopen="${c.orderId}" title="Open order"><i class="bi bi-eye"></i></button>
           ${isOutbound
-            ? `<button class="btn btn-ims btn-sm2" data-ho="out" data-asset="${a.id}" data-contract="${c.contractId}"><i class="bi bi-box-arrow-up-right"></i> Check Out</button>`
+            ? `<button class="btn btn-ims btn-sm2" data-ho="out" data-asset="${a.id}" data-order="${c.orderId}"><i class="bi bi-box-arrow-up-right"></i> Check Out</button>`
             : `<button class="btn btn-ims btn-sm2" data-ho="in" data-asset="${a.id}"><i class="bi bi-box-arrow-in-down"></i> Check In</button>`}
         </td>
       </tr>`;
@@ -233,19 +233,19 @@ function bindHandoff(){
   const tables = $("#hoTables");
   if (!tables) return;
   delegate(tables, "click", "button[data-ho]", (el) => {
-    if (el.dataset.ho === "out") hoCheckOut(el.dataset.asset, el.dataset.contract);
+    if (el.dataset.ho === "out") hoCheckOut(el.dataset.asset, el.dataset.order);
     else hoCheckInModal(el.dataset.asset);
   });
-  /* Open the contract via the view (eye) button. */
+  /* Open the order via the view (eye) button. */
   delegate(tables, "click", "button[data-hoopen]", el => {
-    const c = getContract(el.dataset.hoopen);
-    if (c) contractDetailModal(c);
+    const c = getOrder(el.dataset.hoopen);
+    if (c) orderDetailModal(c);
   });
-  /* Clicking anywhere else on a row also opens the contract. */
+  /* Clicking anywhere else on a row also opens the order. */
   delegate(tables, "click", "tr[data-hoopen]", (el, e) => {
     if (e.target.closest("button, a")) return;
-    const c = getContract(el.dataset.hoopen);
-    if (c) contractDetailModal(c);
+    const c = getOrder(el.dataset.hoopen);
+    if (c) orderDetailModal(c);
   });
 }
 
@@ -258,7 +258,7 @@ function hoCheckInModal(assetId){
   const body = `
     <div class="lab-punch-head"><div><span class="strong">${a.id}</span><div class="text-muted2">${a.make || ""} ${a.model || ""}</div></div>
       <span class="badge-status st-out">On Site</span></div>
-    <div class="list-line"><span class="l">Rental / contract</span><span class="r strong">${info.contractId}${info.contract ? " · " + info.contract.projectName : ""}</span></div>
+    <div class="list-line"><span class="l">Rental / order</span><span class="r strong">${info.orderId}${info.order ? " · " + info.order.projectName : ""}</span></div>
     <div class="list-line"><span class="l">Custodian</span><span class="r">${info.custodian}</span></div>
     <div class="list-line"><span class="l">Checked out</span><span class="r mono">${fmtDT(info.at)}</span></div>
     <div class="field-group mb-2" style="margin-top:10px"><label class="form-label">Return condition / note (optional)</label>
@@ -277,7 +277,7 @@ function hoCheckInModal(assetId){
 }
 
 
-/* ---- New Rental modal (full short-term contract, multiple assets) ---- */
+/* ---- New Rental modal (full short-term order, multiple assets) ---- */
 
 /* Compute totals/rates for a single equipment line */
 function rnCompute(seg){
@@ -476,15 +476,15 @@ function createRentalFromModal(root){
   for (const it of items){ if (seen[it.assetId]){ window.alert(it.assetId + " is already on the rental — use its own line."); return; } seen[it.assetId] = true; }
   let cStart = items[0].start, cEnd = items[0].end;
   items.forEach(it => { if (it.start && (!cStart || it.start < cStart)) cStart = it.start; if (it.end && it.end > cEnd) cEnd = it.end; });
-  const cid = nextContractId();
+  const cid = nextOrderId();
   const lineItems = items.map(it => ({
     id: nextLiId(), type: "serialized", refId: it.assetId, qty: 1,
     pricingMatrix: "standard", weekendPolicy: "bill", riskPremium: "standard", flatTotal: 0,
     startDate: it.start + "T09:00", endDate: it.end + "T17:00",
     customRates: it.rates, freq: it.freq, depositPct: it.depPct, depositRefundable: it.refundable
   }));
-  IMS.contracts.push({
-    contractId: cid, partyId: custId, party: custName,
+  IMS.orders.push({
+    orderId: cid, partyId: custId, party: custName,
     jobSite: custAddr || "Front counter pickup",
     projectName: "Equipment Rental — " + custName,
     startDate: cStart + "T09:00", endDate: cEnd + "T17:00", status: "active", counter: true,
@@ -495,7 +495,7 @@ function createRentalFromModal(root){
   });
   items.forEach(it => {
     const a = getResource({ type: "serialized", refId: it.assetId });
-    if (a){ a.status = "On Rent"; a.contractId = cid; }
+    if (a){ a.status = "On Rent"; a.orderId = cid; }
     hoLog(it.assetId, cid, "Check-Out", custContact, "Rental checked out at the front desk.");
   });
   dismissModal(root);

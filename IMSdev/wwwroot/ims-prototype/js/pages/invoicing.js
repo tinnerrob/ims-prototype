@@ -33,7 +33,7 @@ function dayOffset(from, to){
    "advance weekly time to the next cycle" means: if more of a week falls in the next
    cycle (or it splits evenly), the whole week is billed in the later cycle instead of
    the current one. Every unit lands in exactly one cycle, so summing cycles never
-   double-bills and always equals the full-contract total. */
+   double-bills and always equals the full-order total. */
 function wholeUnitsBilled(anchor, sDay, eDay, unitDays, totalDays){
   if (eDay < sDay) return 0;
   const n = Math.ceil(totalDays / unitDays);
@@ -83,12 +83,12 @@ function liAmountForPeriod(li, c, pStartISO, pEndISO){
   const totalDays = daysBetween(liStart(li, c), liEnd(li, c));
   const sDay = Math.max(0, dayOffset(liS, s));
   /* Date-only cycle ends ("2026-08-27") are EXCLUSIVE boundaries (last billed day is the
-     day before), while datetime ends ("2026-09-30T17:00", contract/rental end) are
+     day before), while datetime ends ("2026-09-30T17:00", order/rental end) are
      INCLUSIVE. Compute the last billed day honoring both plus the rental's own end. */
   const rawEnd = String(pEndISO);
   const endHasTime = rawEnd.includes(":") || rawEnd.includes("T");
   const pELast = dayOffset(liS, pE) - (endHasTime ? 0 : 1);
-  const liELast = dayOffset(liS, liE); /* contract end is inclusive */
+  const liELast = dayOffset(liS, liE); /* order end is inclusive */
   const eDay = Math.max(sDay, Math.min(pELast, liELast, totalDays - 1));
   if (totalDays >= 28) return round2(wholeUnitsBilled(liS, sDay, eDay, 28, totalDays) * (r.baseMonthly || 0) * qty * (1 + premium));
   if (totalDays >= 7)  return round2(wholeUnitsBilled(liS, sDay, eDay, 7, totalDays)  * (r.baseWeekly || 0) * qty * (1 + premium));
@@ -98,15 +98,15 @@ function liAmountForPeriod(li, c, pStartISO, pEndISO){
 }
 
 /* Equipment rental gross actually billed during a period (whole units + one-time items). */
-function contractRentalForPeriod(c, startISO, endISO){
+function orderRentalForPeriod(c, startISO, endISO){
   return round2(((c.lineItems || []).reduce((sum, li) => sum + liAmountForPeriod(li, c, startISO, endISO), 0)));
 }
 
 function invTaxRate(inv){ return inv.taxRate != null ? inv.taxRate : (IMS.settings.taxSchedules[0] ? IMS.settings.taxSchedules[0].rate : 0); }
 
 function invoiceCompute(inv){
-  const con = getContract(inv.contractId);
-  const base = inv.baseAmount != null ? inv.baseAmount : (con ? contractTotals(con).equipmentGross : 0);
+  const con = getOrder(inv.orderId);
+  const base = inv.baseAmount != null ? inv.baseAmount : (con ? orderTotals(con).equipmentGross : 0);
   const envFee = round2(base * (inv.envFeePct || IMS.settings.pricing.envFeePct) / 100);
   const waiver = inv.damageWaiver ? round2(base * 0.03) : 0;
   const fuel = inv.fuelCharge || 0;
@@ -121,7 +121,7 @@ function renderInvoicing(){
     const t = invoiceCompute(inv);
     return `<tr data-edit="${inv.invId}">
       <td class="strong mono">${inv.invId}</td>
-      <td class="strong mono">${inv.contractId}</td>
+      <td class="strong mono">${inv.orderId}</td>
       <td>Cycle ${inv.cycle}<div class="text-muted2" style="font-size:11px">${fmtDate(inv.cycleStart)} — ${fmtDate(inv.cycleEnd)}</div></td>
       <td class="num">${fmtMoney(t.base)}</td>
       <td class="num">${fmtMoney(t.envFee)}</td>
@@ -163,11 +163,11 @@ function renderInvoicing(){
     const maxCycle = IMS.invoices.reduce((m, i) => Math.max(m, i.cycle), 0);
     IMS.invoices.filter(i => invStatus(i) !== "paid").forEach(i => {
       const nextStart = i.cycleEnd;
-      const con = getContract(i.contractId);
+      const con = getOrder(i.orderId);
       const cycleDays = con ? partyCycleDays(con) : IMS.settings.pricing.cycleDays;
       const nextEnd = addDays(i.cycleEnd, cycleDays);
-      const baseAmount = con ? contractRentalForPeriod(con, nextStart, nextEnd) : 0;
-      IMS.invoices.push({ invId:"INV-" + String(IMS.invoices.length + 1).padStart(3, "0"), contractId:i.contractId, cycle:maxCycle + 1, cycleStart:nextStart, cycleEnd:nextEnd, envFeePct:i.envFeePct, damageWaiver:i.damageWaiver, fuelCharge:i.fuelCharge || 0, baseAmount, taxRate: invTaxRate(i), status:"pending" });
+      const baseAmount = con ? orderRentalForPeriod(con, nextStart, nextEnd) : 0;
+      IMS.invoices.push({ invId:"INV-" + String(IMS.invoices.length + 1).padStart(3, "0"), orderId:i.orderId, cycle:maxCycle + 1, cycleStart:nextStart, cycleEnd:nextEnd, envFeePct:i.envFeePct, damageWaiver:i.damageWaiver, fuelCharge:i.fuelCharge || 0, baseAmount, taxRate: invTaxRate(i), status:"pending" });
     });
     renderInvoicing();
   });
@@ -184,13 +184,13 @@ function invoiceDetailCSV(filtered){
   const esc = v => `"${String(v == null ? "" : v).replace(/"/g, "\"\"")}"`;
   const header = ["Invoice","Contract","Customer","Project","Cycle","Period","Status","Item Type","Item","Qty","Rate","Amount"].map(esc).join(",");
   const body = filtered.map(inv => {
-    const con = getContract(inv.contractId);
+    const con = getOrder(inv.orderId);
     const cust = con ? (partyName(con.partyId) || con.party || "") : "";
     const t = invoiceCompute(inv);
     const items = (con && con.lineItems && con.lineItems.length) ? con.lineItems : [];
     const period = `${fmtDate(inv.cycleStart)} to ${fmtDate(inv.cycleEnd)}`;
     const status = invStatusLabel(invStatus(inv));
-    const b = [inv.invId, con ? con.contractId : inv.contractId, cust, con ? con.projectName : "", inv.cycle, period, status];
+    const b = [inv.invId, con ? con.orderId : inv.orderId, cust, con ? con.projectName : "", inv.cycle, period, status];
     const rows = [];
     if (items.length){
       items.forEach(li => {
@@ -223,7 +223,7 @@ function downloadCSV(filename, csv){
 /* Detailed invoice breakdown: who was invoiced and for what.
    @param {Object} inv - invoice record */
 function invoiceDetailModal(inv){
-  const con = getContract(inv.contractId);
+  const con = getOrder(inv.orderId);
   const t = invoiceCompute(inv);
   const cust = con ? (partyName(con.partyId) || con.party || "—") : "—";
   const lineRows = (con && con.lineItems && con.lineItems.length)
@@ -238,10 +238,10 @@ function invoiceDetailModal(inv){
           <td class="num">${fmtMoney(amt)}</td>
         </tr>`;
       }).join("")
-    : `<tr><td colspan="4" class="text-center text-muted2 py-3">No line items on this contract.</td></tr>`;
+    : `<tr><td colspan="4" class="text-center text-muted2 py-3">No line items on this order.</td></tr>`;
   const body = `
     <div class="mb-3">
-      <div class="strong">${con ? con.contractId : inv.contractId} — ${con ? con.projectName : "Unknown project"}</div>
+      <div class="strong">${con ? con.orderId : inv.orderId} — ${con ? con.projectName : "Unknown project"}</div>
       <div class="text-muted2" style="font-size:12px">${cust}</div>
       <div class="text-muted2" style="font-size:12px">Cycle ${inv.cycle} · ${fmtDate(inv.cycleStart)} — ${fmtDate(inv.cycleEnd)}</div>
       <div class="row g-3 mt-1">

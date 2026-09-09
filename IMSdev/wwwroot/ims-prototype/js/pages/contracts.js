@@ -1,6 +1,6 @@
 /* =========================================================
-   IMS — contracts.js (split out of app.js)
-   Customers & contracts view (party records, contract header management).
+   IMS — orders.js (split out of app.js)
+   Customers & orders view (party records, order header management).
    ========================================================= */
 "use strict";
 
@@ -10,7 +10,7 @@
 function renderCustomersContracts(){
   const tabs = [
     { key:"customers", label:"Customers", icon:"bi-people", count: IMS.parties.length },
-    { key:"contracts", label:"Contracts", icon:"bi-folder2-open", count: IMS.contracts.length }
+    { key:"orders", label:"Contracts", icon:"bi-folder2-open", count: IMS.orders.length }
   ];
   $("#content").innerHTML = `
     <div class="page-head"></div>
@@ -25,7 +25,7 @@ function renderCustomersContracts(){
       <div id="ccPanel"></div>
     </div></div>`;
   delegate($("#content"), "click", "#ccTabs .subtab", b => { App.ccTab = b.dataset.tab; renderCustomersContracts(); });
-  $("#ccAddBtn").addEventListener("click", () => { App.ccTab === "customers" ? customerNewModal() : contractModal(); });
+  $("#ccAddBtn").addEventListener("click", () => { App.ccTab === "customers" ? customerNewModal() : orderModal(); });
   renderCcPanel();
 }
 
@@ -34,10 +34,10 @@ function renderCcPanel(){
   if (App.ccTab === "customers") {
     p.innerHTML = customersTable();
   } else {
-    const filtered = IMS.contracts.filter(c => c.status === App.contractFilter);
+    const filtered = IMS.orders.filter(c => c.status === App.contractFilter);
     p.innerHTML = `
       <div class="d-flex align-items-center justify-content-between flex-wrap mb-3 gap-2">
-        <span class="text-muted2">Showing <strong>${App.contractFilter}</strong> contracts (<strong>${filtered.length}</strong>)</span>
+        <span class="text-muted2">Showing <strong>${App.contractFilter}</strong> orders (<strong>${filtered.length}</strong>)</span>
         <div class="btn-group" id="ccFilter">
           <button class="btn btn-sm2 ${App.contractFilter === "active" ? "btn-ims" : "btn-ims-outline"}" data-f="active">Active</button>
           <button class="btn btn-sm2 ${App.contractFilter === "closed" ? "btn-ims" : "btn-ims-outline"}" data-f="closed">Closed</button>
@@ -49,7 +49,7 @@ function renderCcPanel(){
 
 function customersTable(){
   const rows = IMS.parties.map(c => {
-    const cons = IMS.contracts.filter(x => x.partyId === c.id);
+    const cons = IMS.orders.filter(x => x.partyId === c.id);
     const active = cons.filter(x => x.status === "active").length;
     return `<tr data-edit="${c.id}">
       <td class="strong">${c.name} ${activeBadge(c)}<div class="text-muted2" style="font-size:11px">${c.email}</div></td>
@@ -70,10 +70,10 @@ function customersTable(){
 
 function contractsTable(filtered){
   const rows = filtered.map(c => {
-    const t = contractTotals(c);
+    const t = orderTotals(c);
     const on = c.status === "active";
-    return `<tr data-edit="${c.contractId}">
-      <td class="strong mono">${c.contractId}</td>
+    return `<tr data-edit="${c.orderId}">
+      <td class="strong mono">${c.orderId}</td>
       <td>${partyName(c.partyId)}</td>
       <td>${c.projectName}</td>
       <td class="mono text-muted2" style="font-size:11.5px">${fmtDate(c.startDate)}</td>
@@ -81,11 +81,11 @@ function contractsTable(filtered){
       <td class="num">${fmtMoney(t.gross)}</td>
       <td>${statusBadge(c.status)}</td>
       <td class="text-end text-nowrap">
-        <label class="form-check form-switch mb-0 d-inline-block me-1" title="${on ? "Slide to close contract" : "Slide to activate contract"}">
-          <input class="form-check-input" type="checkbox" data-cstatus="${c.contractId}" ${on ? "checked" : ""} style="cursor:pointer">
+        <label class="form-check form-switch mb-0 d-inline-block me-1" title="${on ? "Slide to close order" : "Slide to activate order"}">
+          <input class="form-check-input" type="checkbox" data-cstatus="${c.orderId}" ${on ? "checked" : ""} style="cursor:pointer">
         </label>
-        <button class="btn btn-ims-outline btn-sm2" data-cview="${c.contractId}" title="View"><i class="bi bi-eye"></i></button>
-        <button class="btn btn-ims-outline btn-sm2" data-cedit="${c.contractId}" title="Edit"><i class="bi bi-pencil"></i></button>
+        <button class="btn btn-ims-outline btn-sm2" data-cview="${c.orderId}" title="View"><i class="bi bi-eye"></i></button>
+        <button class="btn btn-ims-outline btn-sm2" data-cedit="${c.orderId}" title="Edit"><i class="bi bi-pencil"></i></button>
       </td>
     </tr>`;
   }).join("");
@@ -97,18 +97,18 @@ function contractsTable(filtered){
 function bindCcActions(){
   delegate($("#ccPanel"), "click", "[data-cview]", b => {
     const id = b.dataset.cview;
-    const cust = getParty(id), con = getContract(id);
+    const cust = getParty(id), con = getOrder(id);
     if (cust) customerModal(cust, false);
-    else if (con) contractDetailModal(con);
+    else if (con) orderDetailModal(con);
   });
   delegate($("#ccPanel"), "click", "[data-cedit]", b => {
     const id = b.dataset.cedit;
-    const cust = getParty(id), con = getContract(id);
+    const cust = getParty(id), con = getOrder(id);
     if (cust) customerModal(cust, true);
-    else if (con) contractEditModal(con);
+    else if (con) orderEditModal(con);
   });
   delegate($("#ccPanel"), "change", "[data-cstatus]", b => {
-    const c = getContract(b.dataset.cstatus);
+    const c = getOrder(b.dataset.cstatus);
     if (!c) return;
     c.status = b.checked ? "active" : "closed";
     renderCcPanel();
@@ -118,9 +118,9 @@ function bindCcActions(){
   delegate($("#ccPanel"), "click", "tr[data-edit]", (el, e) => {
     if (e.target.closest("button, a, input, select, label, .form-check")) return;
     const id = el.dataset.edit;
-    const cust = getParty(id), con = getContract(id);
+    const cust = getParty(id), con = getOrder(id);
     if (cust) customerModal(cust, true);
-    else if (con) contractEditModal(con);
+    else if (con) orderEditModal(con);
   });
 }
 
@@ -131,14 +131,14 @@ function nextCustId(){
 }
 
 function customerModal(cust, editable){
-  const cons = IMS.contracts.filter(x => x.partyId === cust.id);
+  const cons = IMS.orders.filter(x => x.partyId === cust.id);
   const contractsList = cons.map(cc => {
-    const t = contractTotals(cc);
+    const t = orderTotals(cc);
     return `<div class="list-line" style="align-items:center">
-      <span class="l"><span class="strong mono">${cc.contractId}</span> — ${cc.projectName} ${statusBadge(cc.status)}</span>
+      <span class="l"><span class="strong mono">${cc.orderId}</span> — ${cc.projectName} ${statusBadge(cc.status)}</span>
       <span class="r">${fmtMoney(t.gross)}</span>
     </div>`;
-  }).join("") || `<p class="text-muted2 py-2">No contracts on file for this party.</p>`;
+  }).join("") || `<p class="text-muted2 py-2">No orders on file for this party.</p>`;
 
   const fields = [["name","Company Name"],["phone","Phone"],["email","Email"],["billingAddress","Billing Address"],["notes","Notes"]];
   const cycleOpts = Object.keys(BILLING_CYCLES).map(k => `<option value="${k}" ${(cust.billingCycle || "monthly") === k ? "selected" : ""}>${BILLING_CYCLE_LABEL[k]} (${BILLING_CYCLES[k]} day${BILLING_CYCLES[k] === 1 ? "" : "s"})</option>`).join("");
@@ -197,8 +197,8 @@ function customerNewModal(){
   customerModal(cust, true);
 }
 
-function contractDetailModal(con){
-  const t = contractTotals(con);
+function orderDetailModal(con){
+  const t = orderTotals(con);
   const lineItems = (con.lineItems || []).map(li => `<div class="list-line">
     <span class="l">${itemLabel(li)} <span class="badge-status tc-serialized" style="text-transform:uppercase">${li.type}</span></span>
     <span class="r">${fmtMoney(computeLineTotal(li, con))}</span>
@@ -220,11 +220,11 @@ function contractDetailModal(con){
     </div>
     ${lineItems}`;
   const root = openRawModal({
-    id: "mdl-cview", size: "lg", title: "Contract — " + con.contractId, icon: "bi-eye", body,
+    id: "mdl-cview", size: "lg", title: "Contract — " + con.orderId, icon: "bi-eye", body,
     footer: `<button type="button" class="btn btn-ims-outline" data-bs-dismiss="modal">Close</button>
              <button type="button" class="btn btn-ims" id="cvSched"><i class="bi bi-calendar3"></i> Open Scheduler</button>`
   });
-  root.querySelector("#cvSched").addEventListener("click", () => { App.contractId = con.contractId; showView("scheduler"); });
+  root.querySelector("#cvSched").addEventListener("click", () => { App.orderId = con.orderId; showView("scheduler"); });
 }
 
 
