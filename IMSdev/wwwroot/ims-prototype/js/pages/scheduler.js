@@ -1017,8 +1017,10 @@ function openOrderModal(existing){
   const body = `
     <div class="d-flex align-items-center gap-2 mb-3">
       <div class="form-check form-switch mb-0"><input class="form-check-input" type="checkbox" id="c-active" ${(e.status ? e.status === "active" : true) ? "checked" : ""}><label class="form-check-label" for="c-active"><strong>Active</strong></label></div>
-      <span class="text-muted2" style="font-size:11.5px">Active orders bill normally; inactive are closed/archived</span>
+      <span class="text-muted2 text-xs2">Active orders bill normally; inactive are closed/archived</span>
     </div>
+    <div class="divider"></div>
+    <div class="strong mb-2"><i class="bi bi-file-earmark-text me-1"></i> Order / Job Details</div>
     <div class="row g-3">
       <div class="col-md-4 field-group"><label class="form-label">Order ID</label><input class="form-control" id="c-id" value="${e.orderId || "CT-2024-" + pad2(IMS.orders.length + 1)}"></div>
       <div class="col-md-4 field-group"><label class="form-label">Customer</label><select class="form-select" id="c-cust">${custOpts}</select></div>
@@ -1027,15 +1029,19 @@ function openOrderModal(existing){
       <div class="col-md-3 field-group"><label class="form-label">Geofence Radius (m)</label><input class="form-control" id="c-geo" type="number" value="${e.geofenceRadius || 300}"></div>
       <div class="col-md-3 field-group"><label class="form-label">Site Lat</label><input class="form-control" id="c-slat" type="number" step="0.0001" value="${e.siteLat || 33.7490}"></div>
       <div class="col-md-3 field-group"><label class="form-label">Site Lng</label><input class="form-control" id="c-slng" type="number" step="0.0001" value="${e.siteLng || -84.3880}"></div>
-      <div class="col-md-3 field-group"><label class="form-label">Rental Start</label><input class="form-control mb-1" id="c-start-date" type="date" value="${datePart(e.startDate || "2026-09-01T07:00")}"><input class="form-control" id="c-start-time" type="time" value="${timePart(e.startDate || "2026-09-01T07:00")}"></div>
-      <div class="col-md-3 field-group"><label class="form-label">Expected Return</label><input class="form-control mb-1" id="c-end-date" type="date" value="${datePart(e.endDate || "2026-09-15T17:00")}"><input class="form-control" id="c-end-time" type="time" value="${timePart(e.endDate || "2026-09-15T17:00")}"></div>
     </div>
     <div class="divider"></div>
-    <div class="strong mb-2"><i class="bi bi-layers"></i> Fixed Overhead &amp; Compliance Adjustments</div>
+    <div class="strong mb-2"><i class="bi bi-calendar-range me-1"></i> Rental Window</div>
+    <div class="row g-3">
+      <div class="col-md-6 field-group"><label class="form-label">Rental Start</label><input class="form-control mb-1" id="c-start-date" type="date" value="${datePart(e.startDate || "2026-09-01T07:00")}"><input class="form-control" id="c-start-time" type="time" value="${timePart(e.startDate || "2026-09-01T07:00")}"></div>
+      <div class="col-md-6 field-group"><label class="form-label">Expected Return</label><input class="form-control mb-1" id="c-end-date" type="date" value="${datePart(e.endDate || "2026-09-15T17:00")}"><input class="form-control" id="c-end-time" type="time" value="${timePart(e.endDate || "2026-09-15T17:00")}"></div>
+    </div>
+    <div class="divider"></div>
+    <div class="strong mb-2"><i class="bi bi-layers me-1"></i>Fixed Overhead &amp; Compliance Adjustments</div>
     <div class="row g-2 mb-2">
       <div class="col-md-6"><select class="form-select" id="oh-pick">${overheadPickOptions(ohs)}</select></div>
       <div class="col-md-3"><button class="btn btn-ims btn-sm2 w-100" type="button" id="oh-add"><i class="bi bi-plus-lg"></i> Add Overhead</button></div>
-      <div class="col-md-3"><span class="text-muted2" style="font-size:11px">Locked defaults auto-injected · override cost/retail per order</span></div>
+      <div class="col-md-3"><span class="text-muted2 text-xs">Locked defaults auto-injected · override cost/retail per order</span></div>
     </div>
     <div id="oh-list"></div>
     <div class="divider"></div>
@@ -1100,7 +1106,7 @@ function renderOhList(root, ohs){
     <div class="oh-info">
       <span class="type-chip ${oh.category === "Compliance" ? "tc-consumable" : (oh.category === "Facility" ? "tc-bulk" : "tc-serialized")}">${oh.category}</span>
       <span class="strong">${oh.name}</span> ${oh.locked ? `<i class="bi bi-lock" title="Auto-injected default"></i>` : ""}
-      <span class="text-muted2" style="font-size:11px">${oh.chargeType}${oh.chargeType === "Percent of Equipment Total" ? " · " + oh.pct + "%" : ""}</span>
+      <span class="text-muted2 text-xs">${oh.chargeType}${oh.chargeType === "Percent of Equipment Total" ? " · " + oh.pct + "%" : ""}</span>
     </div>
     <div class="oh-edits">
       <label>Cost <input class="form-control form-control-sm" data-ohcost="${i}" type="number" value="${oh.cost}"></label>
@@ -1122,7 +1128,7 @@ function renderOhFinance(root, tmpOrder){
       <tr><td>− Labor + Consumable + Depreciation</td><td>${fmtMoney(t.laborCost + t.consumableCost + t.depreciation)}</td></tr>
       <tr class="grand"><td>Estimated Net Profit</td><td>${fmtMoney(t.net)}</td></tr>
     </table>
-    <div class="label" style="margin-top:8px">Net Margin ${fmtPct(t.margin)} · ${t.days}-day order</div>`;
+    <div class="label mt-2">Net Margin ${fmtPct(t.margin)} · ${t.days}-day order</div>`;
 }
 
 

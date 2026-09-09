@@ -147,7 +147,7 @@ function customerModal(cust, editable){
   const body = `
     <div class="d-flex align-items-center gap-2 mb-3">
       <div class="form-check form-switch mb-0"><input class="form-check-input" type="checkbox" id="cust-active" ${recActive(cust) ? "checked" : ""}><label class="form-check-label" for="cust-active"><strong>Active</strong></label></div>
-      <span class="text-muted2" style="font-size:11.5px">Inactive customers are archived / not selectable</span>
+      <span class="text-muted2 text-xs2">Inactive customers are archived / not selectable</span>
     </div>
     <div class="row g-3">
       <div class="col-md-6 field-group">
@@ -203,7 +203,7 @@ function customerNewModal(){
 function orderDetailModal(con){
   const t = orderTotals(con);
   const lineItems = (con.lineItems || []).map(li => `<div class="list-line">
-    <span class="l">${itemLabel(li)} <span class="badge-status tc-serialized" style="text-transform:uppercase">${li.type}</span></span>
+    <span class="l">${itemLabel(li)} <span class="badge-status tc-serialized text-uppercase">${li.type}</span></span>
     <span class="r">${fmtMoney(computeLineTotal(li, con))}</span>
   </div>`).join("") || `<p class="text-muted2 py-2">No line items staged.</p>`;
   const body = `
