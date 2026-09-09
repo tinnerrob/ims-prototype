@@ -304,6 +304,8 @@ IMS.store.repo("bulk").update("sku", "BL-100", { extended_attributes: { reorderP
 ## 8. Reference docs
 All under `docs/architecture/`:
 - `app-review-plan.md` — the master review/modernization roadmap (this doc's sibling).
+- `app-review-audit.md` — per-file/layer review matrix (dead code, reuse, module disconnect, UI).
+- `app-review-visual.md` — browser visual QA checklist (T3: shell, KPI dedup, inline styles, modal pass).
 - `ims-core-and-modules.md` — core-vs-module architecture + terminology decisions.
 - `module-dependencies.md` — dependency graph + what each module gates.
 - `modal-design-spec.md` — the modal consistency spec + inventory.

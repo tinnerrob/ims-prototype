@@ -151,4 +151,19 @@ function init(){
   showView("dashboard");
 }
 
-document.addEventListener("DOMContentLoaded", init);
+/* Surface a readable startup failure instead of a silent blank page. */
+function bootError(e){
+  const c = document.getElementById("content");
+  if (!c) return;
+  c.innerHTML = `
+    <div class="card mt-4 mx-auto" style="max-width:680px">
+      <div class="card-header"><span class="card-title"><i class="bi bi-exclamation-triangle"></i> App failed to start</span></div>
+      <div class="card-body">
+        <p class="text-muted2">Initialization threw an error. Try a hard refresh, or clear this site&rsquo;s storage keys <code>ims.store</code> / <code>ims.featureModules</code> and reload.</p>
+        <pre class="small text-muted2 mt-2 mb-0" style="white-space:pre-wrap;overflow:auto">${String((e && e.stack) || e)}</pre>
+      </div>
+    </div>`;
+  const t = document.getElementById("pageTitle"); if (t) t.textContent = "Startup error";
+}
+
+document.addEventListener("DOMContentLoaded", () => { try { init(); } catch (e) { bootError(e); } });
