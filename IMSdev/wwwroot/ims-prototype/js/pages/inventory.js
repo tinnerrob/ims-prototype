@@ -87,7 +87,7 @@ function renderInvAttachmentsPanel(){
 function serializedTable(){
   const cols = [
     { key:"id", header:"Asset ID", td:"strong mono", always:true, render: a => a.id },
-    { key:"serial", header:"Serial / VIN", td:"mono text-muted2", render: a => a.serial },
+    { key:"serial", header:"Serial / VIN", td:"mono text-muted2", render: a => IMS.metadata.ext(a, "serial_vin") || "" },
     { key:"mkmod", header:"Make / Model", render: a => `${IMS.metadata.mkName(a)}` },
     { key:"category", header:"Category", render: a => a.category },
     { key:"meter", header:"Meter Hrs", td:"num", render: a => fmtInt(IMS.metadata.ext(a, "meter_hours") || 0) },
@@ -224,7 +224,7 @@ function serializedView(a){
   openRawModal({
     id: "mdl-aview", size: "lg", title: "Asset — " + a.id, icon: "bi-truck-front",
     body: detailGrid([
-      ["Asset ID", a.id], ["Serial / VIN", a.serial], ["Make / Model", IMS.metadata.mkName(a)], ["Category", a.category],
+      ["Asset ID", a.id], ["Serial / VIN", IMS.metadata.ext(a, "serial_vin") || "—"], ["Make / Model", IMS.metadata.mkName(a)], ["Category", a.category],
       ["Meter Hours", fmtInt(IMS.metadata.ext(a, "meter_hours") || 0)], ["Fuel", IMS.metadata.ext(a, "fuel_type") || "—"], ["Purchase Value", fmtMoney(a.purchaseValue)],
       ["Daily", fmtMoney(a.baseDaily)], ["Weekly", fmtMoney(a.baseWeekly)], ["Monthly", fmtMoney(a.baseMonthly)],
       ["Default Deposit", (a.depositPct != null ? a.depositPct : 25) + "% of rental"],
@@ -404,7 +404,7 @@ function serializedFields(e){
   return [
     { key:"active", label:"Active", type:"checkbox", value: recActive(e) },
     { key:"id", label:"Asset ID (PK)", type:"text", value: e.id || nextAssetId(e.category || "Boom Lift"), required:true, section:"Identity" },
-    { key:"serial", label:"Serial / VIN", type:"text", value: e.serial || "" },
+    { key:"serial_vin", label:"Serial / VIN", type:"text", bucket:"extended_attributes", value: IMS.metadata.ext(e, "serial_vin") || "" },
     { key:"make", label:"Make", type:"text", bucket:"extended_attributes", value: IMS.metadata.ext(e, "make") || "" },
     { key:"model", label:"Model", type:"text", bucket:"extended_attributes", value: IMS.metadata.ext(e, "model") || "" },
     { key:"category", label:"Category", type:"select", value: e.category || activeCats("serialized")[0], options: catOptions("serialized", e.category) },
@@ -440,7 +440,7 @@ function serializedModal(existing){
     id: "mdl-serial", title: (isEdit ? "Edit" : "New") + " Serialized / Equipment Asset", icon: "bi-truck-front", large: true,
     fields: serializedFields(existing),
     onSave: v => {
-      const base = { active:v.active !== false, serial:v.serial, category:v.category, purchaseValue:v.purchaseValue, baseDaily:v.baseDaily, baseWeekly:v.baseWeekly, baseMonthly:v.baseMonthly, depositPct:v.depositPct, lat:v.lat, lng:v.lng, status:v.status };
+      const base = { active:v.active !== false, category:v.category, purchaseValue:v.purchaseValue, baseDaily:v.baseDaily, baseWeekly:v.baseWeekly, baseMonthly:v.baseMonthly, depositPct:v.depositPct, lat:v.lat, lng:v.lng, status:v.status };
       const ext = Object.assign({}, (existing && existing.extended_attributes) || {}, (v.extended_attributes) || {});
       base.name = ((ext.make ? ext.make + " " : "") + (ext.model || "")).trim();
       const patch = Object.assign({ extended_attributes: ext }, base);

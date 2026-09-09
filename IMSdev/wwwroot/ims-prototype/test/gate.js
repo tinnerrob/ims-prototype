@@ -489,7 +489,7 @@ addScript(`(() => {
   assert(IMS.metadata.vertical() === "HeavyEquipment", "default active vertical is HeavyEquipment");
   assert(IMS.metadata.registryFor("Healthcare").length > 0, "Healthcare vertical exposes extended attributes");
   const metA = getAsset("BL-118");
-  assert(metA.serial && IMS.metadata.ext(metA, "serial_vin") === metA.serial, "ext() reads flat field via registry path (no extended_attributes)");
+  assert(IMS.metadata.ext(getAsset("TT-GATE-1"), "make") === "Test", "ext() reads flat field via registry path (no extended_attributes on a legacy record)");
   assert(IMS.metadata.ext({ extended_attributes: { meter_hours: 999 } }, "meter_hours") === 999, "ext() prefers extended_attributes over flat path");
   assert(IMS.metadata.getPath({ extended_attributes: { expiration_date: "2029-04-12" } }, "extended_attributes.expiration_date") === "2029-04-12", "getPath reads nested JSONB-style path");
 
@@ -516,6 +516,8 @@ addScript(`(() => {
   assert(ser2 && IMS.metadata.ext(ser2, "meter_hours") > 0 && ser2.meterHours === undefined, "meter_hours relocation applied across serialized seed");
   assert(coreA.extended_attributes.make === "JLG" && coreA.extended_attributes.model === "450AJ" && coreA.make === undefined && coreA.model === undefined, "make/model relocated into extended_attributes");
   assert(IMS.metadata.mkName(coreA) === "JLG 450AJ" && IMS.metadata.mk(coreA) === "JLG" && IMS.metadata.mdl(coreA) === "450AJ", "mkName/mk/mdl read relocated make/model");
+  assert(!!coreA.extended_attributes.serial_vin && coreA.serial === undefined, "serial_vin relocated into extended_attributes");
+  assert(IMS.metadata.ext(coreA, "serial_vin") === coreA.extended_attributes.serial_vin, "ext() reads relocated serial_vin");
 
   window.__gateFailures = failures;
   window.__gateLog = out;
