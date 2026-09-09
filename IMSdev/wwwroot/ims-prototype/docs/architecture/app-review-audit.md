@@ -22,7 +22,7 @@ with findings are updated as passes land.
 | `index.html` | PEND | — | — | — | Shell/nav IA to modernize (Core vs Modules grouping) |
 | `css/styles.css` | PEND | overlaps w/ shared.css | consolidate tokens | — | large; token audit needed |
 | `css/shared.css` | PEND | — | shared modal/component chrome | — | keep as modal/component spec home |
-| `css/dashboard.css` | FIX | small (80 ln); confirm it even needs separate load vs styles.css | merge into styles.css | — | see T1.4 |
+| `css/dashboard.css` | FIX→done (T1.4) | removed — bento/page layer **folded into `styles.css`** (order-preserved); shared.css kept as component-chrome home | merge into styles.css (done) | — | token source stays in styles.css :root |
 | `js/data.js` | PEND | seed-data orphan check | — | — | — |
 | `js/common.js` | PEND | some helpers possibly unused | central reuse target (helpers/pricing/modals) | — | modal builders centralize spec |
 | `js/grid.js` | PEND | — | shared table renderer (good) | — | column-profile persistence OK |
@@ -78,8 +78,7 @@ with findings are updated as passes land.
 3. **[x] ASP.NET Razor scaffold (FIXED, T1.2):** `Pages/*` removed + `Program.cs` reduced
    to a minimal static host (`/` redirects to `/ims-prototype/`). Product moves to
    Angular + Wisej.net, so the .NET host is preview-only. Build + runtime smoke OK.
-4. **CSS consolidation (FIX):** `dashboard.css` (and overlaps in `styles.css`) → token
-   consolidation into one theme.
+4. **CSS consolidation (PARTIAL, T1.4):** `dashboard.css` **folded into `styles.css`** (bento page layer) — single file for tokens/layout. Remaining: styles.css `.kpi*` block vs shared.css `.kpi*` gradient re-definitions overlap → needs **browser visual QA** before dedup (T3 candidate, flagged in shared.css row).
 5. **Inline `style=` audit (FIX):** **75** occurrences across 14 page files —
    worst: scheduler.js (21), timesheet.js (11), geo.js (11), inventory.js (8).
    Each is a candidate for a token/utility class (T3.1/T3.4.2).

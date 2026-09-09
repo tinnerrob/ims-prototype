@@ -186,9 +186,8 @@ Each change ships small, gated, and one commit.
 wwwroot/ims-prototype/
 ├── index.html              # SPA shell: sidebar nav, topbar, #content, ordered <script>/<link> tags
 ├── css/
-│   ├── styles.css          # Primary theme: tokens, layout, components, scheduler & table styles
-│   ├── shared.css          # Shared components (modals, badges, buttons) — modal chrome spec lives here
-│   └── dashboard.css       # Dashboard/panel-specific styles (candidate for consolidation into styles.css)
+│   ├── styles.css          # Primary theme: tokens, base/layout/shell + dashboard bento layer (dashboard.css folded in T1.4)
+│   └── shared.css          # Shared components (modals, badges, buttons, kpi cards) — modal chrome spec lives here
 └── js/
     ├── data.js             # Seeds the IMS global: every collection + settings (the in-memory "database")
     ├── metadata.js         # IMS.metadata: core cols + per-vertical extended-attribute registry; ext() accessor
