@@ -110,7 +110,9 @@ function bindCcActions(){
   delegate($("#ccPanel"), "change", "[data-cstatus]", b => {
     const c = getOrder(b.dataset.cstatus);
     if (!c) return;
-    c.status = b.checked ? "active" : "closed";
+    const status = b.checked ? "active" : "closed";
+    if (IMS.store) IMS.store.repo("orders").update("orderId", c.orderId, { status });
+    else c.status = status;
     renderCcPanel();
   });
   delegate($("#ccPanel"), "click", "#ccFilter [data-f]", b => { App.contractFilter = b.dataset.f; renderCcPanel(); });
