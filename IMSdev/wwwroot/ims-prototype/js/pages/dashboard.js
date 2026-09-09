@@ -8,9 +8,9 @@
    STAGE 6 — EXECUTIVE DASHBOARD
    ========================================================= */
 function fleetKPIs(){
-  const fleet = IMS.itemInstances.length;
-  const onRent = IMS.itemInstances.filter(a => a.status === "On Rent").length;
-  const book = IMS.itemInstances.reduce((s, a) => s + a.purchaseValue, 0);
+  const fleet = IMS.itemRegistry.getByType("serialized").length;
+  const onRent = IMS.itemRegistry.getByType("serialized").filter(a => a.status === "On Rent").length;
+  const book = IMS.itemRegistry.getByType("serialized").reduce((s, a) => s + a.purchaseValue, 0);
   const alerts = App.breachAlerts.filter(a => a.kind === "breach").length;
   let run = 0;
   IMS.orders.filter(c => c.status === "active").forEach(c => {
@@ -24,12 +24,12 @@ function renderDashboard(){
   const k = fleetKPIs();
   const active = IMS.orders.filter(c => c.status === "active");
   const reorders = [
-    ...IMS.consumables.filter(c => c.qtyOnHand <= c.reorderPoint).map(c => ({ type:"consumable", ref:c.sku, label:c.name, qtyOnHand:c.qtyOnHand, reorderPoint:c.reorderPoint })),
-    ...IMS.parts.filter(p => p.qtyOnHand <= p.reorderPoint).map(p => ({ type:"part", ref:p.partId, label:p.description, qtyOnHand:p.qtyOnHand, reorderPoint:p.reorderPoint }))
+    ...IMS.itemRegistry.getByType("consumable").filter(c => c.qtyOnHand <= c.reorderPoint).map(c => ({ type:"consumable", ref:c.sku, label:c.name, qtyOnHand:c.qtyOnHand, reorderPoint:c.reorderPoint })),
+    ...IMS.itemRegistry.getByType("part").filter(p => p.qtyOnHand <= p.reorderPoint).map(p => ({ type:"part", ref:p.partId, label:p.description, qtyOnHand:p.qtyOnHand, reorderPoint:p.reorderPoint }))
   ];
   const recent = App.breachAlerts.slice().reverse().slice(0, 6);
   const byStatus = {};
-  IMS.itemInstances.forEach(a => byStatus[a.status] = (byStatus[a.status] || 0) + 1);
+  IMS.itemRegistry.getByType("serialized").forEach(a => byStatus[a.status] = (byStatus[a.status] || 0) + 1);
   const stKeys = ["Available", "On Rent", "In Shop", "Staged"];
 
   $("#content").innerHTML = `
@@ -130,7 +130,7 @@ function renderDashboard(){
           <span class="bento-title"><i class="bi bi-boxes"></i> Items (Bulk) Out</span>
         </div>
         <div class="bento-body">
-          ${IMS.bulkResources.map(b => `<div class="list-line"><span class="l">${b.sku} · ${b.name}</span><span class="r strong">${fmtInt(b.qtyOut)} / ${fmtInt(b.totalOwned)} out</span></div>`).join("")}
+          ${IMS.itemRegistry.getByType("bulk").map(b => `<div class="list-line"><span class="l">${b.sku} · ${b.name}</span><span class="r strong">${fmtInt(b.qtyOut)} / ${fmtInt(b.totalOwned)} out</span></div>`).join("")}
         </div>
       </div>
     </div>`;
@@ -143,8 +143,8 @@ function renderDashboard(){
 /* Trigger a reorder for a low-stock consumable or stock part (restocks to 2x reorder point). */
 function triggerReorder(type, ref){
   const r = type === "part"
-    ? IMS.parts.find(p => p.partId === ref)
-    : IMS.consumables.find(c => c.sku === ref);
+    ? IMS.itemRegistry.getByType("part").find(p => p.partId === ref)
+    : IMS.itemRegistry.getByType("consumable").find(c => c.sku === ref);
   if (!r) return;
   const restock = Math.max((r.reorderPoint || 0) * 2, 1);
   r.qtyOnHand = restock;

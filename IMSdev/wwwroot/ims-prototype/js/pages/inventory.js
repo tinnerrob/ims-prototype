@@ -25,13 +25,13 @@ function renderInventory(){
   /* Type order follows the shared RESOURCE_TYPE_ORDER so it always matches the
      scheduler resource-pool dropdown and timeline grouping. */
   const tabMeta = {
-    serialized:  { label:"Items (Serialized)", icon:"bi-truck-front",      count: IMS.itemInstances.length },
-    bulk:        { label:"Items (Bulk)",       icon:"bi-boxes",            count: IMS.bulkResources.length },
-    consumable:  { label:"Consumables",          icon:"bi-capsule",          count: IMS.consumables.length },
-    parts:       { label:"Stock Inventory",      icon:"bi-wrench-adjustable",count: IMS.parts.length },
+    serialized:  { label:"Items (Serialized)", icon:"bi-truck-front",      count: IMS.itemRegistry.getByType("serialized").length },
+    bulk:        { label:"Items (Bulk)",       icon:"bi-boxes",            count: IMS.itemRegistry.getByType("bulk").length },
+    consumable:  { label:"Consumables",          icon:"bi-capsule",          count: IMS.itemRegistry.getByType("consumable").length },
+    parts:       { label:"Stock Inventory",      icon:"bi-wrench-adjustable",count: IMS.itemRegistry.getByType("part").length },
     labor:       { label:"Labor / Employees",    icon:"bi-person-badge",     count: IMS.labor.length },
-    attachments: { label:"Attachments",          icon:"bi-paperclip",        count: IMS.attachments.length },
-    kits:        { label:"Kits",                 icon:"bi-puzzle",           count: IMS.kits.length }
+    attachments: { label:"Attachments",          icon:"bi-paperclip",        count: IMS.itemRegistry.getByType("attachment").length },
+    kits:        { label:"Kits",                 icon:"bi-puzzle",           count: IMS.itemRegistry.getByType("kit").length }
   };
   const tabs = RESOURCE_TYPE_ORDER.map(k => ({ key:k, ...tabMeta[k] }));
   $("#content").innerHTML = `
@@ -66,25 +66,25 @@ function renderInvPanel(){
 function renderInvKitsPanel(){
   const p = $("#invPanel");
   p.innerHTML = kitsList();
-  $$("[data-kedit]").forEach(b => b.addEventListener("click", () => kitModal(IMS.kits.find(x => x.kitId === b.dataset.kedit))));
+  $$("[data-kedit]").forEach(b => b.addEventListener("click", () => kitModal(IMS.itemRegistry.getByType("kit").find(x => x.kitId === b.dataset.kedit))));
   delegate(p, "click", "[data-edit]", (el, e) => {
     if (e.target.closest("button, a, input, select, label, .form-check")) return;
-    kitModal(IMS.kits.find(x => x.kitId === el.dataset.edit));
+    kitModal(IMS.itemRegistry.getByType("kit").find(x => x.kitId === el.dataset.edit));
   });
 }
 
 function renderInvAttachmentsPanel(){
   const p = $("#invPanel");
   p.innerHTML = attachmentsTable();
-  $$("[data-aedit]").forEach(b => b.addEventListener("click", () => attachmentModal(IMS.attachments.find(x => x.accId === b.dataset.aedit))));
+  $$("[data-aedit]").forEach(b => b.addEventListener("click", () => attachmentModal(IMS.itemRegistry.getByType("attachment").find(x => x.accId === b.dataset.aedit))));
   delegate(p, "click", "[data-edit]", (el, e) => {
     if (e.target.closest("button, a, input, select, label, .form-check")) return;
-    attachmentModal(IMS.attachments.find(x => x.accId === el.dataset.edit));
+    attachmentModal(IMS.itemRegistry.getByType("attachment").find(x => x.accId === el.dataset.edit));
   });
 }
 
 function serializedTable(){
-  const rows = IMS.itemInstances.map(a => `
+  const rows = IMS.itemRegistry.getByType("serialized").map(a => `
     <tr data-edit="${a.id}">
       <td class="strong mono">${a.id}</td>
       <td class="mono text-muted2">${a.serial}</td>
@@ -107,7 +107,7 @@ function serializedTable(){
 }
 
 function bulkTable(){
-  const rows = IMS.bulkResources.map(b => `
+  const rows = IMS.itemRegistry.getByType("bulk").map(b => `
     <tr data-edit="${b.sku}">
       <td class="strong mono">${b.sku}</td>
       <td>${b.name}</td>
@@ -129,7 +129,7 @@ function bulkTable(){
 }
 
 function consumableTable(){
-  const rows = IMS.consumables.map(c => {
+  const rows = IMS.itemRegistry.getByType("consumable").map(c => {
     const low = c.qtyOnHand <= c.reorderPoint;
     return `<tr data-edit="${c.sku}">
       <td class="strong mono">${c.sku}</td>
@@ -236,7 +236,7 @@ function serializedView(a){
     const x = woComputed(w);
     return `<div class="list-line"><span class="l"><span class="strong mono">${w.woId}</span> — ${w.type} ${statusBadge(w.status)}</span><span class="r">${fmtMoney(x.total)}</span></div>`;
   }).join("");
-  const atts = IMS.assetAttachments.filter(x => x.assetId === a.id).map(x => IMS.attachments.find(t => t.accId === x.accId)).filter(Boolean);
+  const atts = IMS.assetAttachments.filter(x => x.assetId === a.id).map(x => IMS.itemRegistry.getByType("attachment").find(t => t.accId === x.accId)).filter(Boolean);
   const attList = atts.map(t => `<div class="list-line"><span class="l"><span class="strong mono">${t.accId}</span> — ${t.name} <span class="text-muted2">(${t.category})</span></span><span class="r">${fmtMoney(t.daily)}/day</span></div>`).join("");
   openRawModal({
     id: "mdl-aview", size: "lg", title: "Asset — " + a.id, icon: "bi-truck-front",
@@ -315,7 +315,7 @@ function laborView(e){
 }
 
 function partsTable(){
-  const rows = IMS.parts.map(p => {
+  const rows = IMS.itemRegistry.getByType("part").map(p => {
     const low = p.qtyOnHand <= p.reorderPoint;
     return `<tr data-edit="${p.partId}">
       <td class="strong mono">${p.partId}</td>
@@ -341,7 +341,7 @@ function partsFields(e){
   e = e || {};
   return [
     { key:"active", label:"Active", type:"checkbox", value: recActive(e) },
-    { key:"partId", label:"Part ID (PK)", type:"text", value: e.partId || "PRT-" + String(IMS.parts.length + 1).padStart(3, "0"), required:true },
+    { key:"partId", label:"Part ID (PK)", type:"text", value: e.partId || "PRT-" + String(IMS.itemRegistry.getByType("part").length + 1).padStart(3, "0"), required:true },
     { key:"description", label:"Description", type:"text", value: e.description || "" },
     { key:"category", label:"Category", type:"select", value: e.category || activeCats("parts")[0], options: catOptions("parts", e.category) },
     { key:"bin", label:"Bin / Aisle Location", type:"text", value: e.bin || "" },
@@ -359,7 +359,7 @@ function partsModal(existing){
     onSave: v => {
       const rec = { active:v.active !== false, partId:v.partId, description:v.description, category:v.category, bin:v.bin, qtyOnHand:v.qtyOnHand, reorderPoint:v.reorderPoint, costPrice:v.costPrice };
       if (isEdit) Object.assign(existing, rec);
-      else IMS.parts.push(rec);
+      else IMS.itemRegistry.getByType("part").push(rec);
       renderInventory();
     }
   });
@@ -382,11 +382,11 @@ function partsView(p){
 /* ---------- inventory record lookup + detail-modal helpers ---------- */
 /* Item records resolve through the unified item registry; labor is a crew/party resource. */
 const regFind = (type, id) => (IMS.itemRegistry ? IMS.itemRegistry.find(type, id) : null);
-const getAsset = id => regFind("serialized", id) || IMS.itemInstances.find(a => a.id === id);
-const getBulk = id => regFind("bulk", id) || IMS.bulkResources.find(b => b.sku === id);
-const getConsumable = id => regFind("consumable", id) || IMS.consumables.find(c => c.sku === id);
+const getAsset = id => regFind("serialized", id) || IMS.itemRegistry.getByType("serialized").find(a => a.id === id);
+const getBulk = id => regFind("bulk", id) || IMS.itemRegistry.getByType("bulk").find(b => b.sku === id);
+const getConsumable = id => regFind("consumable", id) || IMS.itemRegistry.getByType("consumable").find(c => c.sku === id);
 const getLabor = id => IMS.labor.find(e => e.empId === id);
-const getPart = id => regFind("part", id) || IMS.parts.find(p => p.partId === id);
+const getPart = id => regFind("part", id) || IMS.itemRegistry.getByType("part").find(p => p.partId === id);
 const contractRefs = (type, ref) => IMS.orders
   .map(c => ({ order: c, lines: (c.lineItems || []).filter(li => li.type === type && li.refId === ref) }))
   .filter(x => x.lines.length);
@@ -403,7 +403,7 @@ function assetCode(cat){
 function nextAssetId(cat){
   const code = assetCode(cat);
   let max = 0;
-  IMS.itemInstances.forEach(a => {
+  IMS.itemRegistry.getByType("serialized").forEach(a => {
     if (a.id.startsWith(code + "-")) { const n = parseInt(a.id.split("-")[1], 10); if (n > max) max = n; }
   });
   return code + "-" + (max + 1);
@@ -451,7 +451,7 @@ function serializedModal(existing){
       if (isEdit) {
         Object.assign(existing, { active:v.active !== false, serial:v.serial, make:v.make, model:v.model, category:v.category, meterHours:v.meterHours, fuelType:v.fuelType, purchaseValue:v.purchaseValue, baseDaily:v.baseDaily, baseWeekly:v.baseWeekly, baseMonthly:v.baseMonthly, depositPct:v.depositPct, lat:v.lat, lng:v.lng, status:v.status });
       } else {
-        IMS.itemInstances.push({ id:v.id, active:v.active !== false, serial:v.serial, make:v.make, model:v.model, category:v.category, meterHours:v.meterHours, fuelType:v.fuelType, purchaseValue:v.purchaseValue, baseDaily:v.baseDaily, baseWeekly:v.baseWeekly, baseMonthly:v.baseMonthly, depositPct:v.depositPct, lat:v.lat, lng:v.lng, status:v.status, battery:100, lastReported: new Date().toISOString().slice(0,19), orderId:null });
+        IMS.itemRegistry.getByType("serialized").push({ id:v.id, active:v.active !== false, serial:v.serial, make:v.make, model:v.model, category:v.category, meterHours:v.meterHours, fuelType:v.fuelType, purchaseValue:v.purchaseValue, baseDaily:v.baseDaily, baseWeekly:v.baseWeekly, baseMonthly:v.baseMonthly, depositPct:v.depositPct, lat:v.lat, lng:v.lng, status:v.status, battery:100, lastReported: new Date().toISOString().slice(0,19), orderId:null });
       }
       renderInventory();
     }
@@ -482,7 +482,7 @@ function bulkModal(existing){
       if (isEdit) {
         Object.assign(existing, { active:v.active !== false, sku:v.sku, name:v.name, category:v.category, totalOwned:v.totalOwned, baseDaily:v.baseDaily, baseWeekly:v.baseWeekly, baseMonthly:v.baseMonthly, depositPct:v.depositPct });
       } else {
-        IMS.bulkResources.push({ active:v.active !== false, sku:v.sku, name:v.name, category:v.category, totalOwned:v.totalOwned, qtyAvailable:v.totalOwned, qtyOut:0, baseDaily:v.baseDaily, baseWeekly:v.baseWeekly, baseMonthly:v.baseMonthly, depositPct:v.depositPct });
+        IMS.itemRegistry.getByType("bulk").push({ active:v.active !== false, sku:v.sku, name:v.name, category:v.category, totalOwned:v.totalOwned, qtyAvailable:v.totalOwned, qtyOut:0, baseDaily:v.baseDaily, baseWeekly:v.baseWeekly, baseMonthly:v.baseMonthly, depositPct:v.depositPct });
       }
       renderInventory();
     }
@@ -511,7 +511,7 @@ function consumableModal(existing){
     onSave: v => {
       const rec = { active:v.active !== false, sku:v.sku, name:v.name, category:v.category, qtyOnHand:v.qtyOnHand, reorderPoint:v.reorderPoint, costPrice:v.costPrice, retailPrice:v.retailPrice };
       if (isEdit) Object.assign(existing, rec);
-      else IMS.consumables.push(rec);
+      else IMS.itemRegistry.getByType("consumable").push(rec);
       renderInventory();
     }
   });
@@ -551,7 +551,7 @@ function laborModal(existing){
    PHASE 2 — PART 1: KITS & ATTACHMENTS
    ========================================================= */
 function kitsList(){
-  const cards = IMS.kits.map(k => {
+  const cards = IMS.itemRegistry.getByType("kit").map(k => {
     const comps = k.components.map(c => {
       const r = getResource({ type:c.refType, refId:c.refId });
       const rname = r ? (c.refType === "serialized" ? r.make + " " + r.model : r.name) : c.refId;
@@ -569,7 +569,7 @@ function kitsList(){
 }
 
 function attachmentsTable(){
-  const rows = IMS.attachments.map(a => {
+  const rows = IMS.itemRegistry.getByType("attachment").map(a => {
     const links = IMS.assetAttachments.filter(x => x.accId === a.accId).map(x => x.assetId).join(", ") || "—";
     return `<tr data-edit="${a.accId}">
       <td class="strong mono">${a.accId}</td>
@@ -590,15 +590,15 @@ function attachmentsTable(){
 
 function resOptions(){
   let o = `<option value="">— select component —</option>`;
-  IMS.itemInstances.forEach(a => o += `<option value="serialized|${a.id}">[Serialized] ${a.id} · ${a.make} ${a.model}</option>`);
-  IMS.bulkResources.forEach(b => o += `<option value="bulk|${b.sku}">[Bulk] ${b.sku} · ${b.name}</option>`);
-  IMS.consumables.forEach(c => o += `<option value="consumable|${c.sku}">[Consumable] ${c.sku} · ${c.name}</option>`);
+  IMS.itemRegistry.getByType("serialized").forEach(a => o += `<option value="serialized|${a.id}">[Serialized] ${a.id} · ${a.make} ${a.model}</option>`);
+  IMS.itemRegistry.getByType("bulk").forEach(b => o += `<option value="bulk|${b.sku}">[Bulk] ${b.sku} · ${b.name}</option>`);
+  IMS.itemRegistry.getByType("consumable").forEach(c => o += `<option value="consumable|${c.sku}">[Consumable] ${c.sku} · ${c.name}</option>`);
   return o;
 }
 
 function nextKitId(){
   let max = 0;
-  IMS.kits.forEach(k => { const n = parseInt(k.kitId.split("-")[1], 10); if (n > max) max = n; });
+  IMS.itemRegistry.getByType("kit").forEach(k => { const n = parseInt(k.kitId.split("-")[1], 10); if (n > max) max = n; });
   return "KT-" + String(max + 1).padStart(3, "0");
 }
 
@@ -663,14 +663,14 @@ function kitModal(existing){
     const kdep = parseFloat(root.querySelector("#k-dep").value);
     kit.depositPct = isNaN(kdep) ? 25 : Math.min(100, Math.max(0, kdep));
     kit.active = root.querySelector("#k-active").checked;
-    if (!isEdit) IMS.kits.push(kit);
+    if (!isEdit) IMS.itemRegistry.getByType("kit").push(kit);
     renderInventory();
     dismissModal(root);
   });
 }
 
 function assetIdChecks(cats, selected){
-  const list = cats && cats.length ? IMS.itemInstances.filter(a => cats.includes(a.category)) : [];
+  const list = cats && cats.length ? IMS.itemRegistry.getByType("serialized").filter(a => cats.includes(a.category)) : [];
   return list.map(a => `<label class="check-line ${(selected || []).includes(a.id) ? "checked" : ""}"><input type="checkbox" value="${a.id}" ${(selected || []).includes(a.id) ? "checked" : ""}>${a.id} — ${a.make} ${a.model}</label>`).join("") || `<div class="text-muted2 py-2">Select a category above to see matching assets.</div>`;
 }
 
@@ -681,7 +681,7 @@ function catChecks(cats, selected){
 function attachmentModal(existing){
   const isEdit = !!existing;
   const e = existing || {};
-  const cats = [...new Set(IMS.itemInstances.map(a => a.category))].sort();
+  const cats = [...new Set(IMS.itemRegistry.getByType("serialized").map(a => a.category))].sort();
   const fits = e.fits || [];
   const selCats = cats.filter(c => fits.some(id => { const a = getAsset(id); return a && a.category === c; }));
   const body = `
@@ -690,7 +690,7 @@ function attachmentModal(existing){
       <span class="text-muted2" style="font-size:11.5px">Inactive attachments are not selectable</span>
     </div>
     <div class="row g-3">
-      <div class="col-md-4 field-group"><label class="form-label">Attachment ID</label><input class="form-control" id="a-accid" value="${e.accId || "ACC-" + String(IMS.attachments.length + 1).padStart(3, "0")}"></div>
+      <div class="col-md-4 field-group"><label class="form-label">Attachment ID</label><input class="form-control" id="a-accid" value="${e.accId || "ACC-" + String(IMS.itemRegistry.getByType("attachment").length + 1).padStart(3, "0")}"></div>
       <div class="col-md-4 field-group"><label class="form-label">Name</label><input class="form-control" id="a-name" value="${e.name || ""}"></div>
       <div class="col-md-4 field-group"><label class="form-label">Category</label><select class="form-select" id="a-cat">${["Bucket","Carriage","Platform","Hydraulic","Lifting"].map(c => `<option ${c === (e.category || "Bucket") ? "selected" : ""}>${c}</option>`).join("")}</select></div>
       <div class="col-md-3 field-group"><label class="form-label">Qty Owned</label><input class="form-control" id="a-qty" type="number" value="${e.qtyOwned || 0}"></div>
@@ -743,7 +743,7 @@ function attachmentModal(existing){
   });
   root.querySelector("#a-save").addEventListener("click", () => {
     const rec = {
-      accId: root.querySelector("#a-accid").value || ("ACC-" + String(IMS.attachments.length + 1).padStart(3, "0")),
+      accId: root.querySelector("#a-accid").value || ("ACC-" + String(IMS.itemRegistry.getByType("attachment").length + 1).padStart(3, "0")),
       name: root.querySelector("#a-name").value,
       category: root.querySelector("#a-cat").value,
       qtyOwned: parseFloat(root.querySelector("#a-qty").value) || 0,
@@ -753,7 +753,7 @@ function attachmentModal(existing){
       fits: Array.from(root.querySelectorAll("#a-ids input:checked")).map(i => i.value)
     };
     if (isEdit) Object.assign(existing, rec);
-    else IMS.attachments.push(rec);
+    else IMS.itemRegistry.getByType("attachment").push(rec);
     renderInventory();
     dismissModal(root);
   });

@@ -86,11 +86,11 @@ function rwUnitDesc(type, ref){
 /* ---- option lists per type ---- */
 function rwPool(type){
   if (type === "serialized") return availableSerialized();
-  if (type === "bulk") return IMS.bulkResources.filter(recActive);
-  if (type === "consumable") return IMS.consumables.filter(recActive);
-  if (type === "part") return IMS.parts.filter(recActive);
-  if (type === "kit") return IMS.kits.filter(recActive);
-  if (type === "attachment") return IMS.attachments.filter(recActive);
+  if (type === "bulk") return IMS.itemRegistry.getByType("bulk").filter(recActive);
+  if (type === "consumable") return IMS.itemRegistry.getByType("consumable").filter(recActive);
+  if (type === "part") return IMS.itemRegistry.getByType("part").filter(recActive);
+  if (type === "kit") return IMS.itemRegistry.getByType("kit").filter(recActive);
+  if (type === "attachment") return IMS.itemRegistry.getByType("attachment").filter(recActive);
   return [];
 }
 /* exclude = map of refs already used (only serialized pieces can't repeat). */

@@ -9,8 +9,8 @@
    ========================================================= */
 function woComputed(w){
   const partsCost = (w.parts || []).reduce((s, p) => {
-    if (p.kind === "part") { const pr = IMS.parts.find(x => x.partId === p.refId); return s + (pr ? pr.costPrice * p.qty : 0); }
-    const c = IMS.consumables.find(x => x.sku === p.sku);
+    if (p.kind === "part") { const pr = IMS.itemRegistry.getByType("part").find(x => x.partId === p.refId); return s + (pr ? pr.costPrice * p.qty : 0); }
+    const c = IMS.itemRegistry.getByType("consumable").find(x => x.sku === p.sku);
     return s + (c ? c.costPrice * p.qty : 0);
   }, 0);
   const tech = IMS.labor.find(e => e.role === "Technician");
@@ -22,7 +22,7 @@ function woComputed(w){
 function renderMaintenance(){
   const woRows = IMS.workOrders
     .filter(w => App.woFilter === "all" || w.status === App.woFilter)
-    .map(w => ({ ...w, ...woComputed(w), asset: IMS.itemInstances.find(a => a.id === w.assetId) }));
+    .map(w => ({ ...w, ...woComputed(w), asset: IMS.itemRegistry.getByType("serialized").find(a => a.id === w.assetId) }));
   $("#content").innerHTML = `
     <div class="page-head"></div>
     <div class="card">
@@ -79,8 +79,8 @@ function workOrderModal(existing){
   const e = existing || {};
   const techs = IMS.labor.filter(x => x.role === "Technician");
   const fields = [
-    { key:"assetId", label:"Asset", type:"select", value: e.assetId || IMS.itemInstances.find(a => a.status === "In Shop")?.id || IMS.itemInstances[0].id,
-      options: IMS.itemInstances.map(a => ({ value:a.id, label:`${a.id} — ${a.make} ${a.model} (${a.status})` })) },
+    { key:"assetId", label:"Asset", type:"select", value: e.assetId || IMS.itemRegistry.getByType("serialized").find(a => a.status === "In Shop")?.id || IMS.itemRegistry.getByType("serialized")[0].id,
+      options: IMS.itemRegistry.getByType("serialized").map(a => ({ value:a.id, label:`${a.id} — ${a.make} ${a.model} (${a.status})` })) },
     { key:"type", label:"Service Type", type:"select", value:e.type || "Repair", options: opt(["Preventive","Repair","Inspection"]) },
     { key:"meterReading", label:"Current Meter Reading", type:"number", value:e.meterReading || 0 },
     { key:"status", label:"Status", type:"select", value:e.status || "In Progress", options: opt(["In Progress","Completed","Pending"]) },
@@ -88,9 +88,9 @@ function workOrderModal(existing){
   ];
   if (!isEdit){
     fields.push(
-      { key:"partsSku", label:"Part (from Consumables)", type:"select", value: IMS.consumables[0].sku, options: IMS.consumables.map(c => ({ value:c.sku, label:`${c.sku} — ${c.name} (${fmtMoney(c.costPrice)}/ea)` })) },
+      { key:"partsSku", label:"Part (from Consumables)", type:"select", value: IMS.itemRegistry.getByType("consumable")[0].sku, options: IMS.itemRegistry.getByType("consumable").map(c => ({ value:c.sku, label:`${c.sku} — ${c.name} (${fmtMoney(c.costPrice)}/ea)` })) },
       { key:"partsQty", label:"Consumable Qty (0 = none)", type:"number", value:0 },
-      { key:"partId", label:"Service Part (Stock Inventory)", type:"select", value: IMS.parts[0].partId, options: IMS.parts.filter(p => recActive(p)).map(p => ({ value:p.partId, label:`${p.partId} — ${p.description} (${fmtMoney(p.costPrice)}/ea · ${p.qtyOnHand} on hand)` })) },
+      { key:"partId", label:"Service Part (Stock Inventory)", type:"select", value: IMS.itemRegistry.getByType("part")[0].partId, options: IMS.itemRegistry.getByType("part").filter(p => recActive(p)).map(p => ({ value:p.partId, label:`${p.partId} — ${p.description} (${fmtMoney(p.costPrice)}/ea · ${p.qtyOnHand} on hand)` })) },
       { key:"partQty", label:"Stock Part Qty (0 = none)", type:"number", value:0 },
       { key:"techId", label:"Technician", type:"select", value: techs[0]?.empId || IMS.labor[0].empId, options: IMS.labor.map(e => ({ value:e.empId, label:`${e.empId} — ${e.name} (${e.role})` })) }
     );
@@ -105,15 +105,15 @@ function workOrderModal(existing){
         return;
       }
       const tech = IMS.labor.find(x => x.empId === v.techId) || IMS.labor[0];
-      const asset = IMS.itemInstances.find(a => a.id === v.assetId);
+      const asset = IMS.itemRegistry.getByType("serialized").find(a => a.id === v.assetId);
       const parts = [];
       if (v.partsQty > 0) parts.push({ kind:"consumable", sku:v.partsSku, qty:v.partsQty });
       if (v.partQty > 0) parts.push({ kind:"part", refId:v.partId, qty:v.partQty });
       IMS.workOrders.push({ woId: nextWoId(), assetId:v.assetId, type:v.type, meterReading:v.meterReading, status:v.status || "In Progress", parts, laborHours:v.laborHours, date: new Date().toISOString().slice(0,10) });
       if (asset) { asset.status = "In Shop"; asset.lastReported = new Date().toISOString().slice(0,19); }
-      const cons = IMS.consumables.find(c => c.sku === v.partsSku);
+      const cons = IMS.itemRegistry.getByType("consumable").find(c => c.sku === v.partsSku);
       if (cons && v.partsQty > 0) cons.qtyOnHand = Math.max(0, cons.qtyOnHand - v.partsQty);
-      const prt = IMS.parts.find(p => p.partId === v.partId);
+      const prt = IMS.itemRegistry.getByType("part").find(p => p.partId === v.partId);
       if (prt && v.partQty > 0) prt.qtyOnHand = Math.max(0, prt.qtyOnHand - v.partQty);
       renderMaintenance();
       updateBadges();

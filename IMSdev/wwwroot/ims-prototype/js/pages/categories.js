@@ -41,11 +41,11 @@ function categoryTable(){
   const type = App.catType;
   const cats = IMS.settings.categories[type] || [];
   const countOf = cat => {
-    if (type === "serialized") return IMS.itemInstances.filter(a => a.category === cat).length;
-    if (type === "bulk") return IMS.bulkResources.filter(b => b.category === cat).length;
-    if (type === "consumable") return IMS.consumables.filter(c => c.category === cat).length;
+    if (type === "serialized") return IMS.itemRegistry.getByType("serialized").filter(a => a.category === cat).length;
+    if (type === "bulk") return IMS.itemRegistry.getByType("bulk").filter(b => b.category === cat).length;
+    if (type === "consumable") return IMS.itemRegistry.getByType("consumable").filter(c => c.category === cat).length;
     if (type === "labor") return IMS.labor.filter(e => e.category === cat).length;
-    if (type === "parts") return IMS.parts.filter(p => p.category === cat).length;
+    if (type === "parts") return IMS.itemRegistry.getByType("part").filter(p => p.category === cat).length;
     return 0;
   };
   const rows = cats.map(c => `<tr>
@@ -94,9 +94,9 @@ function addCategoryModal(){
 }
 
 function renameRecords(type, oldName, newName){
-  if (type === "serialized") IMS.itemInstances.forEach(a => { if (a.category === oldName) a.category = newName; });
-  else if (type === "bulk") IMS.bulkResources.forEach(b => { if (b.category === oldName) b.category = newName; });
-  else if (type === "consumable") IMS.consumables.forEach(c => { if (c.category === oldName) c.category = newName; });
+  if (type === "serialized") IMS.itemRegistry.getByType("serialized").forEach(a => { if (a.category === oldName) a.category = newName; });
+  else if (type === "bulk") IMS.itemRegistry.getByType("bulk").forEach(b => { if (b.category === oldName) b.category = newName; });
+  else if (type === "consumable") IMS.itemRegistry.getByType("consumable").forEach(c => { if (c.category === oldName) c.category = newName; });
   else if (type === "labor") IMS.labor.forEach(e => { if (e.category === oldName) e.category = newName; });
 }
 

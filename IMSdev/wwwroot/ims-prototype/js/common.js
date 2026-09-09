@@ -142,12 +142,12 @@ const getResource = (item) => {
   if (item.type === "labor") return IMS.labor.find(e => e.empId === item.refId);
   if (IMS.itemRegistry) return IMS.itemRegistry.find(item.type, item.refId);
   /* legacy fallback (registry not yet seeded) */
-  if (item.type === "serialized") return IMS.itemInstances.find(a => a.id === item.refId);
-  if (item.type === "bulk")       return IMS.bulkResources.find(b => b.sku === item.refId);
-  if (item.type === "consumable") return IMS.consumables.find(c => c.sku === item.refId);
-  if (item.type === "part")       return IMS.parts.find(p => p.partId === item.refId);
-  if (item.type === "kit")        return IMS.kits.find(k => k.kitId === item.refId);
-  if (item.type === "attachment") return IMS.attachments.find(a => a.accId === item.refId);
+  if (item.type === "serialized") return IMS.itemRegistry.getByType("serialized").find(a => a.id === item.refId);
+  if (item.type === "bulk")       return IMS.itemRegistry.getByType("bulk").find(b => b.sku === item.refId);
+  if (item.type === "consumable") return IMS.itemRegistry.getByType("consumable").find(c => c.sku === item.refId);
+  if (item.type === "part")       return IMS.itemRegistry.getByType("part").find(p => p.partId === item.refId);
+  if (item.type === "kit")        return IMS.itemRegistry.getByType("kit").find(k => k.kitId === item.refId);
+  if (item.type === "attachment") return IMS.itemRegistry.getByType("attachment").find(a => a.accId === item.refId);
   return null;
 };
 
@@ -529,7 +529,7 @@ function syncInventoryOnStage(type, ref, qty, add, order){
   }
 }
 /* Count consumables/parts at or below their reorder point. @returns {number} */
-function reorderCount(){ return IMS.consumables.filter(c => c.qtyOnHand <= c.reorderPoint).length + IMS.parts.filter(p => p.qtyOnHand <= p.reorderPoint).length; }
+function reorderCount(){ return IMS.itemRegistry.getByType("consumable").filter(c => c.qtyOnHand <= c.reorderPoint).length + IMS.itemRegistry.getByType("part").filter(p => p.qtyOnHand <= p.reorderPoint).length; }
 
 function inProgressWO(){ return IMS.workOrders.filter(w => w.status !== "Completed").length; }
 
