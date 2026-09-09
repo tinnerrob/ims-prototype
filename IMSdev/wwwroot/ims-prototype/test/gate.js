@@ -488,6 +488,8 @@ addScript(`(() => {
   assert(IMS.metadata.verticals.HeavyEquipment && IMS.metadata.verticals.Healthcare, "metadata defines HeavyEquipment + Healthcare verticals");
   assert(IMS.metadata.vertical() === "HeavyEquipment", "default active vertical is HeavyEquipment");
   assert(IMS.metadata.registryFor("Healthcare").length > 0, "Healthcare vertical exposes extended attributes");
+  ["Rental", "Lumberyard", "Warehouse"].forEach(v =>
+    assert(!!IMS.metadata.verticals[v] && IMS.metadata.registryFor(v).length > 0, v + " vertical registered with extended attributes"));
   const metA = getAsset("BL-118");
   assert(IMS.metadata.ext(getAsset("TT-GATE-1"), "make") === "Test", "ext() reads flat field via registry path (no extended_attributes on a legacy record)");
   assert(IMS.metadata.ext({ extended_attributes: { meter_hours: 999 } }, "meter_hours") === 999, "ext() prefers extended_attributes over flat path");
@@ -544,10 +546,18 @@ addScript(`(() => {
     assert(IMS.healthcare.length === hcBefore + 1 && added.extended_attributes.expiration_date === "2032-05-05", "medical tab item round-trips extended_attributes via bucket save");
   } catch (e) { failures++; out.push("  FAIL: healthcareModal: " + (e && e.message)); }
 
-  /* config page exposes the vertical selector */
+  /* config page exposes the vertical selector incl. new verticals */
   showView("config");
   const vertSel = doc.getElementById("modVertical");
-  assert(!!vertSel && Array.from(vertSel.options).some(o => o.value === "Healthcare"), "Feature Modules page has a vertical selector");
+  const vertVals = vertSel ? Array.from(vertSel.options).map(o => o.value) : [];
+  assert(!!vertSel && ["HeavyEquipment", "Rental", "Healthcare", "Lumberyard", "Warehouse"].every(v => vertVals.includes(v)), "Feature Modules vertical selector lists all verticals");
+
+  IMS.metadata.setVertical("Rental"); renderInventory();
+  const rentalTabs = Array.from(doc.querySelectorAll("#invTabs .subtab")).map(b => b.dataset.tab);
+  assert(rentalTabs.includes("serialized") && rentalTabs.includes("kits"), "Rental vertical shows serialized + kits");
+  IMS.metadata.setVertical("Lumberyard"); renderInventory();
+  const lumTabs = Array.from(doc.querySelectorAll("#invTabs .subtab")).map(b => b.dataset.tab);
+  assert(lumTabs.includes("bulk") && lumTabs.includes("parts") && !lumTabs.includes("serialized") && !lumTabs.includes("medical"), "Lumberyard vertical is a base stock catalog (bulk/parts, no serialized/medical)");
 
   IMS.metadata.setVertical("HeavyEquipment");   // restore default for downstream/UI
   renderInventory();

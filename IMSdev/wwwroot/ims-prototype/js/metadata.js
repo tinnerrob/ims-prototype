@@ -10,14 +10,18 @@
 
 (function(){
   const VERTICALS = {
-    HeavyEquipment: "Heavy Equipment / Rental",
-    Healthcare: "Healthcare & Medical Devices"
+    HeavyEquipment: "Heavy Equipment",
+    Rental: "Rental / Equipment",
+    Healthcare: "Healthcare & Medical Devices",
+    Lumberyard: "Lumber Yard",
+    Warehouse: "Warehouse & Distribution"
   };
 
   /* Canonical core fields present on every item regardless of vertical. */
   const CORE_COLUMNS = [
-    { key: "id",           label: "Asset / Item ID" },
-    { key: "sku",          label: "SKU" },
+    { key: "id",           label: "Item ID" },
+    { key: "tenantId",     label: "Tenant ID", field: "tenant_id" },
+    { key: "sku",          label: "SKU / Model" },
     { key: "name",         label: "Name" },
     { key: "status",       label: "Status" },
     { key: "purchaseValue",label: "Purchase Value", field: "purchase_value" },
@@ -41,7 +45,25 @@
     { vertical:"Healthcare", field_key:"lot_number",        display_label:"Lot Number",        data_type:"string", path:null, validation_rules:{ required:true }, is_searchable:true, is_sortable:true },
     { vertical:"Healthcare", field_key:"expiration_date",   display_label:"Expiration Date",   data_type:"date",   path:null, validation_rules:{ required:true }, is_searchable:true, is_sortable:true },
     { vertical:"Healthcare", field_key:"sterilization_status", display_label:"Sterilization Status", data_type:"string", path:null, validation_rules:{}, is_searchable:true, is_sortable:true },
-    { vertical:"Healthcare", field_key:"fda_class",         display_label:"FDA Class",         data_type:"string", path:null, validation_rules:{}, is_searchable:true, is_sortable:true }
+    { vertical:"Healthcare", field_key:"fda_class",         display_label:"FDA Class",         data_type:"string", path:null, validation_rules:{}, is_searchable:true, is_sortable:true },
+
+    /* ---- Rental / Equipment (rented, serialized assets) ---- */
+    { vertical:"Rental", field_key:"serial_vin",        display_label:"Serial / VIN",    data_type:"string", path:null, validation_rules:{}, is_searchable:true, is_sortable:true },
+    { vertical:"Rental", field_key:"meter_hours",       display_label:"Meter Hours",     data_type:"number", path:null, validation_rules:{ min:0 }, is_searchable:true, is_sortable:true },
+    { vertical:"Rental", field_key:"fuel_type",         display_label:"Fuel Type",       data_type:"string", path:null, validation_rules:{}, is_searchable:true, is_sortable:true },
+    { vertical:"Rental", field_key:"telemetry_gps_enabled", display_label:"GPS Telemetry", data_type:"boolean", path:null, validation_rules:{}, is_searchable:false, is_sortable:false },
+
+    /* ---- Lumber Yard ---- */
+    { vertical:"Lumberyard", field_key:"species",       display_label:"Species",          data_type:"string", path:null, validation_rules:{}, is_searchable:true, is_sortable:true },
+    { vertical:"Lumberyard", field_key:"grade",         display_label:"Grade",            data_type:"string", path:null, validation_rules:{}, is_searchable:true, is_sortable:true },
+    { vertical:"Lumberyard", field_key:"moisture_pct",  display_label:"Moisture (%)",     data_type:"number", path:null, validation_rules:{ min:0, max:100 }, is_searchable:true, is_sortable:true },
+    { vertical:"Lumberyard", field_key:"length_ft",     display_label:"Length (ft)",      data_type:"number", path:null, validation_rules:{ min:0 }, is_searchable:true, is_sortable:true },
+
+    /* ---- Warehouse / Distribution ---- */
+    { vertical:"Warehouse", field_key:"storage_class",   display_label:"Storage Class",    data_type:"string", path:null, validation_rules:{}, is_searchable:true, is_sortable:true },
+    { vertical:"Warehouse", field_key:"zone_id",         display_label:"Zone",             data_type:"string", path:null, validation_rules:{}, is_searchable:true, is_sortable:true },
+    { vertical:"Warehouse", field_key:"aisle",           display_label:"Aisle / Bay",      data_type:"string", path:null, validation_rules:{}, is_searchable:true, is_sortable:true },
+    { vertical:"Warehouse", field_key:"temperature_controlled", display_label:"Temp Controlled", data_type:"boolean", path:null, validation_rules:{}, is_searchable:false, is_sortable:false }
   ];
 
   function getPath(item, path){

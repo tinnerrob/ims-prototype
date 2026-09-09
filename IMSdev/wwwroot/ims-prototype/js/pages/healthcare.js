@@ -56,7 +56,7 @@ function healthcareModal(existing){
     id: "mdl-health", title: (isEdit ? "Edit" : "New") + " Medical Device", icon: "bi-heart-pulse", fields,
     onSave: v => {
       const rec = {
-        id: v.id, sku: v.id, name: v.name, status: v.status || "Available",
+        id: v.id, tenantId: (existing && existing.tenantId) || "TENANT-001", sku: v.id, name: v.name, status: v.status || "Available",
         purchaseValue: v.purchaseValue || 0, locationId: v.locationId || null,
         createdAt: (existing && existing.createdAt) || now, active: true
       };

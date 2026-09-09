@@ -28,7 +28,10 @@ function invAddLabel(){
    Healthcare swaps the serialized tab for a medical/device catalog. */
 const VERTICAL_INV_TABS = {
   HeavyEquipment: ["serialized", "bulk", "consumable", "parts", "labor", "attachments", "kits"],
-  Healthcare: ["medical", "bulk", "consumable", "parts", "labor"]
+  Rental: ["serialized", "bulk", "consumable", "parts", "labor", "attachments", "kits"],
+  Healthcare: ["medical", "bulk", "consumable", "parts", "labor"],
+  Lumberyard: ["bulk", "consumable", "parts", "labor"],
+  Warehouse: ["bulk", "consumable", "parts", "labor"]
 };
 const invTabKeys = () => VERTICAL_INV_TABS[IMS.metadata.vertical()] || VERTICAL_INV_TABS.HeavyEquipment;
 
@@ -474,7 +477,7 @@ function serializedModal(existing){
       if (isEdit) {
         itemWrite("serialized", existing, patch);
       } else {
-        itemWrite("serialized", null, Object.assign({ id:v.id, battery:100, lastReported: new Date().toISOString().slice(0,19), orderId:null }, patch));
+        itemWrite("serialized", null, Object.assign({ id:v.id, tenantId: (existing && existing.tenantId) || "TENANT-001", battery:100, lastReported: new Date().toISOString().slice(0,19), orderId:null }, patch));
       }
       renderInventory();
     }

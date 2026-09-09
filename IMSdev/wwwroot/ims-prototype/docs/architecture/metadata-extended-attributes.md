@@ -25,8 +25,15 @@ The active vertical (set on **Feature Modules** → `IMS.metadata.setVertical`,
 persisted `ims.vertical`) controls which item tabs appear on Items & Stock:
 - **HeavyEquipment** (default): serialized, attachments, kits + the shared base
   (bulk, consumable, parts/stock, labor).
+- **Rental**: serialized, attachments, kits + shared base (rented equipment).
 - **Healthcare**: a medical/device catalog instead of serialized/attachments/kits,
   plus the shared base (bulk, consumable, parts, labor).
+- **Lumberyard** / **Warehouse**: a base stock catalog (bulk, consumable, parts,
+  labor) — quantity/bin-based, no rented serialized equipment.
+
+Base item shape: `id, tenant_id, sku-or-model, status, location_id` plus the
+vertical's `extended_attributes`. Each vertical has its own registry rows
+(`Rental`, `Lumberyard`, `Warehouse` included).
 
 There is no separate Healthcare page — the same Items & Stock table is
 "industry-aware" and shows the tabs for the active vertical.

@@ -129,6 +129,7 @@ IMS.store = (function(){
         if (r.status == null) r.status = r.active === false ? "Inactive" : "Active";
         if (r.purchaseValue == null) r.purchaseValue = 0;
         if (r.locationId == null) r.locationId = null;
+        if (r.tenantId == null) r.tenantId = "TENANT-001";
         if (r.createdAt == null) r.createdAt = now;
         if (r.extended_attributes == null || typeof r.extended_attributes !== "object") r.extended_attributes = {};
         /* B3 (isolated fields): relocate serialized type-specific fields into

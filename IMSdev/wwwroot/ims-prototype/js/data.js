@@ -401,8 +401,8 @@ IMS.itemRegistry = {
    Core fields on every item + Healthcare extended attributes.
    --------------------------------------------------------- */
 IMS.healthcare = [
-  { id:"MED-1001", sku:"MED-2026-99X", name:"Infusion Pump", status:"Available", purchaseValue:2400, locationId:"BR-ATL", createdAt:"2026-01-12T00:00:00", active:true,
+  { id:"MED-1001", tenantId:"TENANT-001", sku:"MED-2026-99X", name:"Infusion Pump", status:"Available", purchaseValue:2400, locationId:"BR-ATL", createdAt:"2026-01-12T00:00:00", active:true,
     extended_attributes:{ lot_number:"MED-2026-99X", expiration_date:"2029-04-12", sterilization_status:"Passed", fda_class:"Class II" } },
-  { id:"MED-1002", sku:"VNT-2026-07A", name:"Ventilator", status:"In Use", purchaseValue:9800, locationId:"BR-SAV", createdAt:"2026-02-03T00:00:00", active:true,
+  { id:"MED-1002", tenantId:"TENANT-001", sku:"VNT-2026-07A", name:"Ventilator", status:"In Use", purchaseValue:9800, locationId:"BR-SAV", createdAt:"2026-02-03T00:00:00", active:true,
     extended_attributes:{ lot_number:"VNT-2026-07A", expiration_date:"2030-01-20", sterilization_status:"Pending", fda_class:"Class III" } }
 ];
