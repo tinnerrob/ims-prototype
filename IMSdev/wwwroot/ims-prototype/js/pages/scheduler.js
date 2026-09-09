@@ -271,20 +271,36 @@ function renderPoolList(){
   const box = $("#poolList");
   const t = App.schedPoolTab;
   const plain = { key: "free", badge: "", note: "" };
+  /* Stage-2: the pool reads through the unified item registry. Pool tab keys
+     (parts/kits/attachments) map to registry item types; labor stays a
+     separate crew resource outside the item catalog. */
+  const mapTabToItem = { serialized:"serialized", bulk:"bulk", consumable:"consumable", parts:"part", attachments:"attachment", kits:"kit" };
+  const poolOf = tab => {
+    if (tab === "labor") return IMS.labor || [];
+    const it = mapTabToItem[tab];
+    return (it && IMS.itemRegistry) ? IMS.itemRegistry.getByType(it) : [];
+  };
+  const serializedList = poolOf("serialized");
+  const bulkList = poolOf("bulk");
+  const consumableList = poolOf("consumable");
+  const laborList = poolOf("labor");
+  const partList = poolOf("parts");
+  const kitList = poolOf("kits");
+  const attachmentList = poolOf("attachments");
   let html = "";
-  if (t === "serialized") html = byCode(IMS.itemInstances.filter(a => recActive(a)), "id").map(a => {
+  if (t === "serialized") html = byCode(serializedList.filter(a => recActive(a)), "id").map(a => {
     const out = typeof assetOutInfo === "function" ? assetOutInfo(a.id) : null;
     const avail = out
       ? { key: "busy", badge: `<span class="badge-status st-out"><i class="bi bi-truck"></i>On site · ${out.orderId}</span>`, note: "Custodian " + out.custodian }
       : capAvailUI("serialized", a.id, a.status === "In Shop");
     return resCard("serialized", a.id, `${a.id} · ${a.make} ${a.model}`, `${a.category} · ${fmtMoney(a.baseDaily)}/d`, avail);
   }).join("");
-  else if (t === "bulk") html = byCode(IMS.bulkResources.filter(b => recActive(b)), "sku").map(b => resCard("bulk", b.sku, `${b.sku} · ${b.name}`, `${fmtInt(b.qtyAvailable)} avail · ${fmtInt(bookedQtyInView("bulk", b.sku))} booked · ${fmtMoney(b.baseDaily)}/u`, plain)).join("");
-  else if (t === "consumable") html = byCode(IMS.consumables.filter(c => recActive(c)), "sku").map(c => resCard("consumable", c.sku, `${c.sku} · ${c.name}`, `${fmtInt(c.qtyOnHand)} on hand · ${fmtInt(bookedQtyInView("consumable", c.sku))} booked · ${fmtMoney(c.retailPrice)}`, plain)).join("");
-  else if (t === "labor") html = byCode(IMS.labor.filter(e => recActive(e)), "empId").map(e => resCard("labor", e.empId, `${e.empId} · ${e.name}`, `${e.role} · ${fmtMoney(e.hourlyBillable)}/hr`, capAvailUI("labor", e.empId, false))).join("");
-  else if (t === "parts") html = byCode(IMS.parts.filter(p => recActive(p)), "partId").map(p => resCard("part", p.partId, `${p.partId} · ${p.description}`, `${p.bin} · ${fmtInt(p.qtyOnHand)} on hand · ${fmtInt(bookedQtyInView("part", p.partId))} booked · ${fmtMoney(p.costPrice)}`, plain)).join("");
-  else if (t === "kits") html = byCode(IMS.kits.filter(k => recActive(k)), "kitId").map(k => resCard("kit", k.kitId, `${k.kitId} · ${k.name}`, `${fmtInt(k.qtyOwned || 1)} owned · ${fmtInt(bookedQtyInView("kit", k.kitId))} booked · ${fmtMoney(k.baseRate)}/d`, plain)).join("");
-  else if (t === "attachments") html = byCode(IMS.attachments.filter(a => recActive(a)), "accId").map(a => resCard("attachment", a.accId, `${a.accId} · ${a.name}`, `${a.category} · ${fmtInt(a.qtyOwned || 1)} owned · ${fmtInt(bookedQtyInView("attachment", a.accId))} booked · ${fmtMoney(a.daily)}/d`, plain)).join("");
+  else if (t === "bulk") html = byCode(bulkList.filter(b => recActive(b)), "sku").map(b => resCard("bulk", b.sku, `${b.sku} · ${b.name}`, `${fmtInt(b.qtyAvailable)} avail · ${fmtInt(bookedQtyInView("bulk", b.sku))} booked · ${fmtMoney(b.baseDaily)}/u`, plain)).join("");
+  else if (t === "consumable") html = byCode(consumableList.filter(c => recActive(c)), "sku").map(c => resCard("consumable", c.sku, `${c.sku} · ${c.name}`, `${fmtInt(c.qtyOnHand)} on hand · ${fmtInt(bookedQtyInView("consumable", c.sku))} booked · ${fmtMoney(c.retailPrice)}`, plain)).join("");
+  else if (t === "labor") html = byCode(laborList.filter(e => recActive(e)), "empId").map(e => resCard("labor", e.empId, `${e.empId} · ${e.name}`, `${e.role} · ${fmtMoney(e.hourlyBillable)}/hr`, capAvailUI("labor", e.empId, false))).join("");
+  else if (t === "parts") html = byCode(partList.filter(p => recActive(p)), "partId").map(p => resCard("part", p.partId, `${p.partId} · ${p.description}`, `${p.bin} · ${fmtInt(p.qtyOnHand)} on hand · ${fmtInt(bookedQtyInView("part", p.partId))} booked · ${fmtMoney(p.costPrice)}`, plain)).join("");
+  else if (t === "kits") html = byCode(kitList.filter(k => recActive(k)), "kitId").map(k => resCard("kit", k.kitId, `${k.kitId} · ${k.name}`, `${fmtInt(k.qtyOwned || 1)} owned · ${fmtInt(bookedQtyInView("kit", k.kitId))} booked · ${fmtMoney(k.baseRate)}/d`, plain)).join("");
+  else if (t === "attachments") html = byCode(attachmentList.filter(a => recActive(a)), "accId").map(a => resCard("attachment", a.accId, `${a.accId} · ${a.name}`, `${a.category} · ${fmtInt(a.qtyOwned || 1)} owned · ${fmtInt(bookedQtyInView("attachment", a.accId))} booked · ${fmtMoney(a.daily)}/d`, plain)).join("");
   box.innerHTML = html || `<p class="text-muted2 py-2">No resources in this pool.</p>`;
 }
 
