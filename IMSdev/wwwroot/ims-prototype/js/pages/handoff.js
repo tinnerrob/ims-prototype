@@ -58,16 +58,15 @@ const mvFromAction = a => (a === "Check-Out" || a === "issue") ? "issue" : (a ==
 function hoLog(refId, orderId, action, party, note){
   IMS.movements = IMS.movements || [];
   const kind = mvFromAction(action);
-  IMS.movements.push({
+  const mvRec = {
     id: hoNext(), refType: "serialized", refId,
     kind,
     orderId: orderId || null,
     party: party || "Unknown",
-    location: (kind === "return" || kind === "receive")
-      ? ((IMS.yard && IMS.yard.name) || "Main yard")
-      : ((IMS.yard && IMS.yard.name) || "Main yard"),
+    location: ((IMS.yard && IMS.yard.name) || "Main yard"),
     at: hoStamp(), by: "D. Reynolds", note: note || ""
-  });
+  };
+  if (IMS.store) IMS.store.repo("movements").create(mvRec); else IMS.movements.push(mvRec);
 }
 function hoCheckOut(assetId, orderId, note){
   if (assetOutInfo(assetId)) return;                       // already out — no double hand-off

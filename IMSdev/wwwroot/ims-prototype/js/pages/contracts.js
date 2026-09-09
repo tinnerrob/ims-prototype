@@ -193,7 +193,7 @@ function customerModal(cust, editable){
 
 function customerNewModal(){
   const cust = { id: nextCustId(), name:"", contact:"", phone:"", email:"", billingAddress:"", notes:"", billingCycle:"monthly", active:true };
-  IMS.parties.push(cust);
+  if (IMS.store) IMS.store.repo("parties").create(cust); else IMS.parties.push(cust);
   customerModal(cust, true);
 }
 
