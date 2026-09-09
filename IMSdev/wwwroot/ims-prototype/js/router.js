@@ -32,7 +32,48 @@ const DESCRIPTIONS = {
   categories:"Core: manage item type / category options across the catalog."
 };
 
+/* =========================================================
+   MODULE MANIFEST (industry modules over the IMS core)
+   Core views are always on. Each optional module can be
+   disabled per tenant via IMS.settings.featureModules.
+   Default: every module is enabled.
+   ========================================================= */
+const MODULE_VIEW = {
+  scheduler: "scheduling",
+  logistics: "dispatch",
+  geo: "telemetry",
+  timesheet: "labor",
+  maintenance: "service",
+  rerents: "rentals",
+  invoicing: "billing"
+};
+const MODULE_META = {
+  scheduling: "Scheduling / Allocations",
+  dispatch: "Logistics & Dispatch",
+  telemetry: "Fleet Telemetry",
+  labor: "Labor & Timesheets",
+  service: "Field Service",
+  rentals: "Rentals & Sub-Rentals",
+  billing: "Billing & Invoicing"
+};
+const viewModule = id => MODULE_VIEW[id] || null;
+const moduleEnabled = id => {
+  const m = viewModule(id);
+  if (!m) return true;                       // core view
+  const flags = IMS.settings && IMS.settings.featureModules;
+  return flags ? flags[m] !== false : true;  // default on
+};
+function applyModuleNav(){
+  document.querySelectorAll(".nav-item").forEach(b => {
+    const m = viewModule(b.dataset.view);
+    b.classList.toggle("hidden", m ? !moduleEnabled(b.dataset.view) : false);
+  });
+}
+
+
 function showView(id){
+  /* Disabled modules fall back to the dashboard (core is always available). */
+  if (id !== "dashboard" && !moduleEnabled(id)) return showView("dashboard");
   App.view = id;
   $$(".nav-item").forEach(b => b.classList.toggle("active", b.dataset.view === id));
   $("#pageTitle").textContent = TITLES[id] || "";
@@ -51,6 +92,7 @@ function init(){
   $("#topbarDate").textContent = d.toLocaleDateString("en-US", { weekday:"short", month:"short", day:"numeric", year:"numeric" });
 
   $$(".nav-item").forEach(b => b.addEventListener("click", () => showView(b.dataset.view)));
+  applyModuleNav();   /* hide nav entries for disabled modules */
   $("#menuToggle").addEventListener("click", () => $("#sidebar").classList.toggle("open"));
   $("#notifBtn").addEventListener("click", () => showView("geo"));
 
