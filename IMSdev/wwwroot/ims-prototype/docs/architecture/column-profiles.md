@@ -24,6 +24,7 @@ Every data grid renders through `IMSGrid`:
 - Geo fleet: `geo-fleet`
 - Pricing: `tax-grid`, `oh-grid`
 - Logistics: `log-dispatch`
+- Healthcare catalog: `health-list`
 
 ## Layouts NOT converted (not column grids — skip for Track A)
 Scheduler orders/allocations + inventory pool (cards/timeline/drag), Branches

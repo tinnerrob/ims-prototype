@@ -41,11 +41,15 @@ wwwroot/ims-prototype/
 │   └── styles.css      # Theme, layout, components, scheduler & table styles
 └── js/
     ├── data.js         # Mocked IMS data + settings (the "database")
+    ├── metadata.js     # Metadata registry: core columns + per-vertical extended attributes
+    ├── store.js        # JSON data service: repositories + persistence + normalizeCore
     ├── common.js       # Shared foundation (see below)
+    ├── grid.js         # Shared data-table + column-profile renderer (IMSGrid)
     ├── router.js       # Nav router (TITLES/RENDER/showView) + init() bootstrap
     └── pages/          # One file per page/view
         ├── dashboard.js     # Executive KPIs & dashboards
         ├── inventory.js     # 7 resource types: serialized, bulk, consumables, parts, labor, kits, attachments
+        ├── healthcare.js    # 2nd vertical: Healthcare/medical devices (registry-driven extended attrs)
         ├── scheduler.js     # Contract queue, resource pool, timeline, booking, conflicts
         ├── contracts.js     # Customers & contracts (header management)
         ├── geo.js           # GPS telemetry simulation + geofence monitoring
@@ -219,22 +223,26 @@ The global `IMS` object holds all mocked data:
 
 | Key | Description |
 |-----|-------------|
-| `serializedAssets` | Fleet: id, make/model, rates (daily/weekly/monthly), GPS, status, meter hours |
-| `bulkResources`    | Quantity items: sku, name, owned/available/out, rates |
-| `consumables`      | Consumable stock: sku, on-hand, reorder point, cost/retail |
-| `labor`            | Employees: role, certs, hourly cost/billable |
-| `parts`            | Stock parts: bin, on-hand, cost |
-| `customers`        | Customer records incl. **`billingCycle`** |
-| `contracts`        | Rental contracts: customer, dates, geofence, `lineItems[]` |
-| `workOrders`       | Maintenance work orders |
-| `timesheets`       | Labor punches |
+| `itemInstances`   | Serialized fleet: id, make/model, rates (daily/weekly/monthly), GPS, status, meter hours (vertical fields live in `extended_attributes`) |
+| `bulkResources`   | Quantity items: sku, name, owned/available/out, rates |
+| `consumables`     | Consumable stock: sku, on-hand, reorder point, cost/retail |
+| `labor`           | Employees: role, certs, hourly cost/billable |
+| `parts`           | Stock parts: bin, on-hand, cost |
+| `parties`         | Parties/customers incl. **`billingCycle`** |
+| `orders`          | Rental orders: party, dates, geofence, `lineItems[]` |
+| `movements`       | Chain-of-custody / inventory movement audit log |
+| `workOrders`      | Maintenance work orders |
+| `timesheets`      | Labor punches |
 | `kits` / `attachments` / `assetAttachments` | Kit assemblies & attachment fit matrix |
-| `vehicles`         | Trucks for dispatch |
-| `inspections`      | Yard check-in/out records |
-| `dispatches`       | Logistics dispatch board |
-| `invoices`         | Cycle invoices (cycle, period, overheads, status) |
-| `rentals`          | Sub-rentals |
-| `settings`         | branches, taxSchedules, categories, pricing, overheads |
+| `vehicles`        | Trucks for dispatch |
+| `inspections`     | Yard check-in/out records |
+| `dispatches`      | Logistics dispatch board |
+| `invoices`        | Cycle invoices (cycle, period, overheads, status) |
+| `rentals`         | Sub-rentals |
+| `healthcare`      | Medical-device catalog (2nd vertical): core fields + `extended_attributes` (Healthcare registry) |
+| `itemRegistry`    | Canonical unified catalog read-path over the typed item tables |
+| `settings`        | branches, taxSchedules, categories, pricing, overheads |
+| `metadata`        | Registry (`IMS.metadata`): core columns + per-vertical extended attribute definitions |
 
 ---
 
