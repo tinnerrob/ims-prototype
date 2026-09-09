@@ -10,6 +10,7 @@ function renderCategories(){
     <div class="card"><div class="card-header"><span class="card-title"><i class="bi bi-tags"></i> Resource Categories</span>
       <button class="btn btn-ims btn-sm2" id="catAddBtn"><i class="bi bi-plus-lg"></i> Add Category</button></div>
       <div class="card-body">${categoriesManagerHTML()}</div></div>`;
+  IMSGrid.ensure("cat-cats", renderCategories);
   bindCategoryManager();
 }
 
@@ -48,18 +49,16 @@ function categoryTable(){
     if (type === "parts") return IMS.itemRegistry.getByType("part").filter(p => p.category === cat).length;
     return 0;
   };
-  const rows = cats.map(c => `<tr>
-    <td class="strong">${c.name}</td>
-    <td>${c.active !== false ? `<span class="badge-status st-active"><i class="bi bi-circle-fill"></i>Active</span>` : `<span class="badge-status st-out"><i class="bi bi-circle-fill"></i>Inactive</span>`}</td>
-    <td class="num">${countOf(c.name)}</td>
-    <td class="text-end text-nowrap">
-      <button class="btn btn-ims-outline btn-sm2" data-cate="rename" data-name="${c.name}" title="Rename"><i class="bi bi-pencil"></i></button>
-      <button class="btn btn-ims-outline btn-sm2" data-cate="del" data-name="${c.name}" title="Remove"><i class="bi bi-x-lg"></i></button>
-    </td>
-  </tr>`).join("");
-  return `<div class="table-wrap"><table class="table"><thead><tr>
-    <th>Category</th><th>Active</th><th class="num">Items</th><th class="text-end">Actions</th>
-  </tr></thead><tbody>${rows || emptyRow(4)}</tbody></table></div>`;
+  const badge = c => c.active !== false
+    ? `<span class="badge-status st-active"><i class="bi bi-circle-fill"></i>Active</span>`
+    : `<span class="badge-status st-out"><i class="bi bi-circle-fill"></i>Inactive</span>`;
+  const cols = [
+    { key:"name", header:"Category", td:"strong", always:true, render: c => c.name },
+    { key:"active", header:"Active", render: c => badge(c) },
+    { key:"items", header:"Items", td:"num", render: c => countOf(c.name) },
+    { key:"actions", header:"Actions", th:"text-end", td:"text-end text-nowrap", always:true, render: c => `<button class="btn btn-ims-outline btn-sm2" data-cate="rename" data-name="${c.name}" title="Rename"><i class="bi bi-pencil"></i></button><button class="btn btn-ims-outline btn-sm2" data-cate="del" data-name="${c.name}" title="Remove"><i class="bi bi-x-lg"></i></button>` }
+  ];
+  return IMSGrid.render("cat-cats", cols, cats, { empty:"No categories for this type." });
 }
 
 function bindCategoryManager(){

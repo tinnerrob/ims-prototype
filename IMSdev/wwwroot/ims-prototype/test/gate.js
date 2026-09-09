@@ -418,6 +418,26 @@ addScript(`(() => {
   localStorage.removeItem("ims.cols.inv-ledger");
   renderInvoicing();
 
+  /* 19. Column-profile grids (categories + rerents) */
+  showView("categories");
+  App.catType = "serialized"; renderCategories();
+  const catHeads = () => Array.from(doc.querySelectorAll("#catPanel .table thead th")).map(t => t.textContent.trim());
+  let cath = catHeads();
+  assert(cath.length === 4 && cath[0] === "Category" && cath[3] === "Actions", "categories grid renders default columns");
+  assert(doc.querySelectorAll("#catPanel tbody tr").length > 0, "categories grid has rows");
+  localStorage.setItem("ims.cols.cat-cats", JSON.stringify({ items: false }));
+  renderCategories();
+  cath = catHeads();
+  assert(cath.length === 3 && !cath.includes("Items"), "categories grid honors hidden column");
+  localStorage.removeItem("ims.cols.cat-cats");
+  renderCategories();
+
+  showView("rerents");
+  renderRerents();
+  const rrHeads = Array.from(doc.querySelectorAll("#content .card-body .table thead th")).map(t => t.textContent.trim());
+  assert(rrHeads.length === 7 && rrHeads[0] === "Asset" && rrHeads[6] === "Net Spread", "rerents grid renders default columns");
+  assert(doc.querySelectorAll("#content .card-body .table tbody tr").length > 0, "rerents grid has rows");
+
   window.__gateFailures = failures;
   window.__gateLog = out;
 })();

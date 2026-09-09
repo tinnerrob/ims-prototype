@@ -4,19 +4,20 @@
    ========================================================= */
 "use strict";
 
+function rerentsGrid(){
+  const cols = [
+    { key:"asset", header:"Asset", td:"strong", always:true, render: r => `${r.assetName}${r.assetId ? ` <span class="mono text-muted2">${r.assetId}</span>` : ""}` },
+    { key:"orderId", header:"Contract", td:"strong mono", render: r => r.orderId },
+    { key:"vendor", header:"Vendor Source", render: r => r.vendor },
+    { key:"vcost", header:"Vendor Cost", td:"num", render: r => fmtMoney(r.vendorCost) },
+    { key:"retail", header:"Retail Rate", td:"num", render: r => fmtMoney(r.retailRate) },
+    { key:"qty", header:"Qty", td:"num", render: r => r.qty },
+    { key:"spread", header:"Net Spread", td:"num strong", render: r => fmtMoney((r.retailRate - r.vendorCost) * r.qty) }
+  ];
+  return IMSGrid.render("rr-list", cols, IMS.rentals, { empty:"No sub-rentals." });
+}
+
 function renderRerents(){
-  const rows = IMS.rentals.map(r => {
-    const spread = (r.retailRate - r.vendorCost) * r.qty;
-    return `<tr>
-      <td class="strong">${r.assetName}${r.assetId ? ` <span class="mono text-muted2">${r.assetId}</span>` : ""}</td>
-      <td class="strong mono">${r.orderId}</td>
-      <td>${r.vendor}</td>
-      <td class="num">${fmtMoney(r.vendorCost)}</td>
-      <td class="num">${fmtMoney(r.retailRate)}</td>
-      <td class="num">${r.qty}</td>
-      <td class="num strong">${fmtMoney(spread)}</td>
-    </tr>`;
-  }).join("");
   const totalSpread = IMS.rentals.reduce((s, r) => s + (r.retailRate - r.vendorCost) * r.qty, 0);
   const totalCost = IMS.rentals.reduce((s, r) => s + r.vendorCost * r.qty, 0);
   const totalRetail = IMS.rentals.reduce((s, r) => s + r.retailRate * r.qty, 0);
@@ -30,10 +31,9 @@ function renderRerents(){
     </div>
     <div class="card"><div class="card-header"><span class="card-title"><i class="bi bi-arrow-left-right"></i> Sub-Rentals</span>
       <button class="btn btn-ims btn-sm2" id="rrAdd"><i class="bi bi-plus-lg"></i> New Sub-Rental</button></div>
-      <div class="card-body table-wrap">
-        <table class="table"><thead><tr><th>Asset</th><th>Contract</th><th>Vendor Source</th><th class="num">Vendor Cost</th><th class="num">Retail Rate</th><th class="num">Qty</th><th class="num">Net Spread</th></tr></thead>
-        <tbody>${rows || emptyRow(7)}</tbody></table>
-      </div></div>`;
+      <div class="card-body">${rerentsGrid()}</div>
+      </div>`;
+  IMSGrid.ensure("rr-list", renderRerents);
   $("#rrAdd").addEventListener("click", rerentModal);
 }
 
