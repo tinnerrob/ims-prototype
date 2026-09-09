@@ -90,7 +90,7 @@ function serializedTable(){
     { key:"serial", header:"Serial / VIN", td:"mono text-muted2", render: a => a.serial },
     { key:"mkmod", header:"Make / Model", render: a => `${a.make} ${a.model}` },
     { key:"category", header:"Category", render: a => a.category },
-    { key:"meter", header:"Meter Hrs", td:"num", render: a => fmtInt(a.meterHours) },
+    { key:"meter", header:"Meter Hrs", td:"num", render: a => fmtInt(IMS.metadata.ext(a, "meter_hours") || 0) },
     { key:"fuel", header:"Fuel", render: a => IMS.metadata.ext(a, "fuel_type") || "" },
     { key:"pval", header:"Purchase Value", td:"num", render: a => fmtMoney(a.purchaseValue) },
     { key:"rates", header:"Daily / Weekly / Monthly", td:"num", render: a => `<span class="text-muted2">${fmtMoney(a.baseDaily)}</span> / <span class="text-muted2">${fmtMoney(a.baseWeekly)}</span> / <span class="text-muted2">${fmtMoney(a.baseMonthly)}</span>` },
@@ -225,7 +225,7 @@ function serializedView(a){
     id: "mdl-aview", size: "lg", title: "Asset — " + a.id, icon: "bi-truck-front",
     body: detailGrid([
       ["Asset ID", a.id], ["Serial / VIN", a.serial], ["Make / Model", a.make + " " + a.model], ["Category", a.category],
-      ["Meter Hours", fmtInt(a.meterHours)], ["Fuel", IMS.metadata.ext(a, "fuel_type") || "—"], ["Purchase Value", fmtMoney(a.purchaseValue)],
+      ["Meter Hours", fmtInt(IMS.metadata.ext(a, "meter_hours") || 0)], ["Fuel", IMS.metadata.ext(a, "fuel_type") || "—"], ["Purchase Value", fmtMoney(a.purchaseValue)],
       ["Daily", fmtMoney(a.baseDaily)], ["Weekly", fmtMoney(a.baseWeekly)], ["Monthly", fmtMoney(a.baseMonthly)],
       ["Default Deposit", (a.depositPct != null ? a.depositPct : 25) + "% of rental"],
       ["GPS Coord", a.lat.toFixed(4) + ", " + a.lng.toFixed(4)], ["Status", statusBadge(a.status)]
@@ -408,7 +408,7 @@ function serializedFields(e){
     { key:"make", label:"Make", type:"text", value: e.make || "" },
     { key:"model", label:"Model", type:"text", value: e.model || "" },
     { key:"category", label:"Category", type:"select", value: e.category || activeCats("serialized")[0], options: catOptions("serialized", e.category) },
-    { key:"meterHours", label:"Current Meter Hours", type:"number", value: e.meterHours || 0, section:"Usage & Availability" },
+    { key:"meter_hours", label:"Current Meter Hours", type:"number", bucket:"extended_attributes", value: IMS.metadata.ext(e, "meter_hours") || 0, section:"Usage & Availability" },
     { key:"fuel_type", label:"Fuel Type", type:"select", bucket:"extended_attributes", value: IMS.metadata.ext(e, "fuel_type") || "Diesel", options: opt(["Diesel","Gasoline","Electric","LPG"]) },
     { key:"status", label:"Status", type:"select", value: e.status || "Available", options: opt(["Available","On Rent","In Shop","Staged"]) },
     { key:"purchaseValue", label:"Purchase Value ($)", type:"number", value: e.purchaseValue || 0, section:"Rates & Pricing" },
@@ -440,7 +440,7 @@ function serializedModal(existing){
     id: "mdl-serial", title: (isEdit ? "Edit" : "New") + " Serialized / Equipment Asset", icon: "bi-truck-front", large: true,
     fields: serializedFields(existing),
     onSave: v => {
-      const base = { active:v.active !== false, serial:v.serial, make:v.make, model:v.model, category:v.category, meterHours:v.meterHours, purchaseValue:v.purchaseValue, baseDaily:v.baseDaily, baseWeekly:v.baseWeekly, baseMonthly:v.baseMonthly, depositPct:v.depositPct, lat:v.lat, lng:v.lng, status:v.status };
+      const base = { active:v.active !== false, serial:v.serial, make:v.make, model:v.model, category:v.category, purchaseValue:v.purchaseValue, baseDaily:v.baseDaily, baseWeekly:v.baseWeekly, baseMonthly:v.baseMonthly, depositPct:v.depositPct, lat:v.lat, lng:v.lng, status:v.status };
       const ext = Object.assign({}, (existing && existing.extended_attributes) || {}, (v.extended_attributes) || {});
       const patch = Object.assign({ extended_attributes: ext }, base);
       if (isEdit) {

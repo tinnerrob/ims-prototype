@@ -81,7 +81,7 @@ function renderGeoTable(){
     { key:"status", header:"Status", render: a => statusBadge(a.status) + (a._breached ? ' <span class="badge-status st-out">Breach</span>' : '') },
     { key:"reported", header:"Last Reported", td:"mono text-muted2 text-xs2", render: a => fmtDT(a.lastReported) },
     { key:"batt", header:"Batt", render: a => `<div class="batt-bar"><div style="width:${a.battery}%;background:${battCls(a)}"></div></div><span class="text-muted2" style="font-size:10.5px">${a.battery}%</span>` },
-    { key:"meter", header:"Meter Hrs", td:"num", render: a => fmtInt(a.meterHours) }
+    { key:"meter", header:"Meter Hrs", td:"num", render: a => fmtInt(IMS.metadata.ext(a, "meter_hours") || 0) }
   ];
   wrap.innerHTML = IMSGrid.render("geo-fleet", cols, filtered, { empty:"No matching assets" });
   IMSGrid.ensure("geo-fleet", renderGeoTable);

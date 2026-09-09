@@ -131,11 +131,15 @@ IMS.store = (function(){
         if (r.locationId == null) r.locationId = null;
         if (r.createdAt == null) r.createdAt = now;
         if (r.extended_attributes == null || typeof r.extended_attributes !== "object") r.extended_attributes = {};
-        /* B3 (field, isolated): relocate serialized fuelType -> extended_attributes.fuel_type */
+        /* B3 (isolated fields): relocate serialized type-specific fields into
+           extended_attributes (registry field_key <- flat key). */
         if (t === "serialized"){
-          const fv = r.extended_attributes.fuel_type != null ? r.extended_attributes.fuel_type : (r.fuelType != null ? r.fuelType : null);
-          if (fv != null) r.extended_attributes.fuel_type = fv;
-          delete r.fuelType;
+          const RELOC = [ ["meter_hours", "meterHours"], ["fuel_type", "fuelType"] ];
+          RELOC.forEach(([fieldKey, flatKey]) => {
+            const v = r.extended_attributes[fieldKey] != null ? r.extended_attributes[fieldKey] : (r[flatKey] != null ? r[flatKey] : null);
+            if (v != null) r.extended_attributes[fieldKey] = v;
+            delete r[flatKey];
+          });
         }
       });
     });
