@@ -99,4 +99,13 @@ with findings are updated as passes land.
 9. **[x] T2.2 + T2.3 (done):** single-source `VIEWS` registry in `router.js` (derives
    RENDER/TITLES/DESCRIPTIONS/MODULE_VIEW); gate now proves each module off → nav hidden,
    route falls back to dashboard, and every core view renders. Gates green.
+10. **[T2.4] Vocabulary audit (PARTIAL):** core UI + seed copy still carries domain terms
+    `rental`/`contract`/`customer`/`Check-Out` (domain-appropriate for the active rental
+    vertical; not renamed). Fixed the factually-wrong **stale `data.js` schema headers**
+    (`customers`→`parties`, `contract_id`→`orderId`/`partyId`, snake_case→live camelCase) for
+    parties/orders/inspections/dispatches/cycle_invoices/re_rents. Full copy normalization is
+    deferred to the Angular/Wisej migration (fresh model) rather than churning prototype UI.
+11. **[T1.3] Remaining reuse deferred:** leftover duplication is **interactive action-button /
+    page-header markup** whose handlers the gate renders but can't click-verify; blind refactor
+    risks silent regressions. Extract during the browser visual pass (`app-review-visual.md`).
 

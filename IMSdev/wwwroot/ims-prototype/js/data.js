@@ -96,9 +96,9 @@ IMS.parts = [
 ];
 
 /* ---------------------------------------------------------
-   TABLE: customers
-   PK cust_id | name | contact | phone | email | billing |
-   notes
+   TABLE: parties (customers/vendors/sites)
+   id | name | contact | phone | email | billingAddress |
+   billingCycle | notes
    --------------------------------------------------------- */
 IMS.parties = [
   { id:"PTY-001", name:"Halstead Construction", contact:"M. Halstead", phone:"(404) 555-0134", email:"projects@halstead.com", billingAddress:"100 Peachtree Pkwy NE, Atlanta, GA", billingCycle:"weekly", notes:"Boom & aerial work; weekly cadence." },
@@ -109,10 +109,10 @@ IMS.parties = [
 ];
 
 /* ---------------------------------------------------------
-   TABLE: orders
-   PK contract_id | cust_id (FK) | job_site | geofence_radius_m |
-   project_name | start_dt | end_dt | status | site_lat |
-   site_lng | line_items[]  (child table)
+   TABLE: orders (+ lineItems[] child rows)
+   orderId | partyId (FK) | jobSite | geofenceRadius |
+   projectName | startDate | endDate | status | siteLat |
+   siteLng | lineItems[]
    --------------------------------------------------------- */
 IMS.yard = { name:"Main Yard — Buckhead Hub", lat:33.7490, lng:-84.3880 };
 
@@ -263,8 +263,8 @@ IMS.vehicles = [
 
 /* ---------------------------------------------------------
    TABLE: inspections (yard in/out)
-   PK insp_id | asset_id | contract_id | direction | date |
-   meter_out | meter_in | fuel_out | fuel_in | checks{} |
+   inspId | assetId | orderId | direction | date |
+   meterOut | meterIn | fuelOut | fuelIn | checks{} |
    photos | status
    --------------------------------------------------------- */
 IMS.inspections = [
@@ -275,8 +275,8 @@ IMS.inspections = [
 
 /* ---------------------------------------------------------
    TABLE: dispatches (logistics)
-   PK dispatch_id | contract_id | asset_id | route_seq |
-   driver_id | truck_id | status
+   dispatchId | orderId | assetId | routeSeq |
+   driverId | truckId | status
    --------------------------------------------------------- */
 IMS.dispatches = [
   { dispatchId:"DSP-001", orderId:"CT-2024-001", assetId:"BL-119", routeSeq:1, driverId:"EMP-003", truckId:"TRK-01", status:"En Route" },
@@ -287,9 +287,9 @@ IMS.dispatches = [
 ];
 
 /* ---------------------------------------------------------
-   TABLE: cycle_invoices
-   PK inv_id | contract_id | cycle | cycle_start | cycle_end |
-   env_fee_pct | damage_waiver | fuel_charge | status (pending|invoiced|paid)
+   TABLE: cycle_invoices (billing)
+   invId | orderId | cycle | cycleStart | cycleEnd |
+   envFeePct | damageWaiver | fuelCharge | taxRate | status (pending|invoiced|paid)
    --------------------------------------------------------- */
 IMS.invoices = [
   { invId:"INV-001", orderId:"CT-2024-001", cycle:1, cycleStart:"2026-08-20", cycleEnd:"2026-08-27", envFeePct:5, damageWaiver:false, fuelCharge:120, taxRate:0.08, status:"invoiced" },
@@ -298,9 +298,9 @@ IMS.invoices = [
 ];
 
 /* ---------------------------------------------------------
-   TABLE: re_rents (sub-rental from third-party vendors)
-   PK rr_id | asset_id | asset_name | contract_id | vendor |
-   vendor_cost | retail_rate | qty
+   TABLE: re_rents (rentals — sub-rental from third-party vendors)
+   rrId | assetId | assetName | orderId | vendor |
+   vendorCost | retailRate | qty
    --------------------------------------------------------- */
 IMS.rentals = [
   { rrId:"RR-001", assetId:"GN-510", assetName:"Generac 100 kW Generator", orderId:"CT-2024-003", vendor:"PowerGen Rentals", vendorCost:110, retailRate:175, qty:1 },
