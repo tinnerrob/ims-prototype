@@ -273,5 +273,10 @@ for f in js/common.js js/router.js js/pages/*.js; do node --check "$f"; done
   contract by its customer's cycle length.
 - The right pane of the scheduler is now a **conflict list**, not contract details
   (contract editing is still available by double-clicking a contract bar).
-- All data is in-memory: **refreshing the page resets everything** to the mock seed.
+- Business data now persists as JSON behind `IMS.store`: create/edit/remove made
+  through the UI go through repositories and are auto-saved to `localStorage`
+  (`ims.store`), so they survive a refresh. To reset to the mock seed, clear that
+  storage key (or open in a fresh/private profile). A few live bookkeeping field
+  updates (e.g. stock/status during check-out/check-in) update records in place;
+  these are captured on the next repo save.
 

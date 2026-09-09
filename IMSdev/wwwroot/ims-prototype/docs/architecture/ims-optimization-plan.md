@@ -10,9 +10,9 @@ Checkboxes below were refreshed to match what is actually committed/pushed on
 Status key: `[x]` = shipped, `[~]` = partial, `[ ]` = not started.
 - **Phase A**: `store.js` scaffold + typed repositories, change events, the
   `apiAdapter` contract, and localStorage persistence landed. Writes are routed
-  through repositories for **parties / orders / movements / labor** only; the
-  inventory **item catalog** and settings/rental writers still mutate `IMS.*`
-  directly (the one clear remaining slice of A3/A4).
+  through repositories for parties/orders/movements/labor **and** the inventory
+  item catalog + settings/rental collections (A‑3); persistence snapshots the
+  full seeded table set with auto‑save (A‑4).
 - **Phase B**: dependency/impact audit, Config page, toggle persistence,
   nav/router + telemetry gating, and dependency validation all shipped.
 - **Phase C**: modal restyle shipped end‑to‑end (C3 chrome → C4 per‑modal → C5
@@ -24,10 +24,11 @@ Status key: `[x]` = shipped, `[~]` = partial, `[ ]` = not started.
 - Inventory‑core first, opt‑in modules (P0–P5 done & pushed).
 - Terminology normalized to order/party/item/movement.
 - Reads centralized on `IMS.itemRegistry`; writes for parties/orders/movements
-  go through `IMS.store` repositories; inventory item + settings writes still
-  mutate `IMS.*` directly.
-- JSON persistence (localStorage behind `IMS.store`) covers parties/orders/
-  movements; other collections are in‑memory only.
+  and the item catalog + settings/rental collections go through `IMS.store`
+  repositories; only a few in‑place field updates (stock/status bookkeeping)
+  still mutate records directly.
+- JSON persistence (localStorage behind `IMS.store`) snapshots the full seeded
+  table set with auto‑save on repo change events.
 - Module manifest exists with a Config UI, toggle persistence, and gating.
 - Modals restyled to a single modern spec (Phase C done).
 
@@ -44,15 +45,17 @@ Status key: `[x]` = shipped, `[~]` = partial, `[ ]` = not started.
       core JSON tables; wired: `parties`, `orders`, `movements`, `labor`.
 - [x] A2. Repositories expose `list/get/create/update/remove` + change events —
       in‑memory today, backable by `apiAdapter` JSON tomorrow.
-- [~] A3. Writes routed through repositories for parties / orders / movements /
-      labor. Inventory **item** writers (serialized/bulk/consumable/part/kit/
-      attachment add+edit) and settings/rental writers still mutate `IMS.*`.
-- [~] A4. Persistence plugin (`save`/`hydrate`, localStorage JSON behind the
-      store) is scoped to parties/orders/movements; other collections in‑memory.
+- [x] A3. Writes routed through repositories across the domain: parties / orders /
+      movements / labor, the inventory item catalog (serialized/bulk/consumable/
+      part/kit/attachment), settings (branches, tax schedules, overheads,
+      categories per type), and rentals. (A few in‑place field updates for
+      stock/status bookkeeping still mutate records directly — convert to
+      `repo.update` if a change event is required.)
+- [x] A4. Persistence plugin: `save()`/`hydrate()` snapshot the full seeded table
+      set behind the store (versioned `_v=2`); repo change events auto‑save.
 - [x] A5. `apiAdapter` interface + contract documented (`api-adapter.md`).
-- [~] Gate: all views render and create/edit flows write through repos for the
-      wired tables; item/settings flows remain direct (round‑trip lossless only
-      for persisted tables).
+- [x] Gate: all views render; create/edit/remove flows write through repos; JSON
+      round‑trip (save → reload) is lossless for the persisted set.
 
 ## 4. Phase B — Module independence + Config page
 **Aim:** each feature is a true module; turning one off never breaks another.
@@ -105,6 +108,9 @@ Status key: `[x]` = shipped, `[~]` = partial, `[ ]` = not started.
 Phase B‑1 (audit + Config UX) → Phase A (data service + API seam) →
 Phase C (modal spec + per‑modal restyle) → B‑3..B‑6 (Config build/gating).
 
-> Executed as suggested above (B1 → A → C → B3‑B6). Remaining open slice after
-> the 2026‑09‑09 status refresh: **Phase A‑3/A‑4 for the inventory item catalog
-> and settings/rental collections** (writes still mutate `IMS.*` directly).
+> Executed as suggested above (B1 → A → C → B3‑B6), and Phase A‑3/A‑4 closed
+> out (2026‑09‑09) with item catalog + settings/rental writers routed through
+> repositories and full‑set JSON persistence with auto‑save. Open/optional next:
+> commit the jsdom gate as a `package.json` harness, and migrate any remaining
+> in‑place stock/status field updates onto `repo.update` if a change event is
+> required.
