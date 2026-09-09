@@ -73,6 +73,36 @@ function mergeExtFields(existing, vals){
   return Object.keys(nx).length ? nx : undefined;
 }
 
+/* Receive goods (consumable / bulk / part) after ordering: a form to add
+   quantity, which bumps on-hand/available and logs the receipt to `receivings`. */
+function receiveGoods(type, refId){
+  const rec = type === "bulk" ? getBulk(refId) : (type === "consumable" ? getConsumable(refId) : getPart(refId));
+  if (!rec) return;
+  const label = rec.name || rec.description || refId;
+  const qtyBefore = type === "bulk" ? (rec.qtyAvailable || 0) : (rec.qtyOnHand || 0);
+  const fields = [
+    { key: "qty", label: "Quantity received", type: "number", value: 1, required: true },
+    { key: "source", label: "PO / Source", type: "text", value: "", placeholder: "e.g. PO-1023 or vendor" },
+    { key: "note", label: "Note", type: "textarea", value: "" }
+  ];
+  openFormModal({
+    id: "mdl-recv", title: "Receive Goods — " + label, icon: "bi-box-arrow-in-down", fields,
+    onSave: v => {
+      const qty = Math.max(1, parseInt(v.qty, 10) || 1);
+      const patch = type === "bulk" ? { qtyAvailable: qtyBefore + qty } : { qtyOnHand: qtyBefore + qty };
+      if (IMS.store) IMS.store.repo(type).update(IMS.itemRegistry.idKey[type], refId, patch); else Object.assign(rec, patch);
+      const recv = {
+        id: "RCV-" + String((IMS.receivings || []).length + 1).padStart(3, "0"),
+        type, refId, label, qtyBefore, qtyAdded: qty, qtyAfter: qtyBefore + qty,
+        source: (v.source || "").trim() || null, note: (v.note || "").trim() || null,
+        at: new Date().toISOString().slice(0, 19), by: "D. Reynolds"
+      };
+      if (IMS.store) IMS.store.repo("receivings").create(recv); else (IMS.receivings || (IMS.receivings = [])).push(recv);
+      renderInventory();
+    }
+  });
+}
+
 /* Catalog search across core text + the active vertical's is_searchable attrs. */
 function invFiltered(list){
   const q = (App.invSearch || "").trim().toLowerCase();
@@ -197,7 +227,7 @@ function bulkTable(list){
     { key:"weekly", header:"Weekly", td:"num", render: b => fmtMoney(b.baseWeekly) },
     { key:"monthly", header:"Monthly", td:"num", render: b => fmtMoney(b.baseMonthly) },
     { key:"status", header:"Status", render: b => activeCell(b) },
-    { key:"actions", header:"Actions", th:"text-end", td:"text-end text-nowrap", always:true, render: b => `<button class="btn btn-ims-outline btn-sm2" data-iview="${b.sku}"><i class="bi bi-eye"></i> View</button><button class="btn btn-ims-outline btn-sm2" data-iedit="${b.sku}"><i class="bi bi-pencil"></i> Edit</button><button class="btn btn-ims-outline btn-sm2" data-vattr="${b.sku}" title="Extended attributes"><i class="bi bi-database-add"></i> Attrs</button>` }
+    { key:"actions", header:"Actions", th:"text-end", td:"text-end text-nowrap", always:true, render: b => `<button class="btn btn-ims-outline btn-sm2" data-iview="${b.sku}"><i class="bi bi-eye"></i> View</button><button class="btn btn-ims-outline btn-sm2" data-iedit="${b.sku}"><i class="bi bi-pencil"></i> Edit</button><button class="btn btn-ims-outline btn-sm2" data-vattr="${b.sku}" title="Extended attributes"><i class="bi bi-database-add"></i> Attrs</button><button class="btn btn-ims-outline btn-sm2" data-recv="${b.sku}" title="Receive goods"><i class="bi bi-box-arrow-in-down"></i> Recv</button>` }
   ];
   return IMSGrid.render("inv-bulk", cols.concat(baseVerticalExtCols()), list || IMS.itemRegistry.getByType("bulk"),
     { empty:"No bulk resources.", trAttrs: b => `data-edit="${b.sku}"` });
@@ -217,7 +247,7 @@ function consumableTable(list){
     { key:"cost", header:"Cost Price", td:"num", render: c => fmtMoney(c.costPrice) },
     { key:"retail", header:"Retail Price", td:"num", render: c => fmtMoney(c.retailPrice) },
     { key:"status", header:"Status", render: c => stockBadge(c) },
-    { key:"actions", header:"Actions", th:"text-end", td:"text-end text-nowrap", always:true, render: c => `<button class="btn btn-ims-outline btn-sm2" data-iview="${c.sku}"><i class="bi bi-eye"></i> View</button><button class="btn btn-ims-outline btn-sm2" data-iedit="${c.sku}"><i class="bi bi-pencil"></i> Edit</button><button class="btn btn-ims-outline btn-sm2" data-vattr="${c.sku}" title="Extended attributes"><i class="bi bi-database-add"></i> Attrs</button>` }
+    { key:"actions", header:"Actions", th:"text-end", td:"text-end text-nowrap", always:true, render: c => `<button class="btn btn-ims-outline btn-sm2" data-iview="${c.sku}"><i class="bi bi-eye"></i> View</button><button class="btn btn-ims-outline btn-sm2" data-iedit="${c.sku}"><i class="bi bi-pencil"></i> Edit</button><button class="btn btn-ims-outline btn-sm2" data-vattr="${c.sku}" title="Extended attributes"><i class="bi bi-database-add"></i> Attrs</button><button class="btn btn-ims-outline btn-sm2" data-recv="${c.sku}" title="Receive goods"><i class="bi bi-box-arrow-in-down"></i> Recv</button>` }
   ];
   return IMSGrid.render("inv-consumable", cols.concat(baseVerticalExtCols()), list || IMS.itemRegistry.getByType("consumable"),
     { empty:"No consumables.", trAttrs: c => `data-edit="${c.sku}"` });
@@ -263,6 +293,12 @@ function bindInvActions(){
     if (App.invTab === "bulk") openVerticalExtras("bulk", getBulk(id));
     else if (App.invTab === "consumable") openVerticalExtras("consumable", getConsumable(id));
     else if (App.invTab === "parts") openVerticalExtras("part", getPart(id));
+  });
+  delegate($("#invPanel"), "click", "[data-recv]", b => {
+    const id = b.dataset.recv;
+    if (App.invTab === "bulk") receiveGoods("bulk", id);
+    else if (App.invTab === "consumable") receiveGoods("consumable", id);
+    else if (App.invTab === "parts") receiveGoods("part", id);
   });
   /* Clicking a row opens the edit modal (ignores the action buttons/controls). */
   delegate($("#invPanel"), "click", "tr[data-edit]", (el, e) => {
@@ -402,7 +438,7 @@ function partsTable(list){
     { key:"reorder", header:"Reorder Pt", td:"num text-muted2", render: p => fmtInt(p.reorderPoint) },
     { key:"cost", header:"Cost Price", td:"num", render: p => fmtMoney(p.costPrice) },
     { key:"status", header:"Status", render: p => stockBadge(p) },
-    { key:"actions", header:"Actions", th:"text-end", td:"text-end text-nowrap", always:true, render: p => `<button class="btn btn-ims-outline btn-sm2" data-iview="${p.partId}"><i class="bi bi-eye"></i> View</button><button class="btn btn-ims-outline btn-sm2" data-iedit="${p.partId}"><i class="bi bi-pencil"></i> Edit</button><button class="btn btn-ims-outline btn-sm2" data-vattr="${p.partId}" title="Extended attributes"><i class="bi bi-database-add"></i> Attrs</button>` }
+    { key:"actions", header:"Actions", th:"text-end", td:"text-end text-nowrap", always:true, render: p => `<button class="btn btn-ims-outline btn-sm2" data-iview="${p.partId}"><i class="bi bi-eye"></i> View</button><button class="btn btn-ims-outline btn-sm2" data-iedit="${p.partId}"><i class="bi bi-pencil"></i> Edit</button><button class="btn btn-ims-outline btn-sm2" data-vattr="${p.partId}" title="Extended attributes"><i class="bi bi-database-add"></i> Attrs</button><button class="btn btn-ims-outline btn-sm2" data-recv="${p.partId}" title="Receive goods"><i class="bi bi-box-arrow-in-down"></i> Recv</button>` }
   ];
   return IMSGrid.render("inv-parts", cols.concat(baseVerticalExtCols()), list || IMS.itemRegistry.getByType("part"),
     { empty:"No stock parts.", trAttrs: p => `data-edit="${p.partId}"` });

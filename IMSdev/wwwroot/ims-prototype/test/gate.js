@@ -620,6 +620,26 @@ addScript(`(() => {
   IMS.metadata.setVertical("HeavyEquipment");
   renderInventory();
 
+  /* 29. Receive goods: adds quantity and logs the receipt */
+  showView("inventory"); App.invTab = "consumable"; App.invSearch = ""; renderInventory();
+  const consRec = IMS.itemRegistry.getByType("consumable")[0];
+  const cBefore = consRec.qtyOnHand || 0;
+  const rcBefore = (IMS.receivings || []).length;
+  try {
+    receiveGoods("consumable", consRec.sku);
+    const qEl = doc.getElementById("mdl-recv-qty");
+    assert(!!qEl, "receive-goods form opens");
+    qEl.value = 5;
+    doc.getElementById("mdl-recv-source").value = "PO-2026-01";
+    doc.getElementById("mdl-recv-save").click();
+    assert(consRec.qtyOnHand === cBefore + 5, "consumable qtyOnHand increased by received quantity");
+    const rcLast = (IMS.receivings || [])[IMS.receivings.length - 1];
+    assert((IMS.receivings || []).length === rcBefore + 1 && rcLast.qtyAdded === 5 && rcLast.refId === consRec.sku, "receiving log records the added quantity");
+    IMS.store.save();
+    const rSnap = JSON.parse(window.localStorage.getItem("ims.store"));
+    assert(rSnap && Array.isArray(rSnap.receivings) && rSnap.receivings.length >= 1, "receivings persisted in the store snapshot");
+  } catch (e) { failures++; out.push("  FAIL: receiveGoods: " + (e && e.message)); }
+
   window.__gateFailures = failures;
   window.__gateLog = out;
 })();
