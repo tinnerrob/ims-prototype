@@ -1,6 +1,6 @@
 /* =========================================================
    IMS — handoff-wiz.js
-   Multi-step "New Rental / Check Out" wizard (replaces the old
+   Multi-step "New Order / Check Out" wizard (replaces the old
    single-scroll modal). Three pages inside one Bootstrap modal:
      1. Customer information (new or existing + billing).
      2. Line items — each is typed (Equipment / Bulk / Consumable /
@@ -546,7 +546,7 @@ function openNewRentalModal(){
       ${rwNavHTML()}
     </div>`;
   const root = openRawModal({
-    id: "mdl-rental", size: "lg", title: "New Rental / Check Out", icon: "bi-box-arrow-up-right",
+    id: "mdl-rental", size: "lg", title: "New Order / Check Out", icon: "bi-box-arrow-up-right",
     body, footer: ""
   });
   rwSyncCustomer();

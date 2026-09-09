@@ -23,8 +23,8 @@ function categoriesManagerHTML(){
 }
 
 const CAT_TYPES = [
-  { key:"serialized", label:"Serialized Equipment", icon:"bi-truck-front" },
-  { key:"bulk", label:"Bulk Resources", icon:"bi-boxes" },
+  { key:"serialized", label:"Items (Serialized)", icon:"bi-truck-front" },
+  { key:"bulk", label:"Items (Bulk)", icon:"bi-boxes" },
   { key:"consumable", label:"Consumables", icon:"bi-capsule" },
   { key:"labor", label:"Labor / Employees", icon:"bi-person-badge" },
   { key:"parts", label:"Stock Inventory", icon:"bi-wrench-adjustable" }

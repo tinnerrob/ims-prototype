@@ -259,7 +259,7 @@ function invoiceDetailModal(inv){
     <div class="table-wrap"><table class="table"><thead><tr><th>Item</th><th class="num">Qty</th><th>Rate</th><th class="num">Amount</th></tr></thead>
       <tbody>${lineRows}</tbody></table></div>
     <div class="divider"></div>
-    <div class="list-line"><span class="l">Equipment Rental Gross</span><span class="r">${fmtMoney(t.base)}</span></div>
+    <div class="list-line"><span class="l">Order Gross</span><span class="r">${fmtMoney(t.base)}</span></div>
     <div class="list-line"><span class="l">Environmental Fee (${inv.envFeePct || IMS.settings.pricing.envFeePct}%)</span><span class="r">${fmtMoney(t.envFee)}</span></div>
     <div class="list-line"><span class="l">Fuel Charge</span><span class="r">${t.fuel ? fmtMoney(t.fuel) : "—"}</span></div>
     <div class="list-line"><span class="l">Damage Waiver</span><span class="r">${t.waiver ? fmtMoney(t.waiver) : "—"}</span></div>

@@ -77,7 +77,7 @@ function renderDashboard(){
 
       <div class="bento c-8">
         <div class="bento-head">
-          <span class="bento-title"><i class="bi bi-briefcase"></i> Active Contracts — Profitability</span>
+          <span class="bento-title"><i class="bi bi-briefcase"></i> Active Orders — Profitability</span>
         </div>
         <div class="bento-body table-wrap">
           <table class="table"><thead><tr><th>Contract</th><th>Project</th><th class="num">Days</th><th class="num">Gross Billing</th><th class="num">Net Profit</th><th class="num">Margin</th></tr></thead><tbody>
@@ -127,7 +127,7 @@ function renderDashboard(){
 
       <div class="bento c-12">
         <div class="bento-head">
-          <span class="bento-title"><i class="bi bi-boxes"></i> Bulk Resources Out</span>
+          <span class="bento-title"><i class="bi bi-boxes"></i> Items (Bulk) Out</span>
         </div>
         <div class="bento-body">
           ${IMS.bulkResources.map(b => `<div class="list-line"><span class="l">${b.sku} · ${b.name}</span><span class="r strong">${fmtInt(b.qtyOut)} / ${fmtInt(b.totalOwned)} out</span></div>`).join("")}

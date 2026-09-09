@@ -449,7 +449,7 @@ function scheduleTimeModal(orderId, liId){
     </div>`;
   const footer = `<button type="button" class="btn btn-ims-outline" data-bs-dismiss="modal">Cancel</button>
     <button type="button" class="btn btn-ims" id="tt-save"><i class="bi bi-check2"></i> Save Times</button>`;
-  openRawModal({ id: "timeModal", title: li ? "Schedule Time — Resource" : "Schedule Time — Contract", icon: "bi-clock-history", body, footer });
+  openRawModal({ id: "timeModal", title: li ? "Schedule Time — Resource" : "Schedule Time — Order", icon: "bi-clock-history", body, footer });
   const snap15 = d => { d.setMinutes(Math.round(d.getMinutes() / 15) * 15, 0, 0); return d; };
   $("#tt-save").addEventListener("click", () => {
     let s = snap15(parseDT($("#tt-start-date").value + "T" + $("#tt-start-time").value));
@@ -1004,7 +1004,7 @@ function openOrderModal(existing){
       <span class="text-muted2" style="font-size:11.5px">Active orders bill normally; inactive are closed/archived</span>
     </div>
     <div class="row g-3">
-      <div class="col-md-4 field-group"><label class="form-label">Contract ID</label><input class="form-control" id="c-id" value="${e.orderId || "CT-2024-" + pad2(IMS.orders.length + 1)}"></div>
+      <div class="col-md-4 field-group"><label class="form-label">Order ID</label><input class="form-control" id="c-id" value="${e.orderId || "CT-2024-" + pad2(IMS.orders.length + 1)}"></div>
       <div class="col-md-4 field-group"><label class="form-label">Customer</label><select class="form-select" id="c-cust">${custOpts}</select></div>
       <div class="col-md-4 field-group"><label class="form-label">Project Name</label><input class="form-control" id="c-project" value="${e.projectName || ""}"></div>
       <div class="col-md-6 field-group"><label class="form-label">Job Site Address</label><input class="form-control" id="c-site" value="${e.jobSite || ""}"></div>
@@ -1025,8 +1025,8 @@ function openOrderModal(existing){
     <div class="divider"></div>
     <div class="profit-panel" id="oh-fin"></div>`;
   const footer = `<button type="button" class="btn btn-ims-outline" data-bs-dismiss="modal">Cancel</button>
-    <button type="button" class="btn btn-ims" id="c-save"><i class="bi bi-check2"></i> Save Contract</button>`;
-  const root = openRawModal({ id:"mdl-order", size:"lg", title:(isEdit ? "Edit" : "New") + " Contract / Job", icon:"bi-file-earmark-text", body, footer });
+    <button type="button" class="btn btn-ims" id="c-save"><i class="bi bi-check2"></i> Save Order</button>`;
+  const root = openRawModal({ id:"mdl-order", size:"lg", title:(isEdit ? "Edit" : "New") + " Order / Job", icon:"bi-file-earmark-text", body, footer });
   const tmpContract = () => ({ startDate: combineDT(root.querySelector("#c-start-date").value, root.querySelector("#c-start-time").value), endDate: combineDT(root.querySelector("#c-end-date").value, root.querySelector("#c-end-time").value), lineItems: existing ? existing.lineItems || [] : [], overheads: ohs });
   renderOhList(root, ohs);
   const renderFin = () => renderOhFinance(root, tmpContract());
@@ -1099,7 +1099,7 @@ function renderOhFinance(root, tmpContract){
   root.querySelector("#oh-fin").innerHTML = `
     <div class="label"><i class="bi bi-calculator"></i> Contract Financial Preview</div>
     <table class="totals-table">
-      <tr><td>Equipment Rental Gross</td><td>${fmtMoney(t.equipmentGross)}</td></tr>
+      <tr><td>Order Gross</td><td>${fmtMoney(t.equipmentGross)}</td></tr>
       <tr><td>Overhead &amp; Service Billable</td><td>${fmtMoney(t.overheadRetail)}</td></tr>
       <tr class="grand"><td>Total Gross Revenue</td><td>${fmtMoney(t.gross)}</td></tr>
       <tr><td>− Overhead Pass-Through Cost</td><td>${fmtMoney(t.overheadCost)}</td></tr>

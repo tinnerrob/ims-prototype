@@ -1,8 +1,8 @@
 /* =========================================================
    IMS — handoff.js
-   Equipment Hand-Off / Check In-Out + Chain of Custody.
+   Item Hand-Off & Custody / Check In-Out + Chain of Custody.
    Rented serialized equipment appears per order with
-   Check-Out / Check-In. "New Rental" opens a full short-term
+   Check-Out / Check-In. "New Order" opens a full short-term
    rental order (multiple assets, pricing + tax) for a
    walk-in party. Return prompts a check-in flow. Every
    hand-off writes an immutable chain-of-custody event.
@@ -184,7 +184,7 @@ function renderHandoff(){
       <div class="card-body">
         <div class="d-flex flex-wrap align-items-center justify-content-between gap-3">
           <div>
-            <span class="card-title"><i class="bi bi-box-arrow-up-right"></i> Equipment Hand-Off</span>
+            <span class="card-title"><i class="bi bi-box-arrow-up-right"></i> Item Hand-Off & Custody</span>
             <div class="text-muted2 small">Daily check-out / check-in dispatch board</div>
           </div>
           <div class="ho-daynav d-flex align-items-center gap-1">
@@ -193,7 +193,7 @@ function renderHandoff(){
             <button class="btn btn-ims-outline btn-sm2" id="hoNext" title="Next day"><i class="bi bi-chevron-right"></i></button>
           </div>
           <span class="ho-daytag"><i class="bi bi-calendar-event"></i> ${hoFmtDay()}</span>
-          <button class="btn btn-ims btn-sm2" id="newRentalBtn"><i class="bi bi-plus-lg"></i> New Rental</button>
+          <button class="btn btn-ims btn-sm2" id="newRentalBtn"><i class="bi bi-plus-lg"></i> New Order</button>
         </div>
       </div>
     </div>
@@ -277,7 +277,7 @@ function hoCheckInModal(assetId){
 }
 
 
-/* ---- New Rental modal (full short-term order, multiple assets) ---- */
+/* ---- New Order modal (full short-term order, multiple assets) ---- */
 
 /* Compute totals/rates for a single equipment line */
 function rnCompute(seg){
@@ -322,7 +322,7 @@ function rnRefreshPreview(){
 
 
 /* =========================================================
-   New Rental / Check-Out modal — one row per piece of
+   New Order / Check-Out modal — one row per piece of
    equipment, each with its own dates, custom hour/day/week
    rates, deposit and charge frequency. Added via a "+".
    ========================================================= */
@@ -416,7 +416,7 @@ function rnApplyFreq(seq){
 }
 
 
-/* ---- New Rental / Check-Out modal ---- */
+/* ---- New Order / Check-Out modal ---- */
 function openNewRentalModal(){
   const custOpts = IMS.parties.slice().sort((a, b) => a.name < b.name ? -1 : 1)
     .map(c => `<option value="${c.id}">${c.name}</option>`).join("") + `<option value="__new__">+ New party…</option>`;
@@ -438,7 +438,7 @@ function openNewRentalModal(){
       <button type="button" class="btn btn-ims-outline btn-sm2" id="rn-add"><i class="bi bi-plus-lg"></i> Add equipment</button></div>
     <div id="rn-summary" class="ho-preview"></div>`;
   const root = openRawModal({
-    id: "mdl-rental", size: "lg", title: "New Rental / Check Out", icon: "bi-box-arrow-up-right",
+    id: "mdl-rental", size: "lg", title: "New Order / Check Out", icon: "bi-box-arrow-up-right",
     body,
     footer: `<button type="button" class="btn btn-ims-outline" data-bs-dismiss="modal">Cancel</button>
       <button type="button" class="btn btn-ims" id="rn-save"><i class="bi bi-check2"></i> Create Rental &amp; Check Out</button>`

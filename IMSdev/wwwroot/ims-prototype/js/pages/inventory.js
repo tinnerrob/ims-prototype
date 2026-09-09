@@ -25,8 +25,8 @@ function renderInventory(){
   /* Type order follows the shared RESOURCE_TYPE_ORDER so it always matches the
      scheduler resource-pool dropdown and timeline grouping. */
   const tabMeta = {
-    serialized:  { label:"Serialized Equipment", icon:"bi-truck-front",      count: IMS.itemInstances.length },
-    bulk:        { label:"Bulk Resources",       icon:"bi-boxes",            count: IMS.bulkResources.length },
+    serialized:  { label:"Items (Serialized)", icon:"bi-truck-front",      count: IMS.itemInstances.length },
+    bulk:        { label:"Items (Bulk)",       icon:"bi-boxes",            count: IMS.bulkResources.length },
     consumable:  { label:"Consumables",          icon:"bi-capsule",          count: IMS.consumables.length },
     parts:       { label:"Stock Inventory",      icon:"bi-wrench-adjustable",count: IMS.parts.length },
     labor:       { label:"Labor / Employees",    icon:"bi-person-badge",     count: IMS.labor.length },
