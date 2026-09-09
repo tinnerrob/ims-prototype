@@ -562,6 +562,20 @@ addScript(`(() => {
   IMS.metadata.setVertical("HeavyEquipment");   // restore default for downstream/UI
   renderInventory();
 
+  /* 25. Vertical-aware extended attributes on shared base catalogs */
+  const bulkRec = IMS.itemRegistry.getByType("bulk")[0];
+  IMS.metadata.setVertical("Lumberyard");
+  try {
+    openVerticalExtras("bulk", bulkRec);
+    const spEl = doc.getElementById("mdl-vext-species");
+    assert(!!spEl, "extended-attributes editor opens with the active vertical's fields");
+    spEl.value = "Southern Yellow Pine";
+    doc.getElementById("mdl-vext-grade").value = "Select Structural";
+    doc.getElementById("mdl-vext-save").click();
+    assert(bulkRec.extended_attributes && bulkRec.extended_attributes.species === "Southern Yellow Pine" && bulkRec.extended_attributes.grade === "Select Structural", "Lumberyard extended attributes saved onto a bulk item");
+  } catch (e) { failures++; out.push("  FAIL: openVerticalExtras: " + (e && e.message)); }
+  IMS.metadata.setVertical("HeavyEquipment");
+
   window.__gateFailures = failures;
   window.__gateLog = out;
 })();

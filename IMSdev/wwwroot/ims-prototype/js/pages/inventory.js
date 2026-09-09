@@ -141,7 +141,7 @@ function bulkTable(){
     { key:"weekly", header:"Weekly", td:"num", render: b => fmtMoney(b.baseWeekly) },
     { key:"monthly", header:"Monthly", td:"num", render: b => fmtMoney(b.baseMonthly) },
     { key:"status", header:"Status", render: b => activeCell(b) },
-    { key:"actions", header:"Actions", th:"text-end", td:"text-end text-nowrap", always:true, render: b => `<button class="btn btn-ims-outline btn-sm2" data-iview="${b.sku}"><i class="bi bi-eye"></i> View</button><button class="btn btn-ims-outline btn-sm2" data-iedit="${b.sku}"><i class="bi bi-pencil"></i> Edit</button>` }
+    { key:"actions", header:"Actions", th:"text-end", td:"text-end text-nowrap", always:true, render: b => `<button class="btn btn-ims-outline btn-sm2" data-iview="${b.sku}"><i class="bi bi-eye"></i> View</button><button class="btn btn-ims-outline btn-sm2" data-iedit="${b.sku}"><i class="bi bi-pencil"></i> Edit</button><button class="btn btn-ims-outline btn-sm2" data-vattr="${b.sku}" title="Extended attributes"><i class="bi bi-database-add"></i> Attrs</button>` }
   ];
   return IMSGrid.render("inv-bulk", cols, IMS.itemRegistry.getByType("bulk"),
     { empty:"No bulk resources.", trAttrs: b => `data-edit="${b.sku}"` });
@@ -161,7 +161,7 @@ function consumableTable(){
     { key:"cost", header:"Cost Price", td:"num", render: c => fmtMoney(c.costPrice) },
     { key:"retail", header:"Retail Price", td:"num", render: c => fmtMoney(c.retailPrice) },
     { key:"status", header:"Status", render: c => stockBadge(c) },
-    { key:"actions", header:"Actions", th:"text-end", td:"text-end text-nowrap", always:true, render: c => `<button class="btn btn-ims-outline btn-sm2" data-iview="${c.sku}"><i class="bi bi-eye"></i> View</button><button class="btn btn-ims-outline btn-sm2" data-iedit="${c.sku}"><i class="bi bi-pencil"></i> Edit</button>` }
+    { key:"actions", header:"Actions", th:"text-end", td:"text-end text-nowrap", always:true, render: c => `<button class="btn btn-ims-outline btn-sm2" data-iview="${c.sku}"><i class="bi bi-eye"></i> View</button><button class="btn btn-ims-outline btn-sm2" data-iedit="${c.sku}"><i class="bi bi-pencil"></i> Edit</button><button class="btn btn-ims-outline btn-sm2" data-vattr="${c.sku}" title="Extended attributes"><i class="bi bi-database-add"></i> Attrs</button>` }
   ];
   return IMSGrid.render("inv-consumable", cols, IMS.itemRegistry.getByType("consumable"),
     { empty:"No consumables.", trAttrs: c => `data-edit="${c.sku}"` });
@@ -201,6 +201,12 @@ function bindInvActions(){
     else if (App.invTab === "consumable") consumableModal(getConsumable(id));
     else if (App.invTab === "labor") laborModal(getLabor(id));
     else if (App.invTab === "parts") partsModal(getPart(id));
+  });
+  delegate($("#invPanel"), "click", "[data-vattr]", b => {
+    const id = b.dataset.vattr;
+    if (App.invTab === "bulk") openVerticalExtras("bulk", getBulk(id));
+    else if (App.invTab === "consumable") openVerticalExtras("consumable", getConsumable(id));
+    else if (App.invTab === "parts") openVerticalExtras("part", getPart(id));
   });
   /* Clicking a row opens the edit modal (ignores the action buttons/controls). */
   delegate($("#invPanel"), "click", "tr[data-edit]", (el, e) => {
@@ -340,7 +346,7 @@ function partsTable(){
     { key:"reorder", header:"Reorder Pt", td:"num text-muted2", render: p => fmtInt(p.reorderPoint) },
     { key:"cost", header:"Cost Price", td:"num", render: p => fmtMoney(p.costPrice) },
     { key:"status", header:"Status", render: p => stockBadge(p) },
-    { key:"actions", header:"Actions", th:"text-end", td:"text-end text-nowrap", always:true, render: p => `<button class="btn btn-ims-outline btn-sm2" data-iview="${p.partId}"><i class="bi bi-eye"></i> View</button><button class="btn btn-ims-outline btn-sm2" data-iedit="${p.partId}"><i class="bi bi-pencil"></i> Edit</button>` }
+    { key:"actions", header:"Actions", th:"text-end", td:"text-end text-nowrap", always:true, render: p => `<button class="btn btn-ims-outline btn-sm2" data-iview="${p.partId}"><i class="bi bi-eye"></i> View</button><button class="btn btn-ims-outline btn-sm2" data-iedit="${p.partId}"><i class="bi bi-pencil"></i> Edit</button><button class="btn btn-ims-outline btn-sm2" data-vattr="${p.partId}" title="Extended attributes"><i class="bi bi-database-add"></i> Attrs</button>` }
   ];
   return IMSGrid.render("inv-parts", cols, IMS.itemRegistry.getByType("part"),
     { empty:"No stock parts.", trAttrs: p => `data-edit="${p.partId}"` });
@@ -462,6 +468,32 @@ function itemWrite(type, existing, patch){
   } else {
     IMS.itemRegistry.getByType(type).push(patch);
   }
+}
+
+/* Generic, registry-driven "Extended Attributes" editor for any item type.
+   Builds fields from the ACTIVE vertical's registry and stores values into the
+   record's extended_attributes JSONB bucket (via the store seam). */
+function openVerticalExtras(type, rec){
+  const vertical = IMS.metadata.vertical();
+  const entries = IMS.metadata.registryFor(vertical);
+  if (!entries.length){ window.alert("No extended attributes are defined for this vertical (" + vertical + ")."); return; }
+  const fields = entries.map(e => {
+    const base = { key: e.field_key, label: e.display_label, bucket: "extended_attributes", value: IMS.metadata.ext(rec, e.field_key) ?? "" };
+    if (e.data_type === "number"){ base.type = "number"; base.value = base.value || 0; }
+    else if (e.data_type === "date"){ base.type = "date"; }
+    else if (e.data_type === "boolean"){ base.type = "checkbox"; }
+    else base.type = "text";
+    return base;
+  });
+  openFormModal({
+    id: "mdl-vext", title: "Extended Attributes — " + (IMS.metadata.verticals[vertical] || vertical),
+    icon: "bi-database-add", fields,
+    onSave: vals => {
+      const merged = Object.assign({}, (rec && rec.extended_attributes) || {}, (vals.extended_attributes) || {});
+      itemWrite(type, rec, { extended_attributes: merged });
+      if (typeof renderInventory === "function") renderInventory(); else renderInvPanel();
+    }
+  });
 }
 
 function serializedModal(existing){
