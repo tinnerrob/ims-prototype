@@ -73,6 +73,33 @@ function mergeExtFields(existing, vals){
   return Object.keys(nx).length ? nx : undefined;
 }
 
+/* Read-only view of all goods received — grouped newest-first across
+   consumables, bulk, and parts so the receipt trail is visible. */
+function receivingLogModal(){
+  const logs = (IMS.receivings || []).slice().reverse();
+  const escHtml = s => String(s == null ? "" : s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+  const typeName = { consumable: "Consumable", bulk: "Bulk", part: "Part" };
+  const rows = logs.length
+    ? logs.map(r => `<tr>
+        <td class="text-nowrap">${escHtml(r.at)}</td>
+        <td><span class="strong">${escHtml(r.label)}</span><div class="text-muted2 text-11">${typeName[r.type] || escHtml(r.type)} · ${escHtml(r.refId)}</div></td>
+        <td class="text-center text-nowrap">${(r.qtyBefore || 0)} <i class="bi bi-arrow-right text-muted2"></i> <strong>+${r.qtyAdded}</strong> <i class="bi bi-arrow-right text-muted2"></i> ${r.qtyAfter || 0}</td>
+        <td>${escHtml(r.source || "—")}</td>
+        <td>${escHtml(r.by || "—")}</td>
+        <td>${escHtml(r.note || "")}</td>
+      </tr>`).join("")
+    : `<tr><td colspan="6" class="text-center text-muted2 py-4">No goods received yet — use <b>Recv</b> on a consumable, bulk, or parts row.</td></tr>`;
+  const body = `<div class="table-wrap" style="max-height:420px;overflow:auto">
+      <table class="table table-ims table-sm">
+        <thead><tr><th>Received</th><th>Item</th><th class="text-center">Before → Qty → After</th><th>PO / Source</th><th>By</th><th>Note</th></tr></thead>
+        <tbody>${rows}</tbody>
+      </table></div>`;
+  openRawModal({
+    id: "mdl-recvlog", size: "lg", title: "Receiving Log", icon: "bi-journal-arrow-down", body,
+    footer: `<button type="button" class="btn btn-ims" data-bs-dismiss="modal">Close</button>`
+  });
+}
+
 /* Receive goods (consumable / bulk / part) after ordering: a form to add
    quantity, which bumps on-hand/available and logs the receipt to `receivings`. */
 function receiveGoods(type, refId){
@@ -138,8 +165,9 @@ function renderInventory(){
     <div class="page-head"></div>
     <div class="card">
       <div class="card-header"><span class="card-title"><i class="bi bi-box-seam"></i> Resource Master Lists</span>
-        <span class="text-muted2 text-12">Vertical: ${vertLabel}</span>
-        <button class="btn btn-ims" id="invAddBtn"><i class="bi bi-plus-lg"></i> ${invAddLabel()}</button></div>
+        <span class="ms-auto text-muted2 text-12">Vertical: ${vertLabel}</span>
+        <button class="btn btn-ims-outline ms-2" id="invRecvLogBtn" title="View all received goods"><i class="bi bi-journal-arrow-down"></i> Receiving Log</button>
+        <button class="btn btn-ims ms-2" id="invAddBtn"><i class="bi bi-plus-lg"></i> ${invAddLabel()}</button></div>
       <div class="card-body">
         <div class="subtabs" id="invTabs">
         ${tabs.map(t => `<button class="subtab ${t.key === App.invTab ? "active" : ""}" data-tab="${t.key}">
@@ -150,6 +178,7 @@ function renderInventory(){
     </div></div>`;
   delegate($("#content"), "click", "#invTabs .subtab", b => { App.invTab = b.dataset.tab; renderInventory(); });
   $("#invAddBtn").addEventListener("click", () => openAddModal(App.invTab));
+  $("#invRecvLogBtn").addEventListener("click", () => receivingLogModal());
   $("#invSearch").addEventListener("input", e => { App.invSearch = e.target.value; renderInvPanel(); });
   renderInvPanel();
 }

@@ -640,6 +640,17 @@ addScript(`(() => {
     assert(rSnap && Array.isArray(rSnap.receivings) && rSnap.receivings.length >= 1, "receivings persisted in the store snapshot");
   } catch (e) { failures++; out.push("  FAIL: receiveGoods: " + (e && e.message)); }
 
+  /* 30. Receiving Log view makes recorded receipts visible */
+  try {
+    const rlogBtn = doc.getElementById("invRecvLogBtn");
+    assert(!!rlogBtn, "Receiving Log button present on Items & Stock");
+    rlogBtn.click();
+    const tbody = doc.querySelector("#mdl-recvlog tbody");
+    assert(!!tbody, "receiving log modal opens");
+    const rtxt = tbody.textContent;
+    assert(rtxt.indexOf(consRec.sku) !== -1 && rtxt.indexOf("+5") !== -1, "receiving log shows the item and the quantity added");
+  } catch (e) { failures++; out.push("  FAIL: receiving log view: " + (e && e.message)); }
+
   window.__gateFailures = failures;
   window.__gateLog = out;
 })();
