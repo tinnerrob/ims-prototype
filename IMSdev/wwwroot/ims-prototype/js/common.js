@@ -405,11 +405,14 @@ function openFormModal(opts){
   const el = document.createElement("div");
   el.className = "modal fade";
   el.tabIndex = -1;
+  el.setAttribute("role", "dialog");
+  el.setAttribute("aria-modal", "true");
+  el.setAttribute("aria-labelledby", id + "-title");
   el.innerHTML = `
     <div class="modal-dialog ${large ? "modal-lg" : ""}">
       <div class="modal-content">
         <div class="modal-header">
-          <h5 class="modal-title"><i class="bi ${icon || "bi-plus-circle"} me-2 text-primary"></i>${title}</h5>
+          <h5 class="modal-title" id="${id}-title"><i class="bi ${icon || "bi-plus-circle"} me-2"></i>${title}</h5>
           <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
         </div>
         <div class="modal-body">${rows}</div>
@@ -422,6 +425,10 @@ function openFormModal(opts){
   document.body.appendChild(el);
   const m = new bootstrap.Modal(el);
   el.addEventListener("hidden.bs.modal", () => el.remove());
+  el.addEventListener("shown.bs.modal", () => {
+    const first = el.querySelector(".modal-body input, .modal-body select, .modal-body textarea");
+    try { if (first) first.focus(); } catch (_) {}
+  });
   m.show();
   $("#" + id + "-save").addEventListener("click", () => {
     const vals = {};
@@ -447,11 +454,14 @@ function openRawModal({ id, title, icon, body, footer, size }){
   el.className = "modal fade";
   el.id = id;
   el.tabIndex = -1;
+  el.setAttribute("role", "dialog");
+  el.setAttribute("aria-modal", "true");
+  el.setAttribute("aria-labelledby", id + "-title");
   el.innerHTML = `
     <div class="modal-dialog ${size === "lg" ? "modal-lg" : ""}">
       <div class="modal-content">
         <div class="modal-header">
-          <h5 class="modal-title"><i class="bi ${icon || "bi-info-circle"} me-2 text-primary"></i>${title}</h5>
+          <h5 class="modal-title" id="${id}-title"><i class="bi ${icon || "bi-info-circle"} me-2"></i>${title}</h5>
           <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
         </div>
         <div class="modal-body">${body}</div>
@@ -461,6 +471,10 @@ function openRawModal({ id, title, icon, body, footer, size }){
   document.body.appendChild(el);
   const m = new bootstrap.Modal(el);
   el.addEventListener("hidden.bs.modal", () => el.remove());
+  el.addEventListener("shown.bs.modal", () => {
+    const first = el.querySelector(".modal-body input, .modal-body select, .modal-body textarea");
+    try { if (first) first.focus(); } catch (_) {}
+  });
   m.show();
   return el;
 }
