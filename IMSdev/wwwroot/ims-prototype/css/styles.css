@@ -1323,3 +1323,7 @@ tr.ho-sec td .mono { font-size: 12px; }
 /* hand-off day board controls */
 .ho-daytag { display: inline-flex; align-items: center; gap: 8px; font-weight: 700; font-size: 14px; color: var(--ink); background: var(--card); border: 1px solid var(--line); padding: 7px 14px; border-radius: 11px; box-shadow: var(--shadow-xs); }
 .ho-daynav button { min-width: 34px; }
+
+/* core vs module tag in the nav */
+.nav-mod-tag { margin-left: auto; font-size: 9px; font-weight: 800; letter-spacing: .5px; color: #8b93ad; border: 1px solid rgba(255,255,255,.16); border-radius: 6px; padding: 1px 5px; }
+.nav-item.active .nav-mod-tag { color: #c7d2fe; border-color: rgba(199,210,254,.35); }

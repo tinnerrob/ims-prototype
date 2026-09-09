@@ -7,24 +7,29 @@
 /* =========================================================
    NAVIGATION / ROUTER
    ========================================================= */
-const TITLES = { dashboard:"Dashboard", inventory:"Inventory & Assets", contracts:"Customers & Contracts", scheduler:"Scheduler", handoff:"Equipment Hand-Off", geo:"Geo Asset Tracking", logistics:"Logistics Board", maintenance:"Service & Maintenance", timesheet:"Labor & Timesheets", yard:"Yard Inspections", invoicing:"Cycle Invoicing", rerents:"Sub-Rentals", branches:"Branch / Yard Profiles", pricing:"Pricing Rules", categories:"Resource Categories" };
+const TITLES = {
+  dashboard:"Operations Dashboard", inventory:"Items & Stock", contracts:"Parties & Orders", scheduler:"Scheduling",
+  handoff:"Item Hand-Off & Custody", geo:"Fleet Telemetry", logistics:"Logistics & Dispatch", maintenance:"Field Service & Maintenance",
+  timesheet:"Labor & Timesheets", yard:"Receiving / Inspections", invoicing:"Billing & Invoicing", rerents:"Rentals / Sub-Rentals",
+  branches:"Locations", pricing:"Pricing & Policies", categories:"Categories & Types"
+};
 const RENDER = { dashboard: renderDashboard, inventory: renderInventory, contracts: renderCustomersContracts, scheduler: renderScheduler, handoff: renderHandoff, geo: renderGeo, logistics: renderLogistics, maintenance: renderMaintenance, timesheet: renderTimesheet, yard: renderYard, invoicing: renderInvoicing, rerents: renderRerents, branches: renderBranches, pricing: renderPricing, categories: renderCategories };
 const DESCRIPTIONS = {
-  dashboard:"Aggregated business metrics from all mocked data engines.",
-  inventory:"Structural database tables driving scheduling, costing and dispatch.",
-  contracts:"Customer records, their rental contracts, and status control (active ↔ closed).",
-  scheduler:"Stage multi-resource line items on a contract timeline and tune the pricing rules engine.",
-  handoff:"Check equipment out to customer contracts and back in, with an immutable chain-of-custody audit trail.",
-  geo:"Dispatch control — live fleet telemetry and geofence monitoring.",
-  logistics:"Dispatch board for deliveries, pickups and route assignment.",
-  maintenance:"Work orders, service actions and parts drawn from consumables inventory.",
-  timesheet:"Employee time punched against contracts and maintenance work orders.",
-  yard:"Asset in/out inspection portal with meter & fuel tracking and overage flags.",
-  invoicing:"28-day cycle billing ledger for long-term contract lifecycles.",
-  rerents:"Sub-rentals sourced from third-party vendors with spread analysis.",
-  branches:"Configure branch / yard locations and facilities.",
-  pricing:"Global pricing rules engine, localized tax schedule and overhead fee configs.",
-  categories:"Manage the active category options for all inventory resource types."
+  dashboard:"Aggregated operational metrics from the inventory core and enabled modules.",
+  inventory:"Core catalog: typed items, stock quantities, and on-hand levels across the inventory.",
+  contracts:"Counterparties (customers, vendors, sites) and the orders placed against inventory.",
+  scheduler:"Module: planned availability and allocation of inventory over time.",
+  handoff:"Core: custody & movement of items — issue out, receive/return, and chain of custody.",
+  geo:"Module: live fleet telemetry and geofence monitoring for tracked items.",
+  logistics:"Module: dispatch board for deliveries, pickups, and route assignment.",
+  maintenance:"Module: field service and maintenance work orders against item instances.",
+  timesheet:"Module: labor time records against orders and work orders.",
+  yard:"Core: receiving, inspection, and check-in of items to locations.",
+  invoicing:"Module: billing derived from priced orders.",
+  rerents:"Module: rentals and sub-rental loans sourced from third-party vendors.",
+  branches:"Core: location hierarchy (yards, branches, warehouses, bins).",
+  pricing:"Policies: optional pricing, tax, and overhead rules applied to orders.",
+  categories:"Core: manage item type / category options across the catalog."
 };
 
 function showView(id){
