@@ -116,6 +116,7 @@ function init(){
   $$(".nav-item").forEach(b => b.addEventListener("click", () => showView(b.dataset.view)));
   IMS.settings.featureModules = loadModuleFlags();
   if (IMS.store && IMS.store.hydrate) IMS.store.hydrate();   /* restore persisted JSON snapshot (no-op if none) */
+  if (IMS.store && IMS.store.normalizeCore) IMS.store.normalizeCore();   /* stamp canonical core + extended_attributes on items */
   applyModuleNav();   /* hide nav entries for disabled modules */
   $("#menuToggle").addEventListener("click", () => $("#sidebar").classList.toggle("open"));
   $("#notifBtn").addEventListener("click", () => showView(moduleEnabled("geo") ? "geo" : "dashboard"));

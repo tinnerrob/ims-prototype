@@ -107,6 +107,34 @@ IMS.store = (function(){
     } catch(_) {}
   }
 
+  /* B3-lite: stamp every item record with the canonical CORE fields and an
+     `extended_attributes` JSONB bucket. Additive — legacy flat fields are left
+     intact so no consumer changes; the bucket is where vertical fields land
+     after the (deferred) full relocation. */
+  function ensureCoreFields(){
+    const types = (IMS.itemRegistry && Object.keys(IMS.itemRegistry.idKey || {})) || [];
+    const now = new Date().toISOString().slice(0, 19);
+    types.forEach(t => {
+      (IMS.itemRegistry.getByType(t) || []).forEach(r => {
+        if (!r) return;
+        const idKey = IMS.itemRegistry.idKey[t];
+        const pk = r[idKey] != null ? r[idKey] : r.id;
+        if (r.id == null) r.id = pk;
+        if (r.sku == null) r.sku = (t === "serialized" || t === "bulk" || t === "consumable" || t === "part") ? pk : (pk || "");
+        if (r.name == null){
+          if (t === "serialized") r.name = ((r.make ? r.make + " " : "") + (r.model || "")).trim() || pk;
+          else if (r.description) r.name = r.description;
+          else r.name = pk;
+        }
+        if (r.status == null) r.status = r.active === false ? "Inactive" : "Active";
+        if (r.purchaseValue == null) r.purchaseValue = 0;
+        if (r.locationId == null) r.locationId = null;
+        if (r.createdAt == null) r.createdAt = now;
+        if (r.extended_attributes == null || typeof r.extended_attributes !== "object") r.extended_attributes = {};
+      });
+    });
+  }
+
   return {
     /* apiAdapter: set { list, create, update, remove } (async JSON) later. */
     api: { mode: "local", adapter: null },
@@ -116,7 +144,8 @@ IMS.store = (function(){
     /* Toggle JSON persistence (default on in this prototype). */
     setAutoSave(v){ autoSave = !!v; },
     save,
-    hydrate
+    hydrate,
+    normalizeCore: ensureCoreFields
   };
 })();
 

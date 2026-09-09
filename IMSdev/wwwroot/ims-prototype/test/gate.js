@@ -501,6 +501,15 @@ addScript(`(() => {
   doc.getElementById("tfext-save").click();
   assert(extSaved && extSaved.a === "x" && extSaved.extended_attributes && extSaved.extended_attributes.lot === "L1", "openFormModal bucket field saves into extended_attributes");
 
+  /* 23. B3-lite: canonical core fields + extended_attributes bucket on items */
+  const coreA = getAsset("BL-118");
+  assert(coreA && coreA.id && coreA.sku && coreA.status && coreA.createdAt, "serialized item has canonical core id/sku/status/createdAt");
+  assert(typeof coreA.name === "string" && coreA.name.length > 0, "serialized item has a core name (make + model)");
+  assert(coreA.hasOwnProperty("purchaseValue") && coreA.hasOwnProperty("locationId"), "serialized item has core purchaseValue + locationId");
+  assert(coreA.extended_attributes && typeof coreA.extended_attributes === "object", "serialized item has an extended_attributes JSONB bucket");
+  const coreP = IMS.itemRegistry.getByType("consumable")[0];
+  assert(coreP && coreP.name && coreP.id && coreP.extended_attributes && typeof coreP.extended_attributes === "object", "consumable item also has core + extended_attributes bucket");
+
   window.__gateFailures = failures;
   window.__gateLog = out;
 })();
