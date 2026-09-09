@@ -519,6 +519,21 @@ addScript(`(() => {
   assert(!!coreA.extended_attributes.serial_vin && coreA.serial === undefined, "serial_vin relocated into extended_attributes");
   assert(IMS.metadata.ext(coreA, "serial_vin") === coreA.extended_attributes.serial_vin, "ext() reads relocated serial_vin");
 
+  /* 24. Healthcare vertical catalog (2nd vertical, registry-driven + extended_attributes) */
+  showView("healthcare");
+  const hHeads = Array.from(doc.querySelectorAll("#content .table thead th")).map(t => t.textContent.trim());
+  assert(hHeads[0] === "Item ID" && hHeads.includes("Lot Number") && hHeads.includes("Expiration Date") && hHeads.includes("Sterilization Status") && hHeads.includes("FDA Class"), "healthcare grid columns come from the registry");
+  assert(doc.querySelectorAll("#content .table tbody tr").length >= 2, "healthcare grid has seeded rows");
+  assert(IMS.metadata.ext(IMS.healthcare[0], "fda_class") === "Class II" && IMS.healthcare[0].extended_attributes.lot_number === "MED-2026-99X", "healthcare seed stores extended_attributes");
+  const hcBefore = IMS.healthcare.length;
+  try {
+    healthcareModal(null);
+    doc.getElementById("mdl-health-expiration_date").value = "2032-05-05";
+    doc.getElementById("mdl-health-save").click();
+    const added = IMS.healthcare[IMS.healthcare.length - 1];
+    assert(IMS.healthcare.length === hcBefore + 1 && added.extended_attributes.expiration_date === "2032-05-05", "new healthcare item round-trips extended_attributes via bucket save");
+  } catch (e) { failures++; out.push("  FAIL: healthcareModal: " + (e && e.message)); }
+
   window.__gateFailures = failures;
   window.__gateLog = out;
 })();

@@ -22,7 +22,7 @@ IMS.store = (function(){
       consumables: IMS.consumables, parts: IMS.parts, kits: IMS.kits, attachments: IMS.attachments,
       workOrders: IMS.workOrders, timesheets: IMS.timesheets, inspections: IMS.inspections,
       rentals: IMS.rentals, vehicles: IMS.vehicles, dispatches: IMS.dispatches,
-      invoices: IMS.invoices, assetAttachments: IMS.assetAttachments,
+      invoices: IMS.invoices, assetAttachments: IMS.assetAttachments, healthcare: IMS.healthcare,
       /* item-catalog type aliases (mirror itemRegistry.typeKey) */
       serialized: IMS.itemInstances, bulk: IMS.bulkResources, consumable: IMS.consumables,
       part: IMS.parts, kit: IMS.kits, attachment: IMS.attachments,
@@ -78,7 +78,7 @@ IMS.store = (function(){
     "parties", "orders", "movements", "labor",
     "itemInstances", "bulkResources", "consumables", "parts", "kits", "attachments",
     "assetAttachments", "workOrders", "timesheets", "inspections",
-    "dispatches", "invoices", "rentals", "vehicles"
+    "dispatches", "invoices", "rentals", "vehicles", "healthcare"
   ];
   /* settings keys persisted (featureModules is owned by the Config page/loader) */
   const SETTINGS_KEYS = ["branches", "taxSchedules", "categories", "overheads", "pricing"];

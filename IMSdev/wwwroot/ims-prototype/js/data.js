@@ -394,3 +394,15 @@ IMS.itemRegistry = {
   },
   find(type, ref){ const key = this.idKey[type]; return this.getByType(type).find(r => r[key] === ref) || null; }
 };
+
+/* ---------------------------------------------------------
+   TABLE: healthcare_items  (2nd vertical, exercising the JSONB
+   extended_attributes bucket + metadata registry)
+   Core fields on every item + Healthcare extended attributes.
+   --------------------------------------------------------- */
+IMS.healthcare = [
+  { id:"MED-1001", sku:"MED-2026-99X", name:"Infusion Pump", status:"Available", purchaseValue:2400, locationId:"BR-ATL", createdAt:"2026-01-12T00:00:00", active:true,
+    extended_attributes:{ lot_number:"MED-2026-99X", expiration_date:"2029-04-12", sterilization_status:"Passed", fda_class:"Class II" } },
+  { id:"MED-1002", sku:"VNT-2026-07A", name:"Ventilator", status:"In Use", purchaseValue:9800, locationId:"BR-SAV", createdAt:"2026-02-03T00:00:00", active:true,
+    extended_attributes:{ lot_number:"VNT-2026-07A", expiration_date:"2030-01-20", sterilization_status:"Pending", fda_class:"Class III" } }
+];
