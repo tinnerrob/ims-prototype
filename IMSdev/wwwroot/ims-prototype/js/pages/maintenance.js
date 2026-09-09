@@ -80,7 +80,7 @@ function workOrderModal(existing){
   const techs = IMS.labor.filter(x => x.role === "Technician");
   const fields = [
     { key:"assetId", label:"Asset", type:"select", value: e.assetId || IMS.itemRegistry.getByType("serialized").find(a => a.status === "In Shop")?.id || IMS.itemRegistry.getByType("serialized")[0].id,
-      options: IMS.itemRegistry.getByType("serialized").map(a => ({ value:a.id, label:`${a.id} — ${a.make} ${a.model} (${a.status})` })) },
+      options: IMS.itemRegistry.getByType("serialized").map(a => ({ value:a.id, label:`${a.id} — ${a.make} ${a.model} (${a.status})` })), section:"Work Order Details" },
     { key:"type", label:"Service Type", type:"select", value:e.type || "Repair", options: opt(["Preventive","Repair","Inspection"]) },
     { key:"meterReading", label:"Current Meter Reading", type:"number", value:e.meterReading || 0 },
     { key:"status", label:"Status", type:"select", value:e.status || "In Progress", options: opt(["In Progress","Completed","Pending"]) },
@@ -88,7 +88,7 @@ function workOrderModal(existing){
   ];
   if (!isEdit){
     fields.push(
-      { key:"partsSku", label:"Part (from Consumables)", type:"select", value: IMS.itemRegistry.getByType("consumable")[0].sku, options: IMS.itemRegistry.getByType("consumable").map(c => ({ value:c.sku, label:`${c.sku} — ${c.name} (${fmtMoney(c.costPrice)}/ea)` })) },
+      { key:"partsSku", label:"Part (from Consumables)", type:"select", value: IMS.itemRegistry.getByType("consumable")[0].sku, options: IMS.itemRegistry.getByType("consumable").map(c => ({ value:c.sku, label:`${c.sku} — ${c.name} (${fmtMoney(c.costPrice)}/ea)` })), section:"Parts & Technician" },
       { key:"partsQty", label:"Consumable Qty (0 = none)", type:"number", value:0 },
       { key:"partId", label:"Service Part (Stock Inventory)", type:"select", value: IMS.itemRegistry.getByType("part")[0].partId, options: IMS.itemRegistry.getByType("part").filter(p => recActive(p)).map(p => ({ value:p.partId, label:`${p.partId} — ${p.description} (${fmtMoney(p.costPrice)}/ea · ${p.qtyOnHand} on hand)` })) },
       { key:"partQty", label:"Stock Part Qty (0 = none)", type:"number", value:0 },
