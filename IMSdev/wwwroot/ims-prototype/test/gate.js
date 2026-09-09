@@ -468,6 +468,20 @@ addScript(`(() => {
   assert(ohHeads.length === 7 && ohHeads[0] === "Fee / Asset Name" && ohHeads[6] === "Actions", "pricing overhead grid renders default columns");
   assert(doc.querySelectorAll("#ohGridWrap tbody tr").length > 0, "pricing overhead grid has rows");
 
+  /* 21. Column-profile grid (Logistics driver assignment) */
+  showView("logistics");
+  renderLogistics();
+  const logiHeads = () => Array.from(doc.querySelectorAll("#dspGridWrap .table thead th")).map(t => t.textContent.trim());
+  let logih = logiHeads();
+  assert(logih.length === 7 && logih[0] === "Route" && logih[1] === "Dispatch" && logih[6] === "Status", "logistics grid renders default columns");
+  assert(doc.querySelectorAll("#dspGridWrap tbody tr").length > 0, "logistics grid has rows");
+  localStorage.setItem("ims.cols.log-dispatch", JSON.stringify({ site: false }));
+  renderLogistics();
+  logih = logiHeads();
+  assert(logih.length === 6 && !logih.includes("Site"), "logistics grid honors hidden column");
+  localStorage.removeItem("ims.cols.log-dispatch");
+  renderLogistics();
+
   window.__gateFailures = failures;
   window.__gateLog = out;
 })();

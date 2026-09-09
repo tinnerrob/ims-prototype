@@ -4,6 +4,20 @@
    ========================================================= */
 "use strict";
 
+function dispatchGrid(driverOpts, truckOpts, statusOpts){
+  const siteOf = d => { const con = getOrder(d.orderId); return con ? con.projectName : ""; };
+  const cols = [
+    { key:"route", header:"Route", td:"num", render: d => d.routeSeq },
+    { key:"dispatch", header:"Dispatch", td:"strong mono", always:true, render: d => d.dispatchId },
+    { key:"asset", header:"Asset", td:"strong", render: d => d.assetId },
+    { key:"site", header:"Site", td:"text-muted2 text-xs2", render: d => siteOf(d) },
+    { key:"driver", header:"Driver (CDL)", render: d => `<select class="form-select" data-ddrv="${d.dispatchId}"><option value="">— none —</option>${driverOpts}</select>` },
+    { key:"truck", header:"Truck", render: d => `<select class="form-select" data-dtrk="${d.dispatchId}"><option value="">— none —</option>${truckOpts}</select>` },
+    { key:"status", header:"Status", render: d => `<select class="form-select" data-dsta="${d.dispatchId}">${statusOpts(d.status)}</select>` }
+  ];
+  return IMSGrid.render("log-dispatch", cols, IMS.dispatches, { empty:"No dispatches." });
+}
+
 function renderLogistics(){
   const cdls = IMS.labor.filter(e => (e.certs || []).includes("CDL"));
   const driverOpts = cdls.map(e => `<option value="${e.empId}">${e.empId} — ${e.name}</option>`).join("");
@@ -36,24 +50,11 @@ function renderLogistics(){
         <div class="card">
           <div class="card-header"><span class="card-title"><i class="bi bi-truck"></i> Driver Assignment Grid</span>
             <button class="btn btn-ims btn-sm2" id="dspSave"><i class="bi bi-check2-all"></i> Apply Assignments</button></div>
-          <div class="card-body table-wrap">
-            <table class="table"><thead><tr><th class="num">Route</th><th>Dispatch</th><th>Asset</th><th>Site</th><th>Driver (CDL)</th><th>Truck</th><th>Status</th></tr></thead>
-            <tbody>${IMS.dispatches.map(d => {
-              const con = getOrder(d.orderId);
-              return `<tr>
-                <td class="num">${d.routeSeq}</td>
-                <td class="strong mono">${d.dispatchId}</td>
-                <td class="strong">${d.assetId}</td>
-                <td class="text-muted2" style="font-size:11.5px">${con ? con.projectName : ""}</td>
-                <td><select class="form-select" data-ddrv="${d.dispatchId}"><option value="">— none —</option>${driverOpts}</select></td>
-                <td><select class="form-select" data-dtrk="${d.dispatchId}"><option value="">— none —</option>${truckOpts}</select></td>
-                <td><select class="form-select" data-dsta="${d.dispatchId}">${statusOpts(d.status)}</select></td>
-              </tr>`;
-            }).join("")}</tbody></table>
-          </div>
+          <div class="card-body" id="dspGridWrap">${dispatchGrid(driverOpts, truckOpts, statusOpts)}</div>
         </div>
       </div>
     </div>`;
+  IMSGrid.ensure("log-dispatch", renderLogistics);
   IMS.dispatches.forEach(d => {
     if (d.driverId) { const s = $(`[data-ddrv="${d.dispatchId}"]`); if (s) s.value = d.driverId; }
     if (d.truckId) { const s = $(`[data-dtrk="${d.dispatchId}"]`); if (s) s.value = d.truckId; }
