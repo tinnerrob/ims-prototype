@@ -401,9 +401,21 @@ function fieldHTML(f, id){
 function openFormModal(opts){
   const { id, title, fields, onSave, icon, large } = opts;
   document.querySelectorAll(".modal").forEach(m => m.remove());
-  const rows = fields.map(f => fieldHTML(f, id)).join("");
+  /* Fields may opt into visual grouping: setting f.section on the first field of a
+     run inserts a divider + bold section header before that field. */
+  const rows = [];
+  let curSection = null;
+  fields.forEach(f => {
+    if (f.section && f.section !== curSection) {
+      curSection = f.section;
+      if (rows.length) rows.push('<div class="divider"></div>');
+      rows.push(`<div class="strong mb-2">${f.section}</div>`);
+    }
+    rows.push(fieldHTML(f, id));
+  });
   const el = document.createElement("div");
   el.className = "modal fade";
+  el.id = id;
   el.tabIndex = -1;
   el.setAttribute("role", "dialog");
   el.setAttribute("aria-modal", "true");

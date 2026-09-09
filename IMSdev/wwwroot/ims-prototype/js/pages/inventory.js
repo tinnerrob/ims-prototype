@@ -424,21 +424,21 @@ function serializedFields(e){
   e = e || {};
   return [
     { key:"active", label:"Active", type:"checkbox", value: recActive(e) },
-    { key:"id", label:"Asset ID (PK)", type:"text", value: e.id || nextAssetId(e.category || "Boom Lift"), required:true },
+    { key:"id", label:"Asset ID (PK)", type:"text", value: e.id || nextAssetId(e.category || "Boom Lift"), required:true, section:"Identity" },
     { key:"serial", label:"Serial / VIN", type:"text", value: e.serial || "" },
     { key:"make", label:"Make", type:"text", value: e.make || "" },
     { key:"model", label:"Model", type:"text", value: e.model || "" },
     { key:"category", label:"Category", type:"select", value: e.category || activeCats("serialized")[0], options: catOptions("serialized", e.category) },
-    { key:"meterHours", label:"Current Meter Hours", type:"number", value: e.meterHours || 0 },
+    { key:"meterHours", label:"Current Meter Hours", type:"number", value: e.meterHours || 0, section:"Usage & Availability" },
     { key:"fuelType", label:"Fuel Type", type:"select", value: e.fuelType || "Diesel", options: opt(["Diesel","Gasoline","Electric","LPG"]) },
-    { key:"purchaseValue", label:"Purchase Value ($)", type:"number", value: e.purchaseValue || 0 },
+    { key:"status", label:"Status", type:"select", value: e.status || "Available", options: opt(["Available","On Rent","In Shop","Staged"]) },
+    { key:"purchaseValue", label:"Purchase Value ($)", type:"number", value: e.purchaseValue || 0, section:"Rates & Pricing" },
     { key:"baseDaily", label:"Base Daily Rate ($)", type:"number", value: e.baseDaily || 0 },
     { key:"baseWeekly", label:"Base Weekly Rate ($)", type:"number", value: e.baseWeekly || 0, hint:"Weekly ≈ Daily × 5" },
     { key:"baseMonthly", label:"Base Monthly Rate ($)", type:"number", value: e.baseMonthly || 0, hint:"Monthly ≈ Daily × 15 (28-day period)" },
     { key:"depositPct", label:"Default Deposit (%)", type:"number", value: (e.depositPct != null ? e.depositPct : 25), hint:"Held as % of the rental subtotal at check-out" },
-    { key:"lat", label:"Latitude", type:"number", value: e.lat ?? IMS.yard.lat, step:"0.0001" },
-    { key:"lng", label:"Longitude", type:"number", value: e.lng ?? IMS.yard.lng, step:"0.0001" },
-    { key:"status", label:"Status", type:"select", value: e.status || "Available", options: opt(["Available","On Rent","In Shop","Staged"]) }
+    { key:"lat", label:"Latitude", type:"number", value: e.lat ?? IMS.yard.lat, step:"0.0001", section:"GPS Home" },
+    { key:"lng", label:"Longitude", type:"number", value: e.lng ?? IMS.yard.lng, step:"0.0001" }
   ];
 }
 
