@@ -587,6 +587,21 @@ addScript(`(() => {
   IMS.metadata.setVertical("HeavyEquipment");
   renderInventory();
 
+  /* 27. Base-catalog add/edit forms include the active vertical's extended fields */
+  IMS.metadata.setVertical("Warehouse");
+  try {
+    const pBefore = IMS.itemRegistry.getByType("part").length;
+    partsModal(null);
+    const stEl = doc.getElementById("mdl-part-storage_class");
+    assert(!!stEl, "parts (Stock Inventory) form includes Warehouse extended field");
+    stEl.value = "Ambient";
+    doc.getElementById("mdl-part-save").click();
+    const lastPart = IMS.itemRegistry.getByType("part")[IMS.itemRegistry.getByType("part").length - 1];
+    assert(IMS.itemRegistry.getByType("part").length === pBefore + 1 && lastPart.extended_attributes && lastPart.extended_attributes.storage_class === "Ambient", "new part persists Warehouse extended_attributes from the form");
+  } catch (e) { failures++; out.push("  FAIL: partsModal vertical ext: " + (e && e.message)); }
+  IMS.metadata.setVertical("HeavyEquipment");
+  renderInventory();
+
   window.__gateFailures = failures;
   window.__gateLog = out;
 })();

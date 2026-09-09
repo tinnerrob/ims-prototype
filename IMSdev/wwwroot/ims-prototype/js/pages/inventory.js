@@ -54,6 +54,25 @@ function baseVerticalExtCols(){
   }));
 }
 
+/* Editable (bucket) field defs for the active vertical on base-catalog forms. */
+function baseVerticalExtFields(existing){
+  const v = IMS.metadata.vertical();
+  if (v !== "Lumberyard" && v !== "Warehouse") return [];
+  return IMS.metadata.registryFor(v).map(e => {
+    const f = { key: e.field_key, label: e.display_label, bucket: "extended_attributes", value: IMS.metadata.ext(existing, e.field_key) ?? "" };
+    if (e.data_type === "number"){ f.type = "number"; f.value = f.value || 0; }
+    else if (e.data_type === "date"){ f.type = "date"; }
+    else if (e.data_type === "boolean"){ f.type = "checkbox"; }
+    else f.type = "text";
+    return f;
+  });
+}
+
+function mergeExtFields(existing, vals){
+  const nx = Object.assign({}, (existing && existing.extended_attributes) || {}, (vals && vals.extended_attributes) || {});
+  return Object.keys(nx).length ? nx : undefined;
+}
+
 function renderInventory(){
   const tabMeta = {
     serialized:  { label:"Items (Serialized)", icon:"bi-truck-front",      count: IMS.itemRegistry.getByType("serialized").length },
@@ -389,9 +408,10 @@ function partsModal(existing){
   const isEdit = !!existing;
   openFormModal({
     id: "mdl-part", title: (isEdit ? "Edit" : "New") + " Stock Part (Service Inventory)", icon: "bi-wrench-adjustable",
-    fields: partsFields(existing),
+    fields: partsFields(existing).concat(baseVerticalExtFields(existing)),
     onSave: v => {
       const rec = { active:v.active !== false, partId:v.partId, description:v.description, category:v.category, bin:v.bin, qtyOnHand:v.qtyOnHand, reorderPoint:v.reorderPoint, costPrice:v.costPrice };
+      const nx = mergeExtFields(existing, v); if (nx) rec.extended_attributes = nx;
       itemWrite("part", isEdit ? existing : null, rec);
       renderInventory();
     }
@@ -554,9 +574,10 @@ function bulkModal(existing){
   const isEdit = !!existing;
   openFormModal({
     id: "mdl-bulk", title: (isEdit ? "Edit" : "New") + " Bulk Resource", icon: "bi-boxes",
-    fields: bulkFields(existing),
+    fields: bulkFields(existing).concat(baseVerticalExtFields(existing)),
     onSave: v => {
       const patch = { active:v.active !== false, sku:v.sku, name:v.name, category:v.category, totalOwned:v.totalOwned, baseDaily:v.baseDaily, baseWeekly:v.baseWeekly, baseMonthly:v.baseMonthly, depositPct:v.depositPct };
+      const nx = mergeExtFields(existing, v); if (nx) patch.extended_attributes = nx;
       if (isEdit) {
         itemWrite("bulk", existing, patch);
       } else {
@@ -585,9 +606,10 @@ function consumableModal(existing){
   const isEdit = !!existing;
   openFormModal({
     id: "mdl-consum", title: (isEdit ? "Edit" : "New") + " Consumable (Sales Stock)", icon: "bi-capsule",
-    fields: consumableFields(existing),
+    fields: consumableFields(existing).concat(baseVerticalExtFields(existing)),
     onSave: v => {
       const rec = { active:v.active !== false, sku:v.sku, name:v.name, category:v.category, qtyOnHand:v.qtyOnHand, reorderPoint:v.reorderPoint, costPrice:v.costPrice, retailPrice:v.retailPrice };
+      const nx = mergeExtFields(existing, v); if (nx) rec.extended_attributes = nx;
       itemWrite("consumable", isEdit ? existing : null, rec);
       renderInventory();
     }
