@@ -23,6 +23,33 @@ is committed/pushed to `main`.
   (jsdom suite: all views render, every modal + grid opens/saves/closes,
   store/persistence seam, metadata registry/relocation, healthcare round‑trip).
 
+## Whole‑App Review 2026‑09‑09 — T1/T2 done, T3 structural done (see `app-review-plan.md`)
+A full codebase review was executed in gated, one‑commit increments (all pushed):
+- **T1 Clean & reuse:** removed the shadowed legacy New‑Order modal from
+  `handoff.js` (relocated `taxRate()` → `common.js`); removed 6 dead top‑level
+  defs (whole‑corpus scan now returns 0); stripped the default ASP.NET Razor
+  scaffold (`Pages/*`) and reduced `Program.cs` to a minimal static host
+  (product moves to **Angular + Wisej.net**); folded `dashboard.css` into
+  `styles.css`; consolidated duplicate `opt()`/`_op` select‑option builders into
+  one shared `opt()`.
+- **T2 IMS‑first + module disconnect:** single‑source **`VIEWS` registry** in
+  `router.js` (derives RENDER/TITLES/DESCRIPTIONS/MODULE_VIEW); gate now proves
+  each of the 7 modules off → nav hidden + route falls back to dashboard + every
+  core view still renders; recorded the two cross‑module referential reads as a
+  documented exception; fixed stale `data.js` schema headers (party/order vocab).
+- **T3 UI/modal (structural):** added a **modal‑consistency contract sweep** to
+  the gate (role/aria, labelled title, footer Cancel + `.btn-ims`, no inline
+  chrome style) and a **startup‑error surface** (no silent blank page — surfaced
+  after a real incident caused by stale browser cache/persisted `localStorage`).
+- **Docs added:** `docs/AI-ONBOARDING.md`, `docs/architecture/app-review-plan.md`,
+  `docs/architecture/app-review-audit.md`, `docs/architecture/app-review-visual.md`.
+- **Remaining (browser visual pass only):** `docs/architecture/app-review-visual.md`
+  covers the `.kpi*` dedup (styles.css vs shared.css), remaining static inline‑
+  style→utility conversions, shell/nav polish, and a full per‑modal visual review.
+  Interactive action‑button reuse is deferred to that pass (handlers not
+  click‑verifiable by the gate).
+
+
 ## Running a check gate (jsdom)
 Load `index.html` (CDN scripts are skipped in tests), inline every local script
 under `js`, stub `window.alert/scrollTo/bootstrap.Modal`, dispatch
@@ -64,13 +91,21 @@ Confirm every modal from the inventory opens/closes/saves and reads clearly.
 **Done** — covered by the jsdom suite added during C4 (renders all 16 views and
 opens/saves/closes each modal).
 
-## Then remaining roadmap
-Phase C finish, then re‑run the full regression; revisit
-`ims-optimization-plan.md` (Phase A‑3 item‑table writers, Phase B any leftover
-entry points) as needed.
+## Remaining roadmap
+The whole‑app review (T1–T3) is done except the **browser visual pass**:
+- Run the app (`cd IMSdev && dotnet run` → http://localhost:5000/) and work
+  `docs/architecture/app-review-visual.md` — `.kpi*` dedup, inline‑style→utility
+  cleanup, shell/nav polish, and open every modal to confirm the spec.
+- Product direction: the current .NET host is a minimal static host to be
+  **replaced by an Angular + Wisej.net** stack; the JSON `apiAdapter` seam and the
+  `VIEWS`/module registry are the contracts to carry forward.
 
 ## Files/docs to rely on
-- `docs/architecture/ims-optimization-plan.md` — master plan.
+- `docs/architecture/app-review-plan.md` — whole‑app review roadmap (master).
+- `docs/architecture/app-review-audit.md` — per‑file/layer review matrix.
+- `docs/architecture/app-review-visual.md` — browser visual QA checklist (remaining T3).
+- `docs/AI-ONBOARDING.md` — zero‑context project overview for new agents.
+- `docs/architecture/ims-optimization-plan.md` — earlier data/API/module roadmap.
 - `docs/architecture/modal-design-spec.md` — modal spec + inventory.
 - `docs/architecture/module-dependencies.md`, `api-adapter.md`,
   `p4-terminology-migration.md`, `ims-core-and-modules.md`.

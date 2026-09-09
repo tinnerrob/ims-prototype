@@ -252,6 +252,16 @@ Open `wwwroot/ims-prototype/index.html` in a browser. Because Bootstrap loads fr
 an internet connection is needed for full styling; the app itself is otherwise
 self-contained. Any static file server works too (e.g. `python3 -m http.server`).
 
+**Via the bundled .NET host** (optional): from the repo root run `dotnet run` and open
+http://localhost:5000/ — it redirects `/` to `/ims-prototype/`. This is a *minimal static
+host* for local preview; the product will move to an **Angular + Wisej.net** stack, so do
+not extend this host — carry forward the JSON `apiAdapter` seam and the `VIEWS`/module
+registry instead.
+
+> If the page ever looks blank after an update, hard-refresh (Cmd/Ctrl+Shift+R) and/or
+> clear this site's `localStorage` keys `ims.store` + `ims.featureModules` — a stale
+> persisted snapshot or cached HTML/CSS is the usual cause.
+
 > Note: `parseDT` treats date-only ISO strings (`"YYYY-MM-DD"`) as **local** midnight (not
 > UTC) so cycle arithmetic, `addDays`, and date display are correct across timezones.
 
@@ -269,6 +279,10 @@ then asserts:
 - each modal across every module opens/saves/closes (customer, order editor/detail,
   rental wizard, check-in, allocations, inspection, punch clock, edit-time, work
   order, invoice detail, and the admin/rerent config modals),
+- a **modal-consistency contract sweep** (dialog semantics, labelled title, footer
+  Cancel + `.btn-ims` primary, no inline style on the dialog chrome),
+- **module-disconnect proofs**: with each module off, its nav hides, its route falls
+  back to the dashboard, and every core view still renders,
 - the `IMS.store` repository seam covers the item catalog + settings/rental
   collections and its JSON snapshot round-trips.
 
@@ -296,3 +310,18 @@ npm test           # run the jsdom gate
   updates (e.g. stock/status during check-out/check-in) update records in place;
   these are captured on the next repo save.
 
+
+
+---
+
+## 12. Documentation
+
+- `docs/AI-ONBOARDING.md` — zero-context overview (purpose, how it works, existing +
+  proposed functionality, file & data structure) for new agents/humans. **Read this first.**
+- `docs/architecture/app-review-plan.md` — the whole-app review/modernization roadmap
+  (T1 clean, T2 IMS-first + module disconnect, T3 UI/modals, Track 4 AI doc).
+- `docs/architecture/app-review-audit.md` — per-file/layer review matrix.
+- `docs/architecture/app-review-visual.md` — the remaining browser visual QA checklist.
+- `docs/architecture/ims-core-and-modules.md`, `module-dependencies.md`,
+  `modal-design-spec.md`, `metadata-extended-attributes.md`, `column-profiles.md`,
+  `api-adapter.md`, `p4-terminology-migration.md`, `next-session-seed.md`.

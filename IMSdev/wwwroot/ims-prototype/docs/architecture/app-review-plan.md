@@ -6,6 +6,17 @@
 **Predecessors (extend, do not duplicate):** `modal-design-spec.md`,
 `module-dependencies.md`, `ims-core-and-modules.md`, `ims-optimization-plan.md`.
 
+> **Execution status (2026-09-09):**
+> - T1 (clean & reuse) ✅ · T2 (IMS-first + module disconnect) ✅ · T3 structural
+>   (modal-consistency gate sweep, startup-error surface) ✅
+> - T3 **visual** pass ⏳ — browser QA only → `app-review-visual.md`
+>   (kpi dedup, inline-style→utilities, shell/nav, per-modal review).
+> - Track 4 AI-onboarding doc ✅ (`docs/AI-ONBOARDING.md`); audit matrix ✅.
+> - All shipped in gated one-commit increments on `main` (docs base `0311f17` →
+>   review work through `1ee4e17`).
+> - Product direction: replacing the .NET static host with an **Angular + Wisej.net**
+>   stack; carry forward the JSON `apiAdapter` seam and the `VIEWS`/module registry.
+
 ## 0. Why this plan exists
 A full review of the app across four core commitments plus one deliverable that
 enables AI-assisted contribution going forward:
