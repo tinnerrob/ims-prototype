@@ -488,6 +488,7 @@ function createRentalFromModal(root){
     jobSite: custAddr || "Front counter pickup",
     projectName: "Equipment Rental — " + custName,
     startDate: cStart + "T09:00", endDate: cEnd + "T17:00", status: "active", counter: true,
+    orderType: "loan", billing: { enabled: true },
     geofenceRadius: 300, overheads: [],
     siteLat: (IMS.yard && IMS.yard.lat) || 33.7490, siteLng: (IMS.yard && IMS.yard.lng) || -84.3880,
     lineItems

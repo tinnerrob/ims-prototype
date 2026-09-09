@@ -202,6 +202,21 @@ function computeLineTotal(item, contract){
   const r = getResource(item);
   if (!r) return 0;
 
+  /* Order-line pricing POLICY takes precedence over item defaults: explicit
+     custom rates + charge frequency, or an explicit unit price (sale). This is
+     what decouples authoritative pricing from the item catalog — the item only
+     provides defaults unless an order policy overrides them. */
+  if (item.freq && item.customRates){
+    const minH = (IMS.settings.pricing && IMS.settings.pricing.dailyMinHours) || 8;
+    const key = item.freq === "hour" ? "hourly" : item.freq === "week" ? "weekly" : "daily";
+    const units = item.freq === "week" ? Math.max(1, Math.ceil(days / 7)) : (item.freq === "hour" ? days * minH : days);
+    const perUnit = (item.customRates[key] || 0) * units;
+    return round2(perUnit * (item.qty || 1) * (1 + premium));
+  }
+  if (item.unitPrice != null){
+    return round2(item.unitPrice * (item.qty || 1));
+  }
+
   if (item.type === "labor")      return round2(r.hourlyBillable * item.qty);
   if (item.type === "consumable") return round2(r.retailPrice * item.qty);
   if (item.type === "part")       return round2(r.costPrice * item.qty);
