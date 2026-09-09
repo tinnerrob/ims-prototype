@@ -83,9 +83,12 @@ with findings are updated as passes land.
 6. **Inline `style=` audit (FIX):** **75** occurrences across 14 page files —
    worst: scheduler.js (21), timesheet.js (11), geo.js (11), inventory.js (8).
    Each is a candidate for a token/utility class (T3.1/T3.4.2).
-7. **Modal a11y contract check (T3.4):** `role="dialog"`/`aria-modal` present in
-   the shared builders (`common.js`) but worth an automated assertion across every
-   emitted modal; `.btn-ims` primary used ~29× (footer-consistency lint).
+7. **Modal a11y contract (T3.4):** gate now asserts on representative real modals
+   (inventory serialized, customer edit, yard inspection): `role=dialog`/`aria-modal`,
+   `aria-labelledby`→title, footer has Cancel + `.btn-ims` primary, no inline style on
+   chrome. **[x] machine-checked.** Remaining T3 is visual: sweep every modal in
+   `modal-design-spec.md`, restyle non-conforming ones, `.kpi*` dedup + shell/tokens
+   (needs browser QA).
 8. **[T2.0] Cross-module referential reads (documented exception):** core `inventory.js`
    reads `workOrders` (service) + `timesheets` (labor) to show related-item counts in
    detail views; labor `timesheet.js` reads `workOrders` (service) for clock-in targets.

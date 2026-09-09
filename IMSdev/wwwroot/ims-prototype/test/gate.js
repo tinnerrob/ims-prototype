@@ -86,6 +86,37 @@ addScript(`(() => {
   IMS.settings.featureModules = flagsBefore;                 // restore all on
   if (typeof applyModuleNav === "function") applyModuleNav();
 
+  /* 1.6 MODAL CONSISTENCY CONTRACT (T3.4): every modal (form + raw, via the
+       shared builders) must carry dialog semantics, a labelled title, and the
+       standard footer (Cancel/Close + a .btn-ims primary), with no inline
+       style on the dialog chrome. */
+  out.push("Modal contract sweep (T3.4)...");
+  const dialogRoot = () => doc.querySelector(".modal");
+  const modalContract = (label) => {
+    const d = dialogRoot();
+    if (!d){ assert(false, "modal-contract '" + label + "' did not open a dialog"); return; }
+    assert(d.getAttribute("role") === "dialog" && d.getAttribute("aria-modal") === "true",
+      "modal-contract '" + label + "' has role=dialog + aria-modal");
+    const lid = d.getAttribute("aria-labelledby");
+    assert(!!lid && !!d.querySelector("#" + lid),
+      "modal-contract '" + label + "' aria-labelledby points at a title");
+    const foot = d.querySelector(".modal-footer");
+    assert(!!foot && !!foot.querySelector('[data-bs-dismiss="modal"]'),
+      "modal-contract '" + label + "' footer has Cancel/Close");
+    assert(!!foot && !!foot.querySelector(".btn-ims"),
+      "modal-contract '" + label + "' footer has a .btn-ims primary");
+    const chromeInline = [d].concat(Array.from(d.querySelectorAll(".modal-dialog,.modal-content,.modal-header,.modal-body,.modal-footer") || []))
+      .some(el => el && el.hasAttribute("style"));
+    assert(!chromeInline, "modal-contract '" + label + "' dialog chrome has no inline style");
+  };
+  const sweepModal = (label, fn) => {
+    try { fn(); modalContract(label); const d = dialogRoot(); if (d) dismissModal(d); }
+    catch (e) { failures++; out.push("  FAIL: modal-contract '" + label + "' threw: " + (e && e.message)); }
+  };
+  sweepModal("inventory serialized", () => { showView("inventory"); serializedModal(); });
+  if (IMS.parties[0]) sweepModal("customer edit", () => { showView("orders"); customerModal(IMS.parties[0], true); });
+  if ((IMS.inspections || [])[0]) sweepModal("yard inspection", () => { showView("yard"); inspectionModal(IMS.inspections[0]); });
+
   /* 2. openFormModal structure + focus + save/close */
   showView("inventory");
   let saved = null;
