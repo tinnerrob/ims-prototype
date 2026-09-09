@@ -11,9 +11,9 @@ const TITLES = {
   dashboard:"Operations Dashboard", inventory:"Items & Stock", orders:"Parties & Orders", scheduler:"Allocations",
   handoff:"Item Hand-Off & Custody", geo:"Fleet Telemetry", logistics:"Logistics & Dispatch", maintenance:"Field Service & Maintenance",
   timesheet:"Labor & Timesheets", yard:"Receiving / Inspections", invoicing:"Billing & Invoicing", rerents:"Rentals / Sub-Rentals",
-  branches:"Locations", pricing:"Pricing & Policies", categories:"Categories & Types"
+  branches:"Locations", pricing:"Pricing & Policies", categories:"Categories & Types", config:"Feature Modules"
 };
-const RENDER = { dashboard: renderDashboard, inventory: renderInventory, orders: renderOrdersParties, scheduler: renderScheduler, handoff: renderHandoff, geo: renderGeo, logistics: renderLogistics, maintenance: renderMaintenance, timesheet: renderTimesheet, yard: renderYard, invoicing: renderInvoicing, rerents: renderRerents, branches: renderBranches, pricing: renderPricing, categories: renderCategories };
+const RENDER = { dashboard: renderDashboard, inventory: renderInventory, orders: renderOrdersParties, scheduler: renderScheduler, handoff: renderHandoff, geo: renderGeo, logistics: renderLogistics, maintenance: renderMaintenance, timesheet: renderTimesheet, yard: renderYard, invoicing: renderInvoicing, rerents: renderRerents, branches: renderBranches, pricing: renderPricing, categories: renderCategories, config: renderConfig };
 const DESCRIPTIONS = {
   dashboard:"Aggregated operational metrics from the inventory core and enabled modules.",
   inventory:"Core catalog: typed items, stock quantities, and on-hand levels across the inventory.",
@@ -29,7 +29,8 @@ const DESCRIPTIONS = {
   rerents:"Module: rentals and sub-rental loans sourced from third-party vendors.",
   branches:"Core: location hierarchy (yards, branches, warehouses, bins).",
   pricing:"Policies: optional pricing, tax, and overhead rules applied to orders.",
-  categories:"Core: manage item type / category options across the catalog."
+  categories:"Core: manage item type / category options across the catalog.",
+  config:"Administration: enable or disable industry modules layered on the inventory core."
 };
 
 /* =========================================================
@@ -70,6 +71,16 @@ function applyModuleNav(){
   });
 }
 
+/* Persisted module flags (localStorage now; tenant/API config later). */
+const MODULE_FLAGS_KEY = "ims.featureModules";
+function loadModuleFlags(){
+  try {
+    if (window.localStorage){ const raw = localStorage.getItem(MODULE_FLAGS_KEY); if (raw) return JSON.parse(raw); }
+  } catch(_) {}
+  return (IMS.settings && IMS.settings.featureModules) || {};
+}
+function saveModuleFlags(flags){ try { if (window.localStorage) localStorage.setItem(MODULE_FLAGS_KEY, JSON.stringify(flags)); } catch(_) {} }
+
 
 function showView(id){
   /* Disabled modules fall back to the dashboard (core is always available). */
@@ -92,6 +103,7 @@ function init(){
   $("#topbarDate").textContent = d.toLocaleDateString("en-US", { weekday:"short", month:"short", day:"numeric", year:"numeric" });
 
   $$(".nav-item").forEach(b => b.addEventListener("click", () => showView(b.dataset.view)));
+  IMS.settings.featureModules = loadModuleFlags();
   applyModuleNav();   /* hide nav entries for disabled modules */
   $("#menuToggle").addEventListener("click", () => $("#sidebar").classList.toggle("open"));
   $("#notifBtn").addEventListener("click", () => showView(moduleEnabled("geo") ? "geo" : "dashboard"));
