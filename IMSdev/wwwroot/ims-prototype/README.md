@@ -49,7 +49,7 @@ wwwroot/ims-prototype/
     └── pages/          # One file per page/view
         ├── dashboard.js     # Executive KPIs & dashboards
         ├── inventory.js     # 7 resource types: serialized, bulk, consumables, parts, labor, kits, attachments
-        ├── healthcare.js    # 2nd vertical: Healthcare/medical devices (registry-driven extended attrs)
+        ├── healthcare.js    # Healthcare/medical devices — the "medical" Items & Stock tab (vertical-dependent)
         ├── scheduler.js     # Contract queue, resource pool, timeline, booking, conflicts
         ├── contracts.js     # Customers & contracts (header management)
         ├── geo.js           # GPS telemetry simulation + geofence monitoring

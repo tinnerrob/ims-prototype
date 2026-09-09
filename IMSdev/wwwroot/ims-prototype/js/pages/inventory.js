@@ -11,6 +11,7 @@
 function invAddLabel(){
   switch (App.invTab) {
     case "serialized": return "New Equipment";
+    case "medical": return "New Medical Device";
     case "bulk": return "New Bulk Resource";
     case "consumable": return "New Consumable";
     case "parts": return "New Part";
@@ -21,23 +22,36 @@ function invAddLabel(){
   }
 }
 
+/* Which item tabs appear depends on the active industry vertical (chosen on the
+   Feature Modules page). Every vertical keeps the shared base (bulk, consumable,
+   parts/stock, labor); heavy-equipment adds serialized/attachments/kits, while
+   Healthcare swaps the serialized tab for a medical/device catalog. */
+const VERTICAL_INV_TABS = {
+  HeavyEquipment: ["serialized", "bulk", "consumable", "parts", "labor", "attachments", "kits"],
+  Healthcare: ["medical", "bulk", "consumable", "parts", "labor"]
+};
+const invTabKeys = () => VERTICAL_INV_TABS[IMS.metadata.vertical()] || VERTICAL_INV_TABS.HeavyEquipment;
+
 function renderInventory(){
-  /* Type order follows the shared RESOURCE_TYPE_ORDER so it always matches the
-     scheduler resource-pool dropdown and timeline grouping. */
   const tabMeta = {
     serialized:  { label:"Items (Serialized)", icon:"bi-truck-front",      count: IMS.itemRegistry.getByType("serialized").length },
-    bulk:        { label:"Items (Bulk)",       icon:"bi-boxes",            count: IMS.itemRegistry.getByType("bulk").length },
-    consumable:  { label:"Consumables",          icon:"bi-capsule",          count: IMS.itemRegistry.getByType("consumable").length },
-    parts:       { label:"Stock Inventory",      icon:"bi-wrench-adjustable",count: IMS.itemRegistry.getByType("part").length },
-    labor:       { label:"Labor / Employees",    icon:"bi-person-badge",     count: IMS.labor.length },
-    attachments: { label:"Attachments",          icon:"bi-paperclip",        count: IMS.itemRegistry.getByType("attachment").length },
-    kits:        { label:"Kits",                 icon:"bi-puzzle",           count: IMS.itemRegistry.getByType("kit").length }
+    medical:     { label:"Medical / Devices",  icon:"bi-heart-pulse",       count: IMS.healthcare.length },
+    bulk:        { label:"Items (Bulk)",       icon:"bi-boxes",             count: IMS.itemRegistry.getByType("bulk").length },
+    consumable:  { label:"Consumables",        icon:"bi-capsule",           count: IMS.itemRegistry.getByType("consumable").length },
+    parts:       { label:"Stock Inventory",    icon:"bi-wrench-adjustable", count: IMS.itemRegistry.getByType("part").length },
+    labor:       { label:"Labor / Employees",  icon:"bi-person-badge",      count: IMS.labor.length },
+    attachments: { label:"Attachments",        icon:"bi-paperclip",         count: IMS.itemRegistry.getByType("attachment").length },
+    kits:        { label:"Kits",               icon:"bi-puzzle",            count: IMS.itemRegistry.getByType("kit").length }
   };
-  const tabs = RESOURCE_TYPE_ORDER.map(k => ({ key:k, ...tabMeta[k] }));
+  const keys = invTabKeys();
+  if (!keys.includes(App.invTab)) App.invTab = keys[0];
+  const tabs = keys.map(k => ({ key: k, ...tabMeta[k] }));
+  const vertLabel = IMS.metadata.verticals[IMS.metadata.vertical()] || IMS.metadata.vertical();
   $("#content").innerHTML = `
     <div class="page-head"></div>
     <div class="card">
       <div class="card-header"><span class="card-title"><i class="bi bi-box-seam"></i> Resource Master Lists</span>
+        <span class="text-muted2 text-12">Vertical: ${vertLabel}</span>
         <button class="btn btn-ims" id="invAddBtn"><i class="bi bi-plus-lg"></i> ${invAddLabel()}</button></div>
       <div class="card-body">
         <div class="subtabs" id="invTabs">
@@ -54,6 +68,7 @@ function renderInventory(){
 function renderInvPanel(){
   const p = $("#invPanel");
   if (App.invTab === "serialized"){ p.innerHTML = serializedTable(); IMSGrid.ensure("inv-serialized", renderInvPanel); }
+  else if (App.invTab === "medical"){ renderInvMedicalPanel(); return; }
   else if (App.invTab === "bulk"){ p.innerHTML = bulkTable(); IMSGrid.ensure("inv-bulk", renderInvPanel); }
   else if (App.invTab === "consumable"){ p.innerHTML = consumableTable(); IMSGrid.ensure("inv-consumable", renderInvPanel); }
   else if (App.invTab === "parts"){ p.innerHTML = partsTable(); IMSGrid.ensure("inv-parts", renderInvPanel); }
@@ -61,6 +76,17 @@ function renderInvPanel(){
   else if (App.invTab === "kits") { renderInvKitsPanel(); return; }
   else if (App.invTab === "attachments") { renderInvAttachmentsPanel(); return; }
   bindInvActions();
+}
+
+function renderInvMedicalPanel(){
+  const p = $("#invPanel");
+  p.innerHTML = medicalTable();
+  IMSGrid.ensure("inv-medical", renderInvMedicalPanel);
+  $$("[data-mededit]").forEach(b => b.addEventListener("click", () => healthcareModal(IMS.healthcare.find(x => x.id === b.dataset.mededit))));
+  delegate(p, "click", "tr[data-edit]", (el, e) => {
+    if (e.target.closest("button, a, input, select, label, .form-check")) return;
+    healthcareModal(IMS.healthcare.find(x => x.id === el.dataset.edit));
+  });
 }
 
 function renderInvKitsPanel(){
@@ -391,6 +417,7 @@ const opt = arr => arr.map(v => ({ value: v, label: v }));
 
 function openAddModal(tab){
   if (tab === "serialized") serializedModal();
+  else if (tab === "medical") healthcareModal(null);
   else if (tab === "bulk") bulkModal();
   else if (tab === "consumable") consumableModal();
   else if (tab === "labor") laborModal();

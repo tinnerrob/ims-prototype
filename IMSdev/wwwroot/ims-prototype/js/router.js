@@ -8,16 +8,15 @@
    NAVIGATION / ROUTER
    ========================================================= */
 const TITLES = {
-  dashboard:"Operations Dashboard", inventory:"Items & Stock", healthcare:"Healthcare / Medical Devices", orders:"Parties & Orders", scheduler:"Allocations",
+  dashboard:"Operations Dashboard", inventory:"Items & Stock", orders:"Parties & Orders", scheduler:"Allocations",
   handoff:"Item Hand-Off & Custody", geo:"Fleet Telemetry", logistics:"Logistics & Dispatch", maintenance:"Field Service & Maintenance",
   timesheet:"Labor & Timesheets", yard:"Receiving / Inspections", invoicing:"Billing & Invoicing", rerents:"Rentals / Sub-Rentals",
   branches:"Locations", pricing:"Pricing & Policies", categories:"Categories & Types", config:"Feature Modules"
 };
-const RENDER = { dashboard: renderDashboard, inventory: renderInventory, healthcare: renderHealthcare, orders: renderOrdersParties, scheduler: renderScheduler, handoff: renderHandoff, geo: renderGeo, logistics: renderLogistics, maintenance: renderMaintenance, timesheet: renderTimesheet, yard: renderYard, invoicing: renderInvoicing, rerents: renderRerents, branches: renderBranches, pricing: renderPricing, categories: renderCategories, config: renderConfig };
+const RENDER = { dashboard: renderDashboard, inventory: renderInventory, orders: renderOrdersParties, scheduler: renderScheduler, handoff: renderHandoff, geo: renderGeo, logistics: renderLogistics, maintenance: renderMaintenance, timesheet: renderTimesheet, yard: renderYard, invoicing: renderInvoicing, rerents: renderRerents, branches: renderBranches, pricing: renderPricing, categories: renderCategories, config: renderConfig };
 const DESCRIPTIONS = {
   dashboard:"Aggregated operational metrics from the inventory core and enabled modules.",
   inventory:"Core catalog: typed items, stock quantities, and on-hand levels across the inventory.",
-  healthcare:"Second vertical catalog: medical devices with Healthcare extended attributes (registry-driven).",
   orders:"Counterparties (customers, vendors, sites) and the orders placed against inventory.",
   scheduler:"Module: planned availability and allocation of inventory over time.",
   handoff:"Core: custody & movement of items — issue out, receive/return, and chain of custody.",

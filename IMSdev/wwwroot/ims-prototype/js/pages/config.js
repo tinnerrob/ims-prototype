@@ -24,6 +24,8 @@ const CORE_MODULES = [
 
 function renderConfig(){
   const flags = IMS.settings.featureModules = (IMS.settings.featureModules || {});
+  const vertOpts = Object.keys(IMS.metadata.verticals).map(v =>
+    `<option value="${v}" ${IMS.metadata.vertical() === v ? "selected" : ""}>${IMS.metadata.verticals[v]}</option>`).join("");
   const rows = Object.keys(MODULE_META || {}).map(k => {
     const on = flags[k] !== false;
     return `<div class="list-line mod-row">
@@ -44,6 +46,20 @@ function renderConfig(){
     <div class="page-head"></div>
     <div class="card mb-3">
       <div class="card-header">
+        <span class="card-title"><i class="bi bi-sliders2"></i> Industry / Vertical</span>
+      </div>
+      <div class="card-body">
+        <div class="row g-2 align-items-end">
+          <div class="col-md-6 field-group mb-0">
+            <label class="form-label">Active vertical</label>
+            <select class="form-select" id="modVertical">${vertOpts}</select>
+          </div>
+          <div class="col-md-6"><span class="text-muted2 text-12">Selects which catalog types appear on <strong>Items &amp; Stock</strong> (e.g. Healthcare shows a medical/device tab instead of serialized equipment).</span></div>
+        </div>
+      </div>
+    </div>
+    <div class="card mb-3">
+      <div class="card-header">
         <span class="card-title"><i class="bi bi-toggles"></i> Feature Modules</span>
         <button class="btn btn-ims-outline btn-sm2" id="modReset" type="button"><i class="bi bi-arrow-counterclockwise"></i> Enable All</button>
       </div>
@@ -56,6 +72,11 @@ function renderConfig(){
         ${rows}
       </div>
     </div>`;
+
+  delegate($("#content"), "change", "#modVertical", b => {
+    if (typeof IMS.metadata.setVertical === "function") IMS.metadata.setVertical(b.value);
+    renderConfig();
+  });
 
   delegate($("#content"), "change", ".mod-toggle", b => {
     if (!b.checked){

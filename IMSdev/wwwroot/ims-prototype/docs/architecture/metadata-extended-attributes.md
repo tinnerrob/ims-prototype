@@ -15,9 +15,21 @@
 - **HeavyEquipment** (primary): `serial_vin, meter_hours, fuel_type, make, model,
   telemetry_gps_enabled`. These serialized fields are fully **relocated** into
   `extended_attributes` (flat keys removed) — see the B3 section.
-- **Healthcare** (2nd vertical, `healthcare` catalog/view): `lot_number,
-  expiration_date, sterilization_status, fda_class` — created native in the
-  bucket via the registry‑driven grid/form.
+- **Healthcare** (2nd vertical): `lot_number, expiration_date,
+  sterilization_status, fda_class` — a medical/device catalog shown as the
+  **Items & Stock "medical" tab** (vertical = Healthcare, chosen on Feature
+  Modules), replacing the serialized-equipment tab.
+
+## Vertical drives Items & Stock
+The active vertical (set on **Feature Modules** → `IMS.metadata.setVertical`,
+persisted `ims.vertical`) controls which item tabs appear on Items & Stock:
+- **HeavyEquipment** (default): serialized, attachments, kits + the shared base
+  (bulk, consumable, parts/stock, labor).
+- **Healthcare**: a medical/device catalog instead of serialized/attachments/kits,
+  plus the shared base (bulk, consumable, parts, labor).
+
+There is no separate Healthcare page — the same Items & Stock table is
+"industry-aware" and shows the tabs for the active vertical.
 
 ## Implementation status (Track B)
 - **B0** registry module `js/metadata.js` (`IMS.metadata`): `registryFor`,
