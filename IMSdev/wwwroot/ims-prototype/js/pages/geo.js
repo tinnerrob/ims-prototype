@@ -38,7 +38,7 @@ function renderGeo(){
       <div>
         <div class="card" style="margin-bottom:16px">
           <div class="card-header"><span class="card-title"><i class="bi bi-list-ul"></i> Fleet Asset Status</span>
-            <span class="text-muted2" style="font-weight:500">${IMS.serializedAssets.length} serialized units</span></div>
+            <span class="text-muted2" style="font-weight:500">${IMS.itemInstances.length} serialized units</span></div>
           <div class="card-body">
             <input class="filter-input mb-2" id="geoFilter" value="${App.geoFilter || ""}" placeholder="Search asset ID, make, model, serial...">
             <div class="table-wrap" style="max-height:280px;overflow-y:auto">
@@ -75,7 +75,7 @@ function renderGeo(){
 
 function renderGeoTable(){
   const q = (App.geoFilter || "").toLowerCase();
-  const rows = IMS.serializedAssets.filter(a => !q || (a.id + " " + a.make + " " + a.model + " " + a.serial).toLowerCase().includes(q)).map(a => {
+  const rows = IMS.itemInstances.filter(a => !q || (a.id + " " + a.make + " " + a.model + " " + a.serial).toLowerCase().includes(q)).map(a => {
     const battCls = a.battery > 60 ? "var(--success)" : (a.battery > 30 ? "var(--warning)" : "var(--danger)");
     return `<tr>
       <td class="strong mono">${a.id}</td>
@@ -104,7 +104,7 @@ function renderGeoMap(){
     html += `<div class="geo-ring" style="left:${s.x}px;top:${s.y}px;width:${r * 2}px;height:${r * 2}px"><span class="ring-tag">${c.projectName} (${c.geofenceRadius}m)</span></div>`;
     html += pinHTML("site", s.x, s.y, c.orderId);
   });
-  IMS.serializedAssets.forEach(a => {
+  IMS.itemInstances.forEach(a => {
     const p = latLngToXY(map, a.lat, a.lng);
     html += pinHTML("asset" + (a._breached ? " alerting" : ""), p.x, p.y, a.id);
   });
@@ -123,7 +123,7 @@ function renderGeoAlerts(){
 
 /* ---------- geofence movement simulator ---------- */
 function initSim(){
-  IMS.serializedAssets.forEach(a => {
+  IMS.itemInstances.forEach(a => {
     a._baseLat = a.lat; a._baseLng = a.lng; a._breached = false;
     if (a.orderId) {
       if (a.id === "BL-119") a._sim = { ampLat: 0.0015, ampLng: 0.0010, sp: 0.9 };
@@ -139,7 +139,7 @@ function geoSimTick(){
   try {
     App.tick++;
     const t = App.tick;
-    IMS.serializedAssets.forEach(a => {
+    IMS.itemInstances.forEach(a => {
       const s = a._sim || { ampLat: 0.00006, ampLng: 0.00006, sp: 0.4 };
       a.lat = a._baseLat + s.ampLat * Math.sin(t * s.sp * 0.4);
       a.lng = a._baseLng + s.ampLng * Math.cos(t * s.sp * 0.33);

@@ -272,7 +272,7 @@ function renderPoolList(){
   const t = App.schedPoolTab;
   const plain = { key: "free", badge: "", note: "" };
   let html = "";
-  if (t === "serialized") html = byCode(IMS.serializedAssets.filter(a => recActive(a)), "id").map(a => {
+  if (t === "serialized") html = byCode(IMS.itemInstances.filter(a => recActive(a)), "id").map(a => {
     const out = typeof assetOutInfo === "function" ? assetOutInfo(a.id) : null;
     const avail = out
       ? { key: "busy", badge: `<span class="badge-status st-out"><i class="bi bi-truck"></i>On site · ${out.orderId}</span>`, note: "Custodian " + out.custodian }

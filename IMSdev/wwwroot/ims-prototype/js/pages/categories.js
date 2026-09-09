@@ -41,7 +41,7 @@ function categoryTable(){
   const type = App.catType;
   const cats = IMS.settings.categories[type] || [];
   const countOf = cat => {
-    if (type === "serialized") return IMS.serializedAssets.filter(a => a.category === cat).length;
+    if (type === "serialized") return IMS.itemInstances.filter(a => a.category === cat).length;
     if (type === "bulk") return IMS.bulkResources.filter(b => b.category === cat).length;
     if (type === "consumable") return IMS.consumables.filter(c => c.category === cat).length;
     if (type === "labor") return IMS.labor.filter(e => e.category === cat).length;
@@ -94,7 +94,7 @@ function addCategoryModal(){
 }
 
 function renameRecords(type, oldName, newName){
-  if (type === "serialized") IMS.serializedAssets.forEach(a => { if (a.category === oldName) a.category = newName; });
+  if (type === "serialized") IMS.itemInstances.forEach(a => { if (a.category === oldName) a.category = newName; });
   else if (type === "bulk") IMS.bulkResources.forEach(b => { if (b.category === oldName) b.category = newName; });
   else if (type === "consumable") IMS.consumables.forEach(c => { if (c.category === oldName) c.category = newName; });
   else if (type === "labor") IMS.labor.forEach(e => { if (e.category === oldName) e.category = newName; });

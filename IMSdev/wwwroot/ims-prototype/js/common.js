@@ -139,7 +139,7 @@ const partyCycleDays = contractOrId => {
    @param {Object} item - line item or { type, refId }
    @returns {Object|null} the matched resource (asset, bulk, consumable, labor, part, kit, attachment) */
 const getResource = (item) => {
-  if (item.type === "serialized") return IMS.serializedAssets.find(a => a.id === item.refId);
+  if (item.type === "serialized") return IMS.itemInstances.find(a => a.id === item.refId);
   if (item.type === "bulk")       return IMS.bulkResources.find(b => b.sku === item.refId);
   if (item.type === "consumable") return IMS.consumables.find(c => c.sku === item.refId);
   if (item.type === "labor")      return IMS.labor.find(e => e.empId === item.refId);

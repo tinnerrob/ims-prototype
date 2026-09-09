@@ -23,7 +23,7 @@ function getLastMeter(assetId){
 function renderYard(){
   const checks = ["tires","fluids","guards","lights","engine"];
   const checkLabels = { tires:"Tires / Tracks", fluids:"Fluids", guards:"Safety Guards", lights:"Lights", engine:"Engine" };
-  const assetOpts = IMS.serializedAssets.map(a => `<option value="${a.id}">${a.id} — ${a.make} ${a.model}</option>`).join("");
+  const assetOpts = IMS.itemInstances.map(a => `<option value="${a.id}">${a.id} — ${a.make} ${a.model}</option>`).join("");
   const contractOpts = IMS.orders.map(c => `<option value="${c.orderId}">${c.orderId} — ${c.projectName}</option>`).join("");
   $("#content").innerHTML = `
     <div class="page-head"></div>
@@ -125,7 +125,7 @@ function inspectionModal(existing){
   const e = existing || {};
   const checks = ["tires","fluids","guards","lights","engine"];
   const checkLabels = { tires:"Tires / Tracks", fluids:"Fluids", guards:"Safety Guards", lights:"Lights", engine:"Engine" };
-  const assetOpts = IMS.serializedAssets.map(a => ({ value:a.id, label:`${a.id} — ${a.make} ${a.model}` }));
+  const assetOpts = IMS.itemInstances.map(a => ({ value:a.id, label:`${a.id} — ${a.make} ${a.model}` }));
   const fields = [
     { key:"assetId", label:"Asset", type:"select", value:e.assetId, options:assetOpts },
     { key:"direction", label:"Direction", type:"select", value:e.direction || "Check-Out", options:opt(["Check-Out","Check-In"]) },

@@ -22,7 +22,7 @@ function woComputed(w){
 function renderMaintenance(){
   const woRows = IMS.workOrders
     .filter(w => App.woFilter === "all" || w.status === App.woFilter)
-    .map(w => ({ ...w, ...woComputed(w), asset: IMS.serializedAssets.find(a => a.id === w.assetId) }));
+    .map(w => ({ ...w, ...woComputed(w), asset: IMS.itemInstances.find(a => a.id === w.assetId) }));
   $("#content").innerHTML = `
     <div class="page-head"></div>
     <div class="card">
@@ -79,8 +79,8 @@ function workOrderModal(existing){
   const e = existing || {};
   const techs = IMS.labor.filter(x => x.role === "Technician");
   const fields = [
-    { key:"assetId", label:"Asset", type:"select", value: e.assetId || IMS.serializedAssets.find(a => a.status === "In Shop")?.id || IMS.serializedAssets[0].id,
-      options: IMS.serializedAssets.map(a => ({ value:a.id, label:`${a.id} — ${a.make} ${a.model} (${a.status})` })) },
+    { key:"assetId", label:"Asset", type:"select", value: e.assetId || IMS.itemInstances.find(a => a.status === "In Shop")?.id || IMS.itemInstances[0].id,
+      options: IMS.itemInstances.map(a => ({ value:a.id, label:`${a.id} — ${a.make} ${a.model} (${a.status})` })) },
     { key:"type", label:"Service Type", type:"select", value:e.type || "Repair", options: opt(["Preventive","Repair","Inspection"]) },
     { key:"meterReading", label:"Current Meter Reading", type:"number", value:e.meterReading || 0 },
     { key:"status", label:"Status", type:"select", value:e.status || "In Progress", options: opt(["In Progress","Completed","Pending"]) },
@@ -105,7 +105,7 @@ function workOrderModal(existing){
         return;
       }
       const tech = IMS.labor.find(x => x.empId === v.techId) || IMS.labor[0];
-      const asset = IMS.serializedAssets.find(a => a.id === v.assetId);
+      const asset = IMS.itemInstances.find(a => a.id === v.assetId);
       const parts = [];
       if (v.partsQty > 0) parts.push({ kind:"consumable", sku:v.partsSku, qty:v.partsQty });
       if (v.partQty > 0) parts.push({ kind:"part", refId:v.partId, qty:v.partQty });

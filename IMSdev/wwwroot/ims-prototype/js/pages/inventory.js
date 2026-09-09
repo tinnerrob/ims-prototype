@@ -25,7 +25,7 @@ function renderInventory(){
   /* Type order follows the shared RESOURCE_TYPE_ORDER so it always matches the
      scheduler resource-pool dropdown and timeline grouping. */
   const tabMeta = {
-    serialized:  { label:"Serialized Equipment", icon:"bi-truck-front",      count: IMS.serializedAssets.length },
+    serialized:  { label:"Serialized Equipment", icon:"bi-truck-front",      count: IMS.itemInstances.length },
     bulk:        { label:"Bulk Resources",       icon:"bi-boxes",            count: IMS.bulkResources.length },
     consumable:  { label:"Consumables",          icon:"bi-capsule",          count: IMS.consumables.length },
     parts:       { label:"Stock Inventory",      icon:"bi-wrench-adjustable",count: IMS.parts.length },
@@ -84,7 +84,7 @@ function renderInvAttachmentsPanel(){
 }
 
 function serializedTable(){
-  const rows = IMS.serializedAssets.map(a => `
+  const rows = IMS.itemInstances.map(a => `
     <tr data-edit="${a.id}">
       <td class="strong mono">${a.id}</td>
       <td class="mono text-muted2">${a.serial}</td>
@@ -380,7 +380,7 @@ function partsView(p){
 }
 
 /* ---------- inventory record lookup + detail-modal helpers ---------- */
-const getAsset = id => IMS.serializedAssets.find(a => a.id === id);
+const getAsset = id => IMS.itemInstances.find(a => a.id === id);
 const getBulk = id => IMS.bulkResources.find(b => b.sku === id);
 const getConsumable = id => IMS.consumables.find(c => c.sku === id);
 const getLabor = id => IMS.labor.find(e => e.empId === id);
@@ -401,7 +401,7 @@ function assetCode(cat){
 function nextAssetId(cat){
   const code = assetCode(cat);
   let max = 0;
-  IMS.serializedAssets.forEach(a => {
+  IMS.itemInstances.forEach(a => {
     if (a.id.startsWith(code + "-")) { const n = parseInt(a.id.split("-")[1], 10); if (n > max) max = n; }
   });
   return code + "-" + (max + 1);
@@ -449,7 +449,7 @@ function serializedModal(existing){
       if (isEdit) {
         Object.assign(existing, { active:v.active !== false, serial:v.serial, make:v.make, model:v.model, category:v.category, meterHours:v.meterHours, fuelType:v.fuelType, purchaseValue:v.purchaseValue, baseDaily:v.baseDaily, baseWeekly:v.baseWeekly, baseMonthly:v.baseMonthly, depositPct:v.depositPct, lat:v.lat, lng:v.lng, status:v.status });
       } else {
-        IMS.serializedAssets.push({ id:v.id, active:v.active !== false, serial:v.serial, make:v.make, model:v.model, category:v.category, meterHours:v.meterHours, fuelType:v.fuelType, purchaseValue:v.purchaseValue, baseDaily:v.baseDaily, baseWeekly:v.baseWeekly, baseMonthly:v.baseMonthly, depositPct:v.depositPct, lat:v.lat, lng:v.lng, status:v.status, battery:100, lastReported: new Date().toISOString().slice(0,19), orderId:null });
+        IMS.itemInstances.push({ id:v.id, active:v.active !== false, serial:v.serial, make:v.make, model:v.model, category:v.category, meterHours:v.meterHours, fuelType:v.fuelType, purchaseValue:v.purchaseValue, baseDaily:v.baseDaily, baseWeekly:v.baseWeekly, baseMonthly:v.baseMonthly, depositPct:v.depositPct, lat:v.lat, lng:v.lng, status:v.status, battery:100, lastReported: new Date().toISOString().slice(0,19), orderId:null });
       }
       renderInventory();
     }
@@ -588,7 +588,7 @@ function attachmentsTable(){
 
 function resOptions(){
   let o = `<option value="">— select component —</option>`;
-  IMS.serializedAssets.forEach(a => o += `<option value="serialized|${a.id}">[Serialized] ${a.id} · ${a.make} ${a.model}</option>`);
+  IMS.itemInstances.forEach(a => o += `<option value="serialized|${a.id}">[Serialized] ${a.id} · ${a.make} ${a.model}</option>`);
   IMS.bulkResources.forEach(b => o += `<option value="bulk|${b.sku}">[Bulk] ${b.sku} · ${b.name}</option>`);
   IMS.consumables.forEach(c => o += `<option value="consumable|${c.sku}">[Consumable] ${c.sku} · ${c.name}</option>`);
   return o;
@@ -668,7 +668,7 @@ function kitModal(existing){
 }
 
 function assetIdChecks(cats, selected){
-  const list = cats && cats.length ? IMS.serializedAssets.filter(a => cats.includes(a.category)) : [];
+  const list = cats && cats.length ? IMS.itemInstances.filter(a => cats.includes(a.category)) : [];
   return list.map(a => `<label class="check-line ${(selected || []).includes(a.id) ? "checked" : ""}"><input type="checkbox" value="${a.id}" ${(selected || []).includes(a.id) ? "checked" : ""}>${a.id} — ${a.make} ${a.model}</label>`).join("") || `<div class="text-muted2 py-2">Select a category above to see matching assets.</div>`;
 }
 
@@ -679,7 +679,7 @@ function catChecks(cats, selected){
 function attachmentModal(existing){
   const isEdit = !!existing;
   const e = existing || {};
-  const cats = [...new Set(IMS.serializedAssets.map(a => a.category))].sort();
+  const cats = [...new Set(IMS.itemInstances.map(a => a.category))].sort();
   const fits = e.fits || [];
   const selCats = cats.filter(c => fits.some(id => { const a = getAsset(id); return a && a.category === c; }));
   const body = `

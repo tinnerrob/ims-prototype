@@ -14,7 +14,7 @@ const IMS = {};
    base_weekly | base_monthly | gps_lat | gps_lng | status
    battery_pct | last_reported | contract_id (FK, when on rent)
    --------------------------------------------------------- */
-IMS.serializedAssets = [
+IMS.itemInstances = [
   { id:"BL-118", serial:"JLG-450AJ-88F2201", make:"JLG", model:"450AJ", category:"Boom Lift", meterHours:1245, fuelType:"Diesel", purchaseValue:145000, baseDaily:450, baseWeekly:2250, baseMonthly:6750, lat:33.7495, lng:-84.3882, status:"Available", battery:92, lastReported:"2026-09-01T08:05:00", orderId:null },
   { id:"BL-119", serial:"JLG-600S-77D3314", make:"JLG", model:"600S", category:"Boom Lift", meterHours:2210, fuelType:"Diesel", purchaseValue:178000, baseDaily:520, baseWeekly:2600, baseMonthly:7800, lat:33.7571, lng:-84.3892, status:"On Rent", battery:78, lastReported:"2026-09-01T08:12:00", orderId:"CT-2024-001" },
   { id:"BL-120", serial:"GEN-S65-12A8870", make:"Genie", model:"S-65", category:"Boom Lift", meterHours:980, fuelType:"Diesel", purchaseValue:156000, baseDaily:480, baseWeekly:2400, baseMonthly:7200, lat:33.7490, lng:-84.3876, status:"Available", battery:88, lastReported:"2026-09-01T07:58:00", orderId:null },

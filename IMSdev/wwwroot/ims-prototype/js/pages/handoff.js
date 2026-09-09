@@ -89,7 +89,7 @@ function hoCheckIn(assetId, note){
   const c = info.order;
   const returnAt = hoStamp();
   if (c){
-    const stillOut = IMS.serializedAssets.some(x => { const o = assetOutInfo(x.id); return o && o.orderId === c.orderId; });
+    const stillOut = IMS.itemInstances.some(x => { const o = assetOutInfo(x.id); return o && o.orderId === c.orderId; });
     const liEnd = l => (l.endDate || c.endDate || "");
     const li = (c.lineItems || []).find(l => l.type === "serialized" && l.refId === assetId);
     if (li && liEnd(li) && returnAt < liEnd(li)) li.endDate = returnAt;
@@ -108,7 +108,7 @@ function hoTodayStr(){ const d = new Date(); const p = n => String(n).padStart(2
 function nextOrderId(){ let n = 0; IMS.orders.forEach(c => { const m = parseInt(String(c.orderId).split("-").pop(), 10); if (m > n) n = m; }); return `CT-${new Date().getFullYear()}-${String(n + 1).padStart(3, "0")}`; }
 function nextPartyId(){ let n = 0; IMS.parties.forEach(c => { const m = parseInt(String(c.id).split("-").pop(), 10); if (m > n) n = m; }); return "PTY-" + String(n + 1).padStart(3, "0"); }
 function nextLiId(){ let n = 0; IMS.orders.forEach(c => (c.lineItems || []).forEach(l => { const m = parseInt(String(l.id).split("-")[1], 10); if (m > n) n = m; })); return "LI-" + String(n + 1).padStart(3, "0"); }
-function availableSerialized(){ return IMS.serializedAssets.filter(a => recActive(a) && a.status !== "In Shop" && !assetOutInfo(a.id)); }
+function availableSerialized(){ return IMS.itemInstances.filter(a => recActive(a) && a.status !== "In Shop" && !assetOutInfo(a.id)); }
 
 
 /* ---- page ---- */

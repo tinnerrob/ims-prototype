@@ -8,9 +8,9 @@
    STAGE 6 — EXECUTIVE DASHBOARD
    ========================================================= */
 function fleetKPIs(){
-  const fleet = IMS.serializedAssets.length;
-  const onRent = IMS.serializedAssets.filter(a => a.status === "On Rent").length;
-  const book = IMS.serializedAssets.reduce((s, a) => s + a.purchaseValue, 0);
+  const fleet = IMS.itemInstances.length;
+  const onRent = IMS.itemInstances.filter(a => a.status === "On Rent").length;
+  const book = IMS.itemInstances.reduce((s, a) => s + a.purchaseValue, 0);
   const alerts = App.breachAlerts.filter(a => a.kind === "breach").length;
   let run = 0;
   IMS.orders.filter(c => c.status === "active").forEach(c => {
@@ -29,7 +29,7 @@ function renderDashboard(){
   ];
   const recent = App.breachAlerts.slice().reverse().slice(0, 6);
   const byStatus = {};
-  IMS.serializedAssets.forEach(a => byStatus[a.status] = (byStatus[a.status] || 0) + 1);
+  IMS.itemInstances.forEach(a => byStatus[a.status] = (byStatus[a.status] || 0) + 1);
   const stKeys = ["Available", "On Rent", "In Shop", "Staged"];
 
   $("#content").innerHTML = `
