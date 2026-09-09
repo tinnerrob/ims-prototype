@@ -48,5 +48,22 @@ and aligns actions.
 
 ## Done
 - [x] C3 base chrome (mostly in `shared.css` — verify/extend scroll + footer)
-- [ ] C4 per‑modal cleanup (module by module)
-- [ ] C5 verify each modal opens/closes/saves
+- [x] C4 per‑modal cleanup (module by module)
+- [x] C5 verify each modal opens/closes/saves
+
+## Completion notes (2026‑09‑09)
+Per‑modal restyle finished across Orders/Parties, Items & Stock, Item Hand‑Off,
+Allocations, Receiving, Timesheets, Field service, Billing, Rentals, and Admin.
+- Generic builders (`common.js`) now emit `role="dialog"`/`aria-modal`/title id,
+  focus the first body control on open, set the form‑modal root id, and support
+  optional `section` grouping (`field.section` inserts a divider + bold head).
+- `shared.css` gained caption utilities `text-xs` / `text-xs2` / `text-12` so
+  modal‑inline `font-size` hints and stray `margin-top` were dropped for the
+  spacing/typography utilities.
+- Long forms were grouped (serialized asset, inspection, work order) into
+  labelled sections; the scheduler order editor is sectioned (Order / Job
+  Details, Rental Window, Fixed Overhead, financial preview).
+- Kitchen/attachment/detail, hand‑off wizard, tax/overhead/branch/category and
+  rerent modals already conformed and were verified rather than rewritten.
+- Verification: `node --check` on every JS file + jsdom suite renders all 16
+  views and opens/saves/closes every modal in the inventory.
