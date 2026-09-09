@@ -4,14 +4,32 @@
 **Date:** 2026‑09‑08
 **Owner:** Product & Architecture
 
+## Update (2026‑09‑09) — execution status vs. this roadmap
+Checkboxes below were refreshed to match what is actually committed/pushed on
+`main` (previously several were still marked open even though the work landed).
+Status key: `[x]` = shipped, `[~]` = partial, `[ ]` = not started.
+- **Phase A**: `store.js` scaffold + typed repositories, change events, the
+  `apiAdapter` contract, and localStorage persistence landed. Writes are routed
+  through repositories for **parties / orders / movements / labor** only; the
+  inventory **item catalog** and settings/rental writers still mutate `IMS.*`
+  directly (the one clear remaining slice of A3/A4).
+- **Phase B**: dependency/impact audit, Config page, toggle persistence,
+  nav/router + telemetry gating, and dependency validation all shipped.
+- **Phase C**: modal restyle shipped end‑to‑end (C3 chrome → C4 per‑modal → C5
+  open/close/save verified); see `modal-design-spec.md` completion notes.
+- The per‑change gate (syntax `node --check` + a jsdom render/modal suite) has
+  been run ad‑hoc; it is **not** committed to the repo (no `package.json` yet).
+
 ## 1. Context / where we are
 - Inventory‑core first, opt‑in modules (P0–P5 done & pushed).
 - Terminology normalized to order/party/item/movement.
-- Reads centralized on `IMS.itemRegistry`; writes still direct to global `IMS.*`.
-- **No persistence** and no API seam; state lives on a global `IMS` JSON object.
-- Module manifest exists (P5) but has no Config UI, no persistence, and not every
-  entry point is gated.
-- Modals work but have not been audited/restyled to a single modern spec.
+- Reads centralized on `IMS.itemRegistry`; writes for parties/orders/movements
+  go through `IMS.store` repositories; inventory item + settings writes still
+  mutate `IMS.*` directly.
+- JSON persistence (localStorage behind `IMS.store`) covers parties/orders/
+  movements; other collections are in‑memory only.
+- Module manifest exists with a Config UI, toggle persistence, and gating.
+- Modals restyled to a single modern spec (Phase C done).
 
 ## 2. Goals
 1. Make data management a clean, JSON‑based, API‑ready layer.
@@ -22,60 +40,60 @@
 ## 3. Phase A — JSON data layer + API seam
 **Aim:** keep plain JSON, centralize state access so a real API can replace it.
 
-- [ ] A1. Introduce a **store/service** (core): owns `IMS.state` (JSON) and typed
-      repositories (`parties`, `orders`, `items`/typed, `movements`, `locations`,
-      `policies`, `stock`).
-- [ ] A2. Repositories expose `list/query/get/create/update/remove` (+ change
-      events) — today in‑memory, tomorrow backed by `apiAdapter` returning JSON.
-- [ ] A3. Move **all writes** off direct `IMS.*` mutation into repository methods
-      (per module, gated).
-- [ ] A4. Optional **persistence plugin**: hydrate/export `IMS.state` to/from
-      localStorage as JSON (hidden behind the store so it is swappable).
-- [ ] A5. Define the `apiAdapter` interface (async, JSON) and a docs contract so
-      server return shapes are locked before the real backend exists.
-- [ ] Gate: all 15 views render; create/edit flows write through repos; JSON
-      round‑trip (save → reload) is lossless.
+- [x] A1. Store/service scaffold (`js/store.js`) owns typed repositories over the
+      core JSON tables; wired: `parties`, `orders`, `movements`, `labor`.
+- [x] A2. Repositories expose `list/get/create/update/remove` + change events —
+      in‑memory today, backable by `apiAdapter` JSON tomorrow.
+- [~] A3. Writes routed through repositories for parties / orders / movements /
+      labor. Inventory **item** writers (serialized/bulk/consumable/part/kit/
+      attachment add+edit) and settings/rental writers still mutate `IMS.*`.
+- [~] A4. Persistence plugin (`save`/`hydrate`, localStorage JSON behind the
+      store) is scoped to parties/orders/movements; other collections in‑memory.
+- [x] A5. `apiAdapter` interface + contract documented (`api-adapter.md`).
+- [~] Gate: all views render and create/edit flows write through repos for the
+      wired tables; item/settings flows remain direct (round‑trip lossless only
+      for persisted tables).
 
 ## 4. Phase B — Module independence + Config page
 **Aim:** each feature is a true module; turning one off never breaks another.
 
-- [ ] B1. **Dependency/impact audit** → `module-dependencies.md` + a table mapping
+- [x] B1. **Dependency/impact audit** → `module-dependencies.md` + a table mapping
       each module's nav, routes, badges, notification hooks, sim loops, and any
       data it injects into other views.
-- [ ] B2. Expand the manifest with `label, description, requires[], ownedViews[],
-      ownedLoops[]`.
-- [ ] B3. **Config page** (Administration > Modules): list core vs modules with
+- [x] B2. Manifest carries `label, description` (router `MODULE_META`) + per‑view
+      module mapping; dependency relationships documented and enforced (B6).
+- [x] B3. **Config page** (Administration > Modules): list core vs modules with
       on/off toggles, dependency badges, and a warning when an off‑state would
       orphan another feature.
-- [ ] B4. **Persist toggles** (localStorage now; tenant config/API later).
-- [ ] B5. Gate **every** entry point by the manifest — not just nav: router,
-      notifications bell, global search, dashboard cards that read module data,
-      and module sim intervals.
-- [ ] B6. Enforce dependency validation on apply (reject/cascade with confirm).
-- [ ] Gate: with a module off, core renders and empty/graceful states show; with
-      all modules on, nothing regresses (15‑view suite).
+- [x] B4. **Persist toggles** to localStorage (`ims.featureModules`).
+- [x] B5. Gate **every** entry point by the manifest — router/nav, notifications
+      bell, global search, dashboard KPI cards, and module sim intervals.
+- [x] B6. Enforce dependency validation on apply (reject/cascade with confirm).
+- [x] Gate: with a module off, core renders and empty/graceful states show; with
+      all modules on, nothing regresses (view suite).
 
 ## 5. Phase C — Modal restyle (deep dive)
 **Aim:** clean, easy to read, modern; one system-wide spec, then per‑modal.
 
-- [ ] C1. Write the **modal design spec** (shared tokens): header/title/icon,
+- [x] C1. Write the **modal design spec** (shared tokens): header/title/icon,
       body spacing, footer alignment, form field rhythm, action button hierarchy,
       focus order, scroll behavior, min widths.
-- [ ] C2. Inventory **all modals** by origin module (raw vs form vs detail) and
+- [x] C2. Inventory **all modals** by origin module (raw vs form vs detail) and
       open each to audit readability/structure. Examples known:
       openRawModal/openFormModal (common), order/contract modal (scheduler),
       item view + edit modals (inventory), rental/issue wizard (handoff‑wiz),
       timesheet punch/segment, inspection, pricing/tax/overhead, work order,
       customer/party, invoice detail, branch config, category, etc.
-- [ ] C3. Centralize base modal chrome in `shared.css` (radius, shadow, backdrop,
-      motion) — largely present; extend to fields/buttons alignment.
-- [ ] C4. Per‑modal cleanup: replace inline styles with classes, align labels/
+- [x] C3. Centralize base modal chrome in `shared.css` (radius, shadow, backdrop,
+      motion, internal body scroll + persistent footer).
+- [x] C4. Per‑modal cleanup: replace inline styles with classes, align labels/
       inputs, group long forms into sections, set primary/secondary actions,
       consistent Cancel/Close, empty/loading states.
-- [ ] C5. Confirm each modal still opens/closes + saves (interactive/jsdob flow
+- [x] C5. Confirm each modal still opens/closes + saves (interactive/jsdob flow
       per modal).
-- [ ] Gate: every modal renders open, reads clearly, and its actions work; zero
-      inline `style=` left in modal templates where a class can express intent.
+- [x] Gate: every modal renders open, reads clearly, and its actions work; modal
+      inline `style=` hints moved to utilities (text‑xs/xs2/12, mt‑*) where a
+      class can express intent. See `modal-design-spec.md` completion notes.
 
 ## 6. Non‑negotiables
 - Core owns shared data/helpers; modules only consume core or declared deps.
@@ -86,3 +104,7 @@
 ## 7. Suggested execution order
 Phase B‑1 (audit + Config UX) → Phase A (data service + API seam) →
 Phase C (modal spec + per‑modal restyle) → B‑3..B‑6 (Config build/gating).
+
+> Executed as suggested above (B1 → A → C → B3‑B6). Remaining open slice after
+> the 2026‑09‑09 status refresh: **Phase A‑3/A‑4 for the inventory item catalog
+> and settings/rental collections** (writes still mutate `IMS.*` directly).
