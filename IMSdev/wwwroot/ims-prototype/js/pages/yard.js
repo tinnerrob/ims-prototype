@@ -127,15 +127,15 @@ function inspectionModal(existing){
   const checkLabels = { tires:"Tires / Tracks", fluids:"Fluids", guards:"Safety Guards", lights:"Lights", engine:"Engine" };
   const assetOpts = IMS.itemRegistry.getByType("serialized").map(a => ({ value:a.id, label:`${a.id} — ${a.make} ${a.model}` }));
   const fields = [
-    { key:"assetId", label:"Asset", type:"select", value:e.assetId, options:assetOpts },
+    { key:"assetId", label:"Asset", type:"select", value:e.assetId, options:assetOpts, section:"Routing" },
     { key:"direction", label:"Direction", type:"select", value:e.direction || "Check-Out", options:opt(["Check-Out","Check-In"]) },
     { key:"status", label:"Status", type:"select", value:e.status || "Open", options:opt(["Open","Closed"]) },
-    { key:"meterOut", label:"Meter Out", type:"number", value:e.meterOut ?? "" },
+    { key:"meterOut", label:"Meter Out", type:"number", value:e.meterOut ?? "", section:"Meters & Fuel" },
     { key:"meterIn", label:"Meter In", type:"number", value:e.meterIn ?? "" },
     { key:"fuelOut", label:"Fuel Out %", type:"number", value:e.fuelOut || 0 },
     { key:"fuelIn", label:"Fuel In %", type:"number", value:e.fuelIn ?? "" }
   ];
-  checks.forEach(k => fields.push({ key:"chk_" + k, label:checkLabels[k], type:"checkbox", value: !!(e.checks || {})[k] }));
+  checks.forEach((k, idx) => fields.push({ key:"chk_" + k, label:checkLabels[k], type:"checkbox", value: !!(e.checks || {})[k], section: idx === 0 ? "Condition Checks" : undefined }));
   openFormModal({
     id: "mdl-insp", title: "Edit Inspection " + (e.inspId || ""), icon: "bi-clipboard-check",
     fields,
@@ -168,7 +168,7 @@ function updateOveragePreview(){
   const used = meterIn - meterOut;
   const overage = used - allowed;
   box.innerHTML = overage > 0
-    ? `<div class="alert-line breach" style="margin-top:8px"><span class="ts">LIVE</span><span><strong>Overage Fees Apply:</strong> ${fmtInt(overage)} Hours Overage Detected (${fmtInt(used)} used vs ${fmtInt(allowed)} allowed)</span></div>`
-    : `<div class="alert-line info" style="margin-top:8px"><span class="ts">LIVE</span><span>Within limit — ${fmtInt(Math.max(0, allowed - used))} hrs remaining (${fmtInt(used)} of ${fmtInt(allowed)} allowed)</span></div>`;
+    ? `<div class="alert-line breach mt-2"><span class="ts">LIVE</span><span><strong>Overage Fees Apply:</strong> ${fmtInt(overage)} Hours Overage Detected (${fmtInt(used)} used vs ${fmtInt(allowed)} allowed)</span></div>`
+    : `<div class="alert-line info mt-2"><span class="ts">LIVE</span><span>Within limit — ${fmtInt(Math.max(0, allowed - used))} hrs remaining (${fmtInt(used)} of ${fmtInt(allowed)} allowed)</span></div>`;
 }
 
