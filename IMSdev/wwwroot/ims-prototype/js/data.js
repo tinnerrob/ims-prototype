@@ -100,12 +100,12 @@ IMS.parts = [
    PK cust_id | name | contact | phone | email | billing |
    notes
    --------------------------------------------------------- */
-IMS.customers = [
-  { id:"CUST-001", name:"Halstead Construction", contact:"M. Halstead", phone:"(404) 555-0134", email:"projects@halstead.com", billingAddress:"100 Peachtree Pkwy NE, Atlanta, GA", billingCycle:"weekly", notes:"Boom & aerial work; weekly cadence." },
-  { id:"CUST-002", name:"Meridian Civil Works", contact:"L. Bishop", phone:"(678) 555-0192", email:"ops@meridiancivil.com", billingAddress:"88 River Rd, Atlanta, GA", billingCycle:"bi-weekly", notes:"Bridge / heavy civil. Net-30 terms." },
-  { id:"CUST-003", name:"Coastal Energy Group", contact:"R. Vance", phone:"(404) 555-0117", email:"supply@coastalenergy.com", billingAddress:"1 Fuel Pier, Savannah, GA", billingCycle:"monthly", notes:"Refinery/hazmat; risk premium applies." },
-  { id:"CUST-004", name:"Port Authority", contact:"T. Nguyen", phone:"(912) 555-0165", email:"facilities@portauthority.gov", billingAddress:"Terminal Way, Savannah, GA", billingCycle:"quarterly", notes:"Public works; coastal surcharge." },
-  { id:"CUST-005", name:"Brightleaf General Contracting", contact:"S. Rawlins", phone:"(770) 555-0149", email:"pm@brightleafgc.com", billingAddress:"1200 Piedmont Ave, Atlanta, GA", billingCycle:"monthly", notes:"Small jobs; no active contracts." }
+IMS.parties = [
+  { id:"PTY-001", name:"Halstead Construction", contact:"M. Halstead", phone:"(404) 555-0134", email:"projects@halstead.com", billingAddress:"100 Peachtree Pkwy NE, Atlanta, GA", billingCycle:"weekly", notes:"Boom & aerial work; weekly cadence." },
+  { id:"PTY-002", name:"Meridian Civil Works", contact:"L. Bishop", phone:"(678) 555-0192", email:"ops@meridiancivil.com", billingAddress:"88 River Rd, Atlanta, GA", billingCycle:"bi-weekly", notes:"Bridge / heavy civil. Net-30 terms." },
+  { id:"PTY-003", name:"Coastal Energy Group", contact:"R. Vance", phone:"(404) 555-0117", email:"supply@coastalenergy.com", billingAddress:"1 Fuel Pier, Savannah, GA", billingCycle:"monthly", notes:"Refinery/hazmat; risk premium applies." },
+  { id:"PTY-004", name:"Port Authority", contact:"T. Nguyen", phone:"(912) 555-0165", email:"facilities@portauthority.gov", billingAddress:"Terminal Way, Savannah, GA", billingCycle:"quarterly", notes:"Public works; coastal surcharge." },
+  { id:"PTY-005", name:"Brightleaf General Contracting", contact:"S. Rawlins", phone:"(770) 555-0149", email:"pm@brightleafgc.com", billingAddress:"1200 Piedmont Ave, Atlanta, GA", billingCycle:"monthly", notes:"Small jobs; no active contracts." }
 ];
 
 /* ---------------------------------------------------------
@@ -118,7 +118,7 @@ IMS.yard = { name:"Main Yard — Buckhead Hub", lat:33.7490, lng:-84.3880 };
 
 IMS.contracts = [
   {
-    contractId:"CT-2024-001", customerId:"CUST-001", customer:"Halstead Construction", jobSite:"Downtown Plaza, 245 Peachtree St",
+    contractId:"CT-2024-001", partyId:"PTY-001", party:"Halstead Construction", jobSite:"Downtown Plaza, 245 Peachtree St",
     geofenceRadius:300, projectName:"Downtown Plaza Renovation",
     startDate:"2026-08-20T07:00", endDate:"2026-09-10T17:00", status:"active",
     siteLat:33.7560, siteLng:-84.3905,
@@ -131,7 +131,7 @@ IMS.contracts = [
     ]
   },
   {
-    contractId:"CT-2024-002", customerId:"CUST-002", customer:"Meridian Civil Works", jobSite:"Riverside Bridge, 88 River Rd",
+    contractId:"CT-2024-002", partyId:"PTY-002", party:"Meridian Civil Works", jobSite:"Riverside Bridge, 88 River Rd",
     geofenceRadius:500, projectName:"Riverside Bridge Repair",
     startDate:"2026-09-01T06:30", endDate:"2026-09-20T17:30", status:"active",
     siteLat:33.7310, siteLng:-84.4300,
@@ -143,7 +143,7 @@ IMS.contracts = [
     ]
   },
   {
-    contractId:"CT-2024-003", customerId:"CUST-003", customer:"Coastal Energy Group", jobSite:"Bayport Refinery, 1 Fuel Pier",
+    contractId:"CT-2024-003", partyId:"PTY-003", party:"Coastal Energy Group", jobSite:"Bayport Refinery, 1 Fuel Pier",
     geofenceRadius:400, projectName:"Refinery Catalyst Swap",
     startDate:"2026-09-02T05:00", endDate:"2026-09-30T17:00", status:"active",
     siteLat:33.7200, siteLng:-84.3600,
@@ -155,7 +155,7 @@ IMS.contracts = [
     ]
   },
   {
-    contractId:"CT-2024-004", customerId:"CUST-004", customer:"Port Authority", jobSite:"Pier 12 Bulkhead, Terminal Way",
+    contractId:"CT-2024-004", partyId:"PTY-004", party:"Port Authority", jobSite:"Pier 12 Bulkhead, Terminal Way",
     geofenceRadius:250, projectName:"Pier 12 Bulkhead Repair",
     startDate:"2026-08-01T07:00", endDate:"2026-08-25T17:00", status:"closed",
     siteLat:33.7420, siteLng:-84.3520,

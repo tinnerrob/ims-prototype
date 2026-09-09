@@ -1,6 +1,6 @@
 /* =========================================================
    IMS — contracts.js (split out of app.js)
-   Customers & contracts view (customer records, contract header management).
+   Customers & contracts view (party records, contract header management).
    ========================================================= */
 "use strict";
 
@@ -9,7 +9,7 @@
    ========================================================= */
 function renderCustomersContracts(){
   const tabs = [
-    { key:"customers", label:"Customers", icon:"bi-people", count: IMS.customers.length },
+    { key:"customers", label:"Customers", icon:"bi-people", count: IMS.parties.length },
     { key:"contracts", label:"Contracts", icon:"bi-folder2-open", count: IMS.contracts.length }
   ];
   $("#content").innerHTML = `
@@ -48,8 +48,8 @@ function renderCcPanel(){
 }
 
 function customersTable(){
-  const rows = IMS.customers.map(c => {
-    const cons = IMS.contracts.filter(x => x.customerId === c.id);
+  const rows = IMS.parties.map(c => {
+    const cons = IMS.contracts.filter(x => x.partyId === c.id);
     const active = cons.filter(x => x.status === "active").length;
     return `<tr data-edit="${c.id}">
       <td class="strong">${c.name} ${activeBadge(c)}<div class="text-muted2" style="font-size:11px">${c.email}</div></td>
@@ -74,7 +74,7 @@ function contractsTable(filtered){
     const on = c.status === "active";
     return `<tr data-edit="${c.contractId}">
       <td class="strong mono">${c.contractId}</td>
-      <td>${customerName(c.customerId)}</td>
+      <td>${partyName(c.partyId)}</td>
       <td>${c.projectName}</td>
       <td class="mono text-muted2" style="font-size:11.5px">${fmtDate(c.startDate)}</td>
       <td class="mono text-muted2" style="font-size:11.5px">${fmtDate(c.endDate)}</td>
@@ -97,13 +97,13 @@ function contractsTable(filtered){
 function bindCcActions(){
   delegate($("#ccPanel"), "click", "[data-cview]", b => {
     const id = b.dataset.cview;
-    const cust = getCustomer(id), con = getContract(id);
+    const cust = getParty(id), con = getContract(id);
     if (cust) customerModal(cust, false);
     else if (con) contractDetailModal(con);
   });
   delegate($("#ccPanel"), "click", "[data-cedit]", b => {
     const id = b.dataset.cedit;
-    const cust = getCustomer(id), con = getContract(id);
+    const cust = getParty(id), con = getContract(id);
     if (cust) customerModal(cust, true);
     else if (con) contractEditModal(con);
   });
@@ -118,7 +118,7 @@ function bindCcActions(){
   delegate($("#ccPanel"), "click", "tr[data-edit]", (el, e) => {
     if (e.target.closest("button, a, input, select, label, .form-check")) return;
     const id = el.dataset.edit;
-    const cust = getCustomer(id), con = getContract(id);
+    const cust = getParty(id), con = getContract(id);
     if (cust) customerModal(cust, true);
     else if (con) contractEditModal(con);
   });
@@ -126,19 +126,19 @@ function bindCcActions(){
 
 function nextCustId(){
   let max = 0;
-  IMS.customers.forEach(c => { const n = parseInt(c.id.split("-")[1], 10); if (n > max) max = n; });
-  return "CUST-" + String(max + 1).padStart(3, "0");
+  IMS.parties.forEach(c => { const n = parseInt(c.id.split("-")[1], 10); if (n > max) max = n; });
+  return "PTY-" + String(max + 1).padStart(3, "0");
 }
 
 function customerModal(cust, editable){
-  const cons = IMS.contracts.filter(x => x.customerId === cust.id);
+  const cons = IMS.contracts.filter(x => x.partyId === cust.id);
   const contractsList = cons.map(cc => {
     const t = contractTotals(cc);
     return `<div class="list-line" style="align-items:center">
       <span class="l"><span class="strong mono">${cc.contractId}</span> — ${cc.projectName} ${statusBadge(cc.status)}</span>
       <span class="r">${fmtMoney(t.gross)}</span>
     </div>`;
-  }).join("") || `<p class="text-muted2 py-2">No contracts on file for this customer.</p>`;
+  }).join("") || `<p class="text-muted2 py-2">No contracts on file for this party.</p>`;
 
   const fields = [["name","Company Name"],["phone","Phone"],["email","Email"],["billingAddress","Billing Address"],["notes","Notes"]];
   const cycleOpts = Object.keys(BILLING_CYCLES).map(k => `<option value="${k}" ${(cust.billingCycle || "monthly") === k ? "selected" : ""}>${BILLING_CYCLE_LABEL[k]} (${BILLING_CYCLES[k]} day${BILLING_CYCLES[k] === 1 ? "" : "s"})</option>`).join("");
@@ -193,7 +193,7 @@ function customerModal(cust, editable){
 
 function customerNewModal(){
   const cust = { id: nextCustId(), name:"", contact:"", phone:"", email:"", billingAddress:"", notes:"", billingCycle:"monthly", active:true };
-  IMS.customers.push(cust);
+  IMS.parties.push(cust);
   customerModal(cust, true);
 }
 
@@ -205,7 +205,7 @@ function contractDetailModal(con){
   </div>`).join("") || `<p class="text-muted2 py-2">No line items staged.</p>`;
   const body = `
     <div class="row g-3">
-      <div class="col-md-6 field-group"><label class="form-label">Customer</label><div class="form-control-plaintext strong">${customerName(con.customerId)}</div></div>
+      <div class="col-md-6 field-group"><label class="form-label">Customer</label><div class="form-control-plaintext strong">${partyName(con.partyId)}</div></div>
       <div class="col-md-6 field-group"><label class="form-label">Project</label><div class="form-control-plaintext">${con.projectName}</div></div>
       <div class="col-md-12 field-group"><label class="form-label">Job Site</label><div class="form-control-plaintext">${con.jobSite}</div></div>
       <div class="col-md-3 field-group"><label class="form-label">Start</label><div class="form-control-plaintext mono">${fmtDT(con.startDate)}</div></div>

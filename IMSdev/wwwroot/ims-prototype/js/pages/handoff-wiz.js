@@ -17,7 +17,7 @@
 
 /* Reused from handoff.js / common.js: getResource, recActive,
    availableSerialized, fmtMoney, fmtInt, daysBetween, hoTodayStr,
-   taxRate, nextContractId, nextCustomerId, nextLiId, getCustomer,
+   taxRate, nextContractId, nextPartyId, nextLiId, getParty,
    syncInventoryOnStage, hoLog, renderHandoff, dismissModal,
    openRawModal, $ (single-element selector). */
 
@@ -177,7 +177,7 @@ function rwBody(seq, type, used){
 }
 /* ---- line-item state ---- */
 let rwSeq = 0;          // running section id (also its display index)
-let rwStep = 1;         // 1 customer | 2 items | 3 review
+let rwStep = 1;         // 1 party | 2 items | 3 review
 let rwLastType = "serialized";
 
 /* Refs already on this rental — only serialized pieces are mutually exclusive. */
@@ -392,8 +392,8 @@ function rwRenderInvoice(){
   let custName = "", custContact = "", custAddr = "", custId = "";
   if (custSel){
     custId = custSel.value;
-    if (custId === "__new__"){ custName = ($("#rn-name").value || "").trim() || "New customer"; custContact = ($("#rn-contact").value || "").trim() || custName; custAddr = ($("#rn-address").value || "").trim() || "Front counter pickup"; }
-    else { const c = getCustomer(custId); if (c){ custName = c.name; custContact = c.contact || c.name; custAddr = c.billingAddress || "Front counter pickup"; } }
+    if (custId === "__new__"){ custName = ($("#rn-name").value || "").trim() || "New party"; custContact = ($("#rn-contact").value || "").trim() || custName; custAddr = ($("#rn-address").value || "").trim() || "Front counter pickup"; }
+    else { const c = getParty(custId); if (c){ custName = c.name; custContact = c.contact || c.name; custAddr = c.billingAddress || "Front counter pickup"; } }
   }
   const dueText = c => c.time ? ("Due " + (c.dueAt === "return" ? "at return" : "at pick-up")) : "Due at pick-up";
   const rows = items.map(c => `<tr>
@@ -435,10 +435,10 @@ function rwRenderInvoice(){
       </div>
     </div>`;
 }
-/* ---- customer helpers ---- */
+/* ---- party helpers ---- */
 function rwCustomerOptions(){
-  const opts = IMS.customers.map(c => `<option value="${c.id}">${c.name} · ${c.contact || ""} · ${c.billingCycle || ""}</option>`).join("");
-  return `<option value="__new__" selected>— New customer —</option>` + opts;
+  const opts = IMS.parties.map(c => `<option value="${c.id}">${c.name} · ${c.contact || ""} · ${c.billingCycle || ""}</option>`).join("");
+  return `<option value="__new__" selected>— New party —</option>` + opts;
 }
 const rwCycleOpts = [["daily", "Daily"], ["weekly", "Weekly"], ["bi-weekly", "Bi-Weekly"], ["monthly", "Monthly"], ["quarterly", "Quarterly"]]
   .map(c => `<option value="${c[0]}">${c[1]}</option>`).join("");
@@ -456,7 +456,7 @@ function rwSyncCustomer(){
     rwCustFieldsDisabled(false);
   } else {
     $("#rn-new").style.display = "none"; $("#rn-exist").style.display = "";
-    const c = getCustomer(cust.value);
+    const c = getParty(cust.value);
     if (c){
       $("#rn-name").value = c.name; $("#rn-contact").value = c.contact || ""; $("#rn-phone").value = c.phone || "";
       $("#rn-email").value = c.email || ""; $("#rn-address").value = c.billingAddress || ""; $("#rn-cycle").value = c.billingCycle || "weekly";
@@ -568,14 +568,14 @@ function rwCreate(root){
   const site = ($("#rn-site").value || "").trim();
   if (custVal === "__new__"){
     custName = ($("#rn-name").value || "").trim();
-    if (!custName){ window.alert("Enter the customer name."); return; }
+    if (!custName){ window.alert("Enter the party name."); return; }
     custContact = ($("#rn-contact").value || "").trim() || custName;
     custPhone = ($("#rn-phone").value || "").trim(); custEmail = ($("#rn-email").value || "").trim();
     custAddr = ($("#rn-address").value || "").trim(); custCycle = $("#rn-cycle").value || "walk-in";
-    custId = nextCustomerId();
-    IMS.customers.push({ id: custId, name: custName, contact: custContact, phone: custPhone, email: custEmail, billingAddress: custAddr, billingCycle: custCycle, notes: "Walk-in rental / checkout" });
+    custId = nextPartyId();
+    IMS.parties.push({ id: custId, name: custName, contact: custContact, phone: custPhone, email: custEmail, billingAddress: custAddr, billingCycle: custCycle, notes: "Walk-in rental / checkout" });
   } else {
-    const c = getCustomer(custVal);
+    const c = getParty(custVal);
     if (c){ custName = c.name; custContact = c.contact || c.name; custAddr = c.billingAddress || ""; }
   }
   const items = Array.from(document.querySelectorAll("#rn-items .rn-item")).map(rwCompute).filter(Boolean);
@@ -618,7 +618,7 @@ function rwCreate(root){
     return base;
   });
   IMS.contracts.push({
-    contractId: cid, customerId: custId, customer: custName,
+    contractId: cid, partyId: custId, party: custName,
     jobSite: site || custAddr || "Front counter pickup",
     projectName: "Rental / Check Out — " + custName,
     startDate: cStart + "T09:00", endDate: cEnd + "T17:00", status: "active", counter: true,

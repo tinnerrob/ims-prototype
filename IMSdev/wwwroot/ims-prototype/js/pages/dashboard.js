@@ -83,7 +83,7 @@ function renderDashboard(){
           <table class="table"><thead><tr><th>Contract</th><th>Project</th><th class="num">Days</th><th class="num">Gross Billing</th><th class="num">Net Profit</th><th class="num">Margin</th></tr></thead><tbody>
             ${active.map(c => { const t = contractTotals(c); return `<tr>
               <td class="strong mono">${c.contractId}</td>
-              <td>${c.projectName}<div class="text-muted2 small">${c.customer}</div></td>
+              <td>${c.projectName}<div class="text-muted2 small">${c.party}</div></td>
               <td class="num">${t.days}</td>
               <td class="num">${fmtMoney(t.gross)}</td>
               <td class="num ${t.net < 0 ? "text-danger" : ""}">${fmtMoney(t.net)}</td>

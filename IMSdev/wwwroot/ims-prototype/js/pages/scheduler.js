@@ -212,7 +212,7 @@ function renderSchedQueue(){
   const contracts = activeContracts();
   const cList = contracts.map(c => `<div class="queue-contract ${c.contractId === App.contractId ? "active" : ""}" data-qcid="${c.contractId}">
     <div class="qc-head"><i class="bi bi-briefcase"></i><span class="strong" style="font-size:12px">${c.contractId}</span></div>
-    <div class="text-muted2" style="font-size:11px">${c.customer}</div>
+    <div class="text-muted2" style="font-size:11px">${c.party}</div>
     <div class="text-muted2" style="font-size:10.5px">${fmtDate(c.startDate)} → ${fmtDate(c.endDate)}</div>
   </div>`).join("") || `<p class="text-muted2 py-2">No active contracts.</p>`;
   const poolLabels = { serialized:"Items (Serialized)", bulk:"Items (Bulk)", consumable:"Stock (Consumable)", parts:"Stock (Parts)", labor:"Labor / Crew", attachments:"Attachments", kits:"Kits" };
@@ -327,7 +327,7 @@ function renderTimeline(){
     const t = contractTotals(c);
     const cTitle = `${c.contractId}<br>${c.projectName}<br>${fmtDate(c.startDate)}<br>${fmtTime(c.startDate)} →<br>${fmtDate(c.endDate)}<br>${fmtTime(c.endDate)}`;
     let rows = `<div class="tl-row tl-row-contract ${c.contractId === App.contractId ? "selected" : ""}" data-contract-id="${c.contractId}">
-      <div class="tl-row-label">${c.contractId}<div class="text-muted2" style="font-size:10px">${c.customer}</div></div>
+      <div class="tl-row-label">${c.contractId}<div class="text-muted2" style="font-size:10px">${c.party}</div></div>
       <div class="tl-row-track" style="--cols:${gridCols}">
         <div class="tl-block ${c.contractId === App.contractId ? "selected" : ""}" data-contract-id="${c.contractId}" style="left:${g.left}%;width:${g.width}%" title="${cTitle}">
           <span class="tl-block-chev" data-expand="${c.contractId}"><i class="bi ${expanded ? "bi-chevron-up" : "bi-chevron-down"}"></i></span>
@@ -994,7 +994,7 @@ function openContractModal(existing){
   const ohs = (existing && existing.overheads !== undefined)
     ? existing.overheads.map(cloneOh)
     : defaultOverheads();
-  const custOpts = IMS.customers.map(c => `<option value="${c.id}" ${c.id === e.customerId ? "selected" : ""}>${c.name}</option>`).join("");
+  const custOpts = IMS.parties.map(c => `<option value="${c.id}" ${c.id === e.partyId ? "selected" : ""}>${c.name}</option>`).join("");
   const datePart = iso => { const d = parseDT(iso); const p = n => String(n).padStart(2, "0"); return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`; };
   const timePart = iso => { const d = parseDT(iso); const p = n => String(n).padStart(2, "0"); return `${p(d.getHours())}:${p(d.getMinutes())}`; };
   const combineDT = (d, t) => d + "T" + t;
@@ -1051,12 +1051,12 @@ function openContractModal(existing){
   root.querySelector("#c-end-date").addEventListener("change", renderFin);
   root.querySelector("#c-end-time").addEventListener("change", renderFin);
   root.querySelector("#c-save").addEventListener("click", () => {
-    const cust = getCustomer(root.querySelector("#c-cust").value);
+    const cust = getParty(root.querySelector("#c-cust").value);
     const active = root.querySelector("#c-active").checked;
     const obj = {
       contractId: root.querySelector("#c-id").value,
-      customerId: root.querySelector("#c-cust").value,
-      customer: cust ? cust.name : root.querySelector("#c-cust").value,
+      partyId: root.querySelector("#c-cust").value,
+      party: cust ? cust.name : root.querySelector("#c-cust").value,
       projectName: root.querySelector("#c-project").value,
       jobSite: root.querySelector("#c-site").value,
       geofenceRadius: parseFloat(root.querySelector("#c-geo").value) || 0,

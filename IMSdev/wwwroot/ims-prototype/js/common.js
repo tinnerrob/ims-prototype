@@ -120,17 +120,17 @@ function timeNow(){
    ========================================================= */
 const RISK_PREMIUM = { standard: 0, coastal: 0.15, hazmat: 0.25 };
 
-/* Per-customer billing cadence -> cycle length in days. */
+/* Per-party billing cadence -> cycle length in days. */
 const BILLING_CYCLES = { daily: 1, weekly: 7, "bi-weekly": 14, monthly: 28, quarterly: 84 };
 const BILLING_CYCLE_LABEL = { daily: "Daily", weekly: "Weekly", "bi-weekly": "Bi-Weekly", monthly: "Monthly", quarterly: "Quarterly" };
-/* Billing cycle length in days for a contract (from its customer), defaulting to the
+/* Billing cycle length in days for a contract (from its party), defaulting to the
    global pricing.cycleDays (28) for customers without an explicit cadence.
-   @param {Object|string} contractOrId - a contract object (uses .customerId) or a customer id
-   @returns {number} days in the customer's billing cycle */
-const customerCycleDays = contractOrId => {
+   @param {Object|string} contractOrId - a contract object (uses .partyId) or a party id
+   @returns {number} days in the party's billing cycle */
+const partyCycleDays = contractOrId => {
   const cust = contractOrId && contractOrId.contractId
-    ? getCustomer(contractOrId.customerId)
-    : getCustomer(contractOrId);
+    ? getParty(contractOrId.partyId)
+    : getParty(contractOrId);
   if (cust && BILLING_CYCLES[cust.billingCycle] != null) return BILLING_CYCLES[cust.billingCycle];
   return IMS.settings.pricing.cycleDays || 28;
 };
@@ -477,10 +477,10 @@ function dismissModal(el){
 const emptyRow = cols => `<tr><td colspan="${cols}" class="text-center text-muted2 py-4">No records — add one with “Add Record”.</td></tr>`;
 /* Find a contract by id. @param {string} id @returns {Object|undefined} */
 const getContract = id => IMS.contracts.find(c => c.contractId === id);
-/* Find a customer by id. @param {string} id @returns {Object|undefined} */
-const getCustomer = id => IMS.customers.find(c => c.id === id);
-/* Customer display name for a customer id (falls back to contract.customer). @param {string} id @returns {string} */
-const customerName = id => { const c = getCustomer(id); return c ? c.name : (getContract(id) || {}).customer || id; };
+/* Find a party by id. @param {string} id @returns {Object|undefined} */
+const getParty = id => IMS.parties.find(c => c.id === id);
+/* Customer display name for a party id (falls back to contract.party). @param {string} id @returns {string} */
+const partyName = id => { const c = getParty(id); return c ? c.name : (getContract(id) || {}).party || id; };
 /* Line-item start date string (overrides contract start if set). @param {Object} li @param {Object} c @returns {string} */
 function liStart(li, c){ return li.startDate || c.startDate; }
 

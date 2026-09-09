@@ -4,7 +4,7 @@
    Rented serialized equipment appears per contract with
    Check-Out / Check-In. "New Rental" opens a full short-term
    rental contract (multiple assets, pricing + tax) for a
-   walk-in customer. Return prompts a check-in flow. Every
+   walk-in party. Return prompts a check-in flow. Every
    hand-off writes an immutable chain-of-custody event.
    ========================================================= */
 "use strict";
@@ -40,8 +40,8 @@ function hoScheduledIds(contractId){
 }
 function hoCustodian(c){
   if (!c) return "Customer";
-  const cust = getCustomer(c.customerId);
-  return cust ? cust.contact : (c.customer || "Customer");
+  const cust = getParty(c.partyId);
+  return cust ? cust.contact : (c.party || "Customer");
 }
 function hoStamp(){
   const d = new Date(); const p = n => String(n).padStart(2, "0");
@@ -106,7 +106,7 @@ function hoCheckIn(assetId, note){
 /* ---- date / id helpers ---- */
 function hoTodayStr(){ const d = new Date(); const p = n => String(n).padStart(2, "0"); return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`; }
 function nextContractId(){ let n = 0; IMS.contracts.forEach(c => { const m = parseInt(String(c.contractId).split("-").pop(), 10); if (m > n) n = m; }); return `CT-${new Date().getFullYear()}-${String(n + 1).padStart(3, "0")}`; }
-function nextCustomerId(){ let n = 0; IMS.customers.forEach(c => { const m = parseInt(String(c.id).split("-").pop(), 10); if (m > n) n = m; }); return "CUST-" + String(n + 1).padStart(3, "0"); }
+function nextPartyId(){ let n = 0; IMS.parties.forEach(c => { const m = parseInt(String(c.id).split("-").pop(), 10); if (m > n) n = m; }); return "PTY-" + String(n + 1).padStart(3, "0"); }
 function nextLiId(){ let n = 0; IMS.contracts.forEach(c => (c.lineItems || []).forEach(l => { const m = parseInt(String(l.id).split("-")[1], 10); if (m > n) n = m; })); return "LI-" + String(n + 1).padStart(3, "0"); }
 function availableSerialized(){ return IMS.serializedAssets.filter(a => recActive(a) && a.status !== "In Shop" && !assetOutInfo(a.id)); }
 
@@ -418,8 +418,8 @@ function rnApplyFreq(seq){
 
 /* ---- New Rental / Check-Out modal ---- */
 function openNewRentalModal(){
-  const custOpts = IMS.customers.slice().sort((a, b) => a.name < b.name ? -1 : 1)
-    .map(c => `<option value="${c.id}">${c.name}</option>`).join("") + `<option value="__new__">+ New customer…</option>`;
+  const custOpts = IMS.parties.slice().sort((a, b) => a.name < b.name ? -1 : 1)
+    .map(c => `<option value="${c.id}">${c.name}</option>`).join("") + `<option value="__new__">+ New party…</option>`;
   const body = `
     <div class="row g-2">
       <div class="col-12 field-group"><label class="form-label">Customer</label>
@@ -447,7 +447,7 @@ function openNewRentalModal(){
   cust.addEventListener("change", () => {
     const isNew = cust.value === "__new__";
     $("#rn-new").style.display = isNew ? "" : "none";
-    if (!isNew){ const c = getCustomer(cust.value); const ni = $("#rn-name"); if (c && ni) ni.value = c.name; }
+    if (!isNew){ const c = getParty(cust.value); const ni = $("#rn-name"); if (c && ni) ni.value = c.name; }
   });
   $("#rn-add").addEventListener("click", rnAddItem);
   rnAddItem();               // start with one equipment line
@@ -460,14 +460,14 @@ function createRentalFromModal(root){
   let custId = custVal, custName = "", custContact = "", custAddr = "", custPhone = "", custEmail = "";
   if (custVal === "__new__"){
     custName = ($("#rn-name").value || "").trim();
-    if (!custName){ window.alert("Enter the customer name."); return; }
+    if (!custName){ window.alert("Enter the party name."); return; }
     custContact = ($("#rn-contact").value || "").trim() || custName;
     custPhone = ($("#rn-phone").value || "").trim(); custEmail = ($("#rn-email").value || "").trim();
     custAddr = ($("#rn-address").value || "").trim();
-    custId = nextCustomerId();
-    IMS.customers.push({ id: custId, name: custName, contact: custContact, phone: custPhone, email: custEmail, billingAddress: custAddr, billingCycle: "walk-in", notes: "Equipment rental" });
+    custId = nextPartyId();
+    IMS.parties.push({ id: custId, name: custName, contact: custContact, phone: custPhone, email: custEmail, billingAddress: custAddr, billingCycle: "walk-in", notes: "Equipment rental" });
   } else {
-    const c = getCustomer(custVal);
+    const c = getParty(custVal);
     if (c){ custName = c.name; custContact = c.contact || c.name; custAddr = c.billingAddress || ""; custPhone = c.phone || ""; custEmail = c.email || ""; }
   }
   const items = Array.from(document.querySelectorAll("#rn-items .rn-item")).map(rnCompute).filter(Boolean);
@@ -484,7 +484,7 @@ function createRentalFromModal(root){
     customRates: it.rates, freq: it.freq, depositPct: it.depPct, depositRefundable: it.refundable
   }));
   IMS.contracts.push({
-    contractId: cid, customerId: custId, customer: custName,
+    contractId: cid, partyId: custId, party: custName,
     jobSite: custAddr || "Front counter pickup",
     projectName: "Equipment Rental — " + custName,
     startDate: cStart + "T09:00", endDate: cEnd + "T17:00", status: "active", counter: true,

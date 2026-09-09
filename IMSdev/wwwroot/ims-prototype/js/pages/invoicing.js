@@ -143,7 +143,7 @@ function renderInvoicing(){
     </div>
       <div class="card"><div class="card-header"><span class="card-title"><i class="bi bi-journal-text"></i> Cycle Invoicing Ledger</span>
         <div class="d-flex align-items-center gap-2">
-          <span class="text-muted2" style="font-size:11.5px;font-weight:500">Cadence set per customer</span>
+          <span class="text-muted2" style="font-size:11.5px;font-weight:500">Cadence set per party</span>
         <select class="form-select form-select-sm" id="invFilter" style="width:auto">
           <option value="all" ${App.invFilter === "all" ? "selected" : ""}>All</option>
           <option value="pending" ${App.invFilter === "pending" ? "selected" : ""}>Pending</option>
@@ -164,7 +164,7 @@ function renderInvoicing(){
     IMS.invoices.filter(i => invStatus(i) !== "paid").forEach(i => {
       const nextStart = i.cycleEnd;
       const con = getContract(i.contractId);
-      const cycleDays = con ? customerCycleDays(con) : IMS.settings.pricing.cycleDays;
+      const cycleDays = con ? partyCycleDays(con) : IMS.settings.pricing.cycleDays;
       const nextEnd = addDays(i.cycleEnd, cycleDays);
       const baseAmount = con ? contractRentalForPeriod(con, nextStart, nextEnd) : 0;
       IMS.invoices.push({ invId:"INV-" + String(IMS.invoices.length + 1).padStart(3, "0"), contractId:i.contractId, cycle:maxCycle + 1, cycleStart:nextStart, cycleEnd:nextEnd, envFeePct:i.envFeePct, damageWaiver:i.damageWaiver, fuelCharge:i.fuelCharge || 0, baseAmount, taxRate: invTaxRate(i), status:"pending" });
@@ -185,7 +185,7 @@ function invoiceDetailCSV(filtered){
   const header = ["Invoice","Contract","Customer","Project","Cycle","Period","Status","Item Type","Item","Qty","Rate","Amount"].map(esc).join(",");
   const body = filtered.map(inv => {
     const con = getContract(inv.contractId);
-    const cust = con ? (customerName(con.customerId) || con.customer || "") : "";
+    const cust = con ? (partyName(con.partyId) || con.party || "") : "";
     const t = invoiceCompute(inv);
     const items = (con && con.lineItems && con.lineItems.length) ? con.lineItems : [];
     const period = `${fmtDate(inv.cycleStart)} to ${fmtDate(inv.cycleEnd)}`;
@@ -225,7 +225,7 @@ function downloadCSV(filename, csv){
 function invoiceDetailModal(inv){
   const con = getContract(inv.contractId);
   const t = invoiceCompute(inv);
-  const cust = con ? (customerName(con.customerId) || con.customer || "—") : "—";
+  const cust = con ? (partyName(con.partyId) || con.party || "—") : "—";
   const lineRows = (con && con.lineItems && con.lineItems.length)
     ? con.lineItems.map(li => {
         const rb = rateBasis(li, con);
