@@ -187,6 +187,7 @@ function customerModal(cust, editable){
       const bc = root.querySelector("#cust-billingCycle");
       if (bc) cust.billingCycle = bc.value;
       cust.active = root.querySelector("#cust-active").checked;
+      if (IMS.store) IMS.store.repo("parties").update("id", cust.id, {});   // notify store of change
       renderOrdersParties();
       dismissModal(root);
     });

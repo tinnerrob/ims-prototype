@@ -1083,8 +1083,8 @@ function openOrderModal(existing){
       active, status: active ? "active" : "closed",
       overheads: ohs
     };
-    if (isEdit) Object.assign(existing, obj);
-    else IMS.orders.unshift(Object.assign({ lineItems: [] }, obj));
+    if (isEdit){ if (IMS.store) IMS.store.repo("orders").update("orderId", existing.orderId, obj); else Object.assign(existing, obj); }
+    else { const rec = Object.assign({ lineItems: [] }, obj); if (IMS.store) IMS.store.repo("orders").create(rec); else IMS.orders.unshift(rec); }
     App.orderId = obj.orderId;
     App.ccTab = "orders";
     App.contractFilter = "active";

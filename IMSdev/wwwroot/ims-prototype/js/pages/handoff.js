@@ -98,6 +98,7 @@ function hoCheckIn(assetId, note){
         if (l.type === "serialized" && liEnd(l) && returnAt < liEnd(l)) l.endDate = returnAt;
       });
     }
+    if (IMS.store) IMS.store.repo("orders").update("orderId", c.orderId, { endDate: c.endDate });
   }
   renderHandoff();
 }
