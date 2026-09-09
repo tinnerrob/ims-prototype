@@ -69,6 +69,15 @@
   /* Does the record carry any extended attributes yet? */
   function hasExtended(item){ return !!item && !!(item.extended_attributes && Object.keys(item.extended_attributes).length); }
 
+  /* Convenience readers for the make/model pair (used across many modules). */
+  function mk(item){ const v = ext(item, "make"); return v == null ? "" : String(v); }
+  function mdl(item){ const v = ext(item, "model"); return v == null ? "" : String(v); }
+  function mkName(item){
+    if (item && item.name) return item.name;
+    const m = mk(item), d = mdl(item);
+    return ((m ? m + " " : "") + d).trim();
+  }
+
   IMS.metadata = {
     version: 1,
     verticals: VERTICALS,
@@ -80,6 +89,9 @@
     findEntry: findEntry,
     ext: ext,
     getPath: getPath,
-    hasExtended: hasExtended
+    hasExtended: hasExtended,
+    mk: mk,
+    mdl: mdl,
+    mkName: mkName
   };
 })();

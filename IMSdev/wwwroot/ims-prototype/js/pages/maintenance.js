@@ -43,7 +43,7 @@ function renderMaintenance(){
         </tr></thead><tbody>
           ${woRows.map(w => `<tr data-edit="${w.woId}">
             <td class="strong mono">${w.woId}</td>
-            <td class="strong">${w.assetId} <span class="text-muted2">${w.asset ? w.asset.model : ""}</span></td>
+            <td class="strong">${w.assetId} <span class="text-muted2">${w.asset ? IMS.metadata.mdl(w.asset) : ""}</span></td>
             <td>${w.type}</td>
             <td class="num">${fmtInt(w.meterReading)}</td>
             <td>${statusBadge(w.status)}</td>
@@ -80,7 +80,7 @@ function workOrderModal(existing){
   const techs = IMS.labor.filter(x => x.role === "Technician");
   const fields = [
     { key:"assetId", label:"Asset", type:"select", value: e.assetId || IMS.itemRegistry.getByType("serialized").find(a => a.status === "In Shop")?.id || IMS.itemRegistry.getByType("serialized")[0].id,
-      options: IMS.itemRegistry.getByType("serialized").map(a => ({ value:a.id, label:`${a.id} — ${a.make} ${a.model} (${a.status})` })), section:"Work Order Details" },
+      options: IMS.itemRegistry.getByType("serialized").map(a => ({ value:a.id, label:`${a.id} — ${IMS.metadata.mkName(a)} (${a.status})` })), section:"Work Order Details" },
     { key:"type", label:"Service Type", type:"select", value:e.type || "Repair", options: opt(["Preventive","Repair","Inspection"]) },
     { key:"meterReading", label:"Current Meter Reading", type:"number", value:e.meterReading || 0 },
     { key:"status", label:"Status", type:"select", value:e.status || "In Progress", options: opt(["In Progress","Completed","Pending"]) },

@@ -74,7 +74,7 @@ function renderGeoTable(){
   const wrap = $("#geoGridWrap");
   if (!wrap) return;
   const q = (App.geoFilter || "").toLowerCase();
-  const filtered = IMS.itemRegistry.getByType("serialized").filter(a => !q || (a.id + " " + a.make + " " + a.model + " " + a.serial).toLowerCase().includes(q));
+  const filtered = IMS.itemRegistry.getByType("serialized").filter(a => !q || (a.id + " " + IMS.metadata.mkName(a) + " " + a.serial).toLowerCase().includes(q));
   const battCls = a => a.battery > 60 ? "var(--success)" : (a.battery > 30 ? "var(--warning)" : "var(--danger)");
   const cols = [
     { key:"id", header:"Asset", td:"strong mono", always:true, render: a => a.id },

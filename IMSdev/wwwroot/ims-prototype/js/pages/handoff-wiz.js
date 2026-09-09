@@ -55,7 +55,7 @@ function rwRefKey(type){
 
 function rwLabel(type, ref){
   const r = rwRes(type, ref); if (!r) return ref;
-  if (type === "serialized") return `${r.id} · ${r.make} ${r.model}`;
+  if (type === "serialized") return `${r.id} · ${IMS.metadata.mkName(r)}`;
   if (type === "bulk" || type === "consumable") return `${r.sku} · ${r.name}`;
   if (type === "part") return `${r.partId} · ${r.description}`;
   if (type === "kit") return `${r.kitId} · ${r.name}`;

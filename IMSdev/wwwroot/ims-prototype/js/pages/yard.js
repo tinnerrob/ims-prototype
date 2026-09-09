@@ -23,7 +23,7 @@ function getLastMeter(assetId){
 function renderYard(){
   const checks = ["tires","fluids","guards","lights","engine"];
   const checkLabels = { tires:"Tires / Tracks", fluids:"Fluids", guards:"Safety Guards", lights:"Lights", engine:"Engine" };
-  const assetOpts = IMS.itemRegistry.getByType("serialized").map(a => `<option value="${a.id}">${a.id} — ${a.make} ${a.model}</option>`).join("");
+  const assetOpts = IMS.itemRegistry.getByType("serialized").map(a => `<option value="${a.id}">${a.id} — ${IMS.metadata.mkName(a)}</option>`).join("");
   const contractOpts = IMS.orders.map(c => `<option value="${c.orderId}">${c.orderId} — ${c.projectName}</option>`).join("");
   $("#content").innerHTML = `
     <div class="page-head"></div>
@@ -93,7 +93,7 @@ function renderYard(){
 function renderInspLog(){
   const wrap = $("#inspGridWrap");
   if (!wrap) return;
-  const assetName = id => { const a = getAsset(id); return a ? `<span class="text-muted2">${a.model}</span>` : ""; };
+  const assetName = id => { const a = getAsset(id); return a ? `<span class="text-muted2">${IMS.metadata.mdl(a)}</span>` : ""; };
   const cols = [
     { key:"inspId", header:"Insp #", td:"strong mono", always:true, render: i => i.inspId },
     { key:"asset", header:"Asset", render: i => `<span class="strong">${i.assetId}</span> ${assetName(i.assetId)}` },
@@ -128,7 +128,7 @@ function inspectionModal(existing){
   const e = existing || {};
   const checks = ["tires","fluids","guards","lights","engine"];
   const checkLabels = { tires:"Tires / Tracks", fluids:"Fluids", guards:"Safety Guards", lights:"Lights", engine:"Engine" };
-  const assetOpts = IMS.itemRegistry.getByType("serialized").map(a => ({ value:a.id, label:`${a.id} — ${a.make} ${a.model}` }));
+  const assetOpts = IMS.itemRegistry.getByType("serialized").map(a => ({ value:a.id, label:`${a.id} — ${IMS.metadata.mkName(a)}` }));
   const fields = [
     { key:"assetId", label:"Asset", type:"select", value:e.assetId, options:assetOpts, section:"Routing" },
     { key:"direction", label:"Direction", type:"select", value:e.direction || "Check-Out", options:opt(["Check-Out","Check-In"]) },

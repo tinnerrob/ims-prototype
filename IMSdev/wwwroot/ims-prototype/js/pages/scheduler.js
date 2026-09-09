@@ -293,7 +293,7 @@ function renderPoolList(){
     const avail = out
       ? { key: "busy", badge: `<span class="badge-status st-out"><i class="bi bi-truck"></i>On site · ${out.orderId}</span>`, note: "Custodian " + out.custodian }
       : capAvailUI("serialized", a.id, a.status === "In Shop");
-    return resCard("serialized", a.id, `${a.id} · ${a.make} ${a.model}`, `${a.category} · ${fmtMoney(a.baseDaily)}/d`, avail);
+    return resCard("serialized", a.id, `${a.id} · ${IMS.metadata.mkName(a)}`, `${a.category} · ${fmtMoney(a.baseDaily)}/d`, avail);
   }).join("");
   else if (t === "bulk") html = byCode(bulkList.filter(b => recActive(b)), "sku").map(b => resCard("bulk", b.sku, `${b.sku} · ${b.name}`, `${fmtInt(b.qtyAvailable)} avail · ${fmtInt(bookedQtyInView("bulk", b.sku))} booked · ${fmtMoney(b.baseDaily)}/u`, plain)).join("");
   else if (t === "consumable") html = byCode(consumableList.filter(c => recActive(c)), "sku").map(c => resCard("consumable", c.sku, `${c.sku} · ${c.name}`, `${fmtInt(c.qtyOnHand)} on hand · ${fmtInt(bookedQtyInView("consumable", c.sku))} booked · ${fmtMoney(c.retailPrice)}`, plain)).join("");

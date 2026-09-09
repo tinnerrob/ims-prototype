@@ -134,7 +134,7 @@ IMS.store = (function(){
         /* B3 (isolated fields): relocate serialized type-specific fields into
            extended_attributes (registry field_key <- flat key). */
         if (t === "serialized"){
-          const RELOC = [ ["meter_hours", "meterHours"], ["fuel_type", "fuelType"] ];
+          const RELOC = [ ["make", "make"], ["model", "model"], ["meter_hours", "meterHours"], ["fuel_type", "fuelType"] ];
           RELOC.forEach(([fieldKey, flatKey]) => {
             const v = r.extended_attributes[fieldKey] != null ? r.extended_attributes[fieldKey] : (r[flatKey] != null ? r[flatKey] : null);
             if (v != null) r.extended_attributes[fieldKey] = v;

@@ -88,7 +88,7 @@ function serializedTable(){
   const cols = [
     { key:"id", header:"Asset ID", td:"strong mono", always:true, render: a => a.id },
     { key:"serial", header:"Serial / VIN", td:"mono text-muted2", render: a => a.serial },
-    { key:"mkmod", header:"Make / Model", render: a => `${a.make} ${a.model}` },
+    { key:"mkmod", header:"Make / Model", render: a => `${IMS.metadata.mkName(a)}` },
     { key:"category", header:"Category", render: a => a.category },
     { key:"meter", header:"Meter Hrs", td:"num", render: a => fmtInt(IMS.metadata.ext(a, "meter_hours") || 0) },
     { key:"fuel", header:"Fuel", render: a => IMS.metadata.ext(a, "fuel_type") || "" },
@@ -224,7 +224,7 @@ function serializedView(a){
   openRawModal({
     id: "mdl-aview", size: "lg", title: "Asset — " + a.id, icon: "bi-truck-front",
     body: detailGrid([
-      ["Asset ID", a.id], ["Serial / VIN", a.serial], ["Make / Model", a.make + " " + a.model], ["Category", a.category],
+      ["Asset ID", a.id], ["Serial / VIN", a.serial], ["Make / Model", IMS.metadata.mkName(a)], ["Category", a.category],
       ["Meter Hours", fmtInt(IMS.metadata.ext(a, "meter_hours") || 0)], ["Fuel", IMS.metadata.ext(a, "fuel_type") || "—"], ["Purchase Value", fmtMoney(a.purchaseValue)],
       ["Daily", fmtMoney(a.baseDaily)], ["Weekly", fmtMoney(a.baseWeekly)], ["Monthly", fmtMoney(a.baseMonthly)],
       ["Default Deposit", (a.depositPct != null ? a.depositPct : 25) + "% of rental"],
@@ -405,8 +405,8 @@ function serializedFields(e){
     { key:"active", label:"Active", type:"checkbox", value: recActive(e) },
     { key:"id", label:"Asset ID (PK)", type:"text", value: e.id || nextAssetId(e.category || "Boom Lift"), required:true, section:"Identity" },
     { key:"serial", label:"Serial / VIN", type:"text", value: e.serial || "" },
-    { key:"make", label:"Make", type:"text", value: e.make || "" },
-    { key:"model", label:"Model", type:"text", value: e.model || "" },
+    { key:"make", label:"Make", type:"text", bucket:"extended_attributes", value: IMS.metadata.ext(e, "make") || "" },
+    { key:"model", label:"Model", type:"text", bucket:"extended_attributes", value: IMS.metadata.ext(e, "model") || "" },
     { key:"category", label:"Category", type:"select", value: e.category || activeCats("serialized")[0], options: catOptions("serialized", e.category) },
     { key:"meter_hours", label:"Current Meter Hours", type:"number", bucket:"extended_attributes", value: IMS.metadata.ext(e, "meter_hours") || 0, section:"Usage & Availability" },
     { key:"fuel_type", label:"Fuel Type", type:"select", bucket:"extended_attributes", value: IMS.metadata.ext(e, "fuel_type") || "Diesel", options: opt(["Diesel","Gasoline","Electric","LPG"]) },
@@ -440,8 +440,9 @@ function serializedModal(existing){
     id: "mdl-serial", title: (isEdit ? "Edit" : "New") + " Serialized / Equipment Asset", icon: "bi-truck-front", large: true,
     fields: serializedFields(existing),
     onSave: v => {
-      const base = { active:v.active !== false, serial:v.serial, make:v.make, model:v.model, category:v.category, purchaseValue:v.purchaseValue, baseDaily:v.baseDaily, baseWeekly:v.baseWeekly, baseMonthly:v.baseMonthly, depositPct:v.depositPct, lat:v.lat, lng:v.lng, status:v.status };
+      const base = { active:v.active !== false, serial:v.serial, category:v.category, purchaseValue:v.purchaseValue, baseDaily:v.baseDaily, baseWeekly:v.baseWeekly, baseMonthly:v.baseMonthly, depositPct:v.depositPct, lat:v.lat, lng:v.lng, status:v.status };
       const ext = Object.assign({}, (existing && existing.extended_attributes) || {}, (v.extended_attributes) || {});
+      base.name = ((ext.make ? ext.make + " " : "") + (ext.model || "")).trim();
       const patch = Object.assign({ extended_attributes: ext }, base);
       if (isEdit) {
         itemWrite("serialized", existing, patch);
@@ -549,7 +550,7 @@ function kitsList(){
   const cards = IMS.itemRegistry.getByType("kit").map(k => {
     const comps = k.components.map(c => {
       const r = getResource({ type:c.refType, refId:c.refId });
-      const rname = r ? (c.refType === "serialized" ? r.make + " " + r.model : r.name) : c.refId;
+      const rname = r ? (c.refType === "serialized" ? IMS.metadata.mkName(r) : r.name) : c.refId;
       const rate = r ? r.baseDaily : 0;
       return `<div class="list-line"><span class="l"><span class="type-chip tc-${c.refType}">${c.refType}</span> ${c.qty} × ${rname} <span class="mono">${c.refId}</span></span><span class="r">${fmtMoney(rate * c.qty)}/day</span></div>`;
     }).join("");
@@ -585,7 +586,7 @@ function attachmentsTable(){
 
 function resOptions(){
   let o = `<option value="">— select component —</option>`;
-  IMS.itemRegistry.getByType("serialized").forEach(a => o += `<option value="serialized|${a.id}">[Serialized] ${a.id} · ${a.make} ${a.model}</option>`);
+  IMS.itemRegistry.getByType("serialized").forEach(a => o += `<option value="serialized|${a.id}">[Serialized] ${a.id} · ${IMS.metadata.mkName(a)}</option>`);
   IMS.itemRegistry.getByType("bulk").forEach(b => o += `<option value="bulk|${b.sku}">[Bulk] ${b.sku} · ${b.name}</option>`);
   IMS.itemRegistry.getByType("consumable").forEach(c => o += `<option value="consumable|${c.sku}">[Consumable] ${c.sku} · ${c.name}</option>`);
   return o;
@@ -599,7 +600,7 @@ function nextKitId(){
 
 function compRow(c, i){
   const r = getResource({ type:c.refType, refId:c.refId });
-  const rname = r ? (c.refType === "serialized" ? r.make + " " + r.model : r.name) : c.refId;
+  const rname = r ? (c.refType === "serialized" ? IMS.metadata.mkName(r) : r.name) : c.refId;
   return `<div class="list-line"><span class="l"><span class="type-chip tc-${c.refType}">${c.refType}</span> ${c.qty} × ${rname} <span class="mono">${c.refId}</span></span>
     <span class="r"><button class="remove" data-rem="${i}"><i class="bi bi-x-circle"></i></button></span></div>`;
 }
@@ -667,7 +668,7 @@ function kitModal(existing){
 
 function assetIdChecks(cats, selected){
   const list = cats && cats.length ? IMS.itemRegistry.getByType("serialized").filter(a => cats.includes(a.category)) : [];
-  return list.map(a => `<label class="check-line ${(selected || []).includes(a.id) ? "checked" : ""}"><input type="checkbox" value="${a.id}" ${(selected || []).includes(a.id) ? "checked" : ""}>${a.id} — ${a.make} ${a.model}</label>`).join("") || `<div class="text-muted2 py-2">Select a category above to see matching assets.</div>`;
+  return list.map(a => `<label class="check-line ${(selected || []).includes(a.id) ? "checked" : ""}"><input type="checkbox" value="${a.id}" ${(selected || []).includes(a.id) ? "checked" : ""}>${a.id} — ${IMS.metadata.mkName(a)}</label>`).join("") || `<div class="text-muted2 py-2">Select a category above to see matching assets.</div>`;
 }
 
 function catChecks(cats, selected){

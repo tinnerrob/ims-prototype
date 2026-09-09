@@ -157,7 +157,7 @@ function renderHandoff(){
       <tr class="ho-row" data-hoopen="${c.orderId}">
         <td class="strong mono">${a.id}</td>
         <td class="mono">${c.orderId}</td>
-        <td class="text-muted2">${a.make || ""} ${a.model || ""}</td>
+        <td class="text-muted2">${IMS.metadata.mkName(a)}</td>
         <td>${fmtDate(s)} → ${fmtDate(e)}</td>
         <td>${isOutbound ? hoCustodian(c) : (out.custodian + `<div class="text-muted2 small">out ${fmtDT(out.at)}</div>`)}</td>
         <td>${status}</td>
@@ -254,7 +254,7 @@ function hoCheckInModal(assetId){
   if (!info) return;
   const a = info.asset || {};
   const body = `
-    <div class="lab-punch-head"><div><span class="strong">${a.id}</span><div class="text-muted2">${a.make || ""} ${a.model || ""}</div></div>
+    <div class="lab-punch-head"><div><span class="strong">${a.id}</span><div class="text-muted2">${IMS.metadata.mkName(a)}</div></div>
       <span class="badge-status st-out">On Site</span></div>
     <div class="list-line"><span class="l">Rental / order</span><span class="r strong">${info.orderId}${info.order ? " · " + info.order.projectName : ""}</span></div>
     <div class="list-line"><span class="l">Custodian</span><span class="r">${info.custodian}</span></div>
@@ -337,7 +337,7 @@ function rnDefaultRate(a){
 }
 function rnOpts(exclude){
   const ex = exclude || {};
-  return availableSerialized().filter(a => !ex[a.id]).map(a => `<option value="${a.id}">${a.id} — ${a.make} ${a.model} · ${fmtMoney(a.baseDaily)}/d</option>`).join("");
+  return availableSerialized().filter(a => !ex[a.id]).map(a => `<option value="${a.id}">${a.id} — ${IMS.metadata.mkName(a)} · ${fmtMoney(a.baseDaily)}/d</option>`).join("");
 }
 /* push default rates of the chosen asset into that item's hour/day/week fields */
 function rnFill(seq){

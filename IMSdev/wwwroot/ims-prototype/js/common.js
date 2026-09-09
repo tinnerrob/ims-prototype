@@ -157,7 +157,7 @@ const getResource = (item) => {
 const itemLabel = (item) => {
   const r = getResource(item);
   if (!r) return item.refId;
-  if (item.type === "serialized") return `${r.id} · ${r.make} ${r.model}`;
+  if (item.type === "serialized") return `${r.id} · ${IMS.metadata.mkName(r)}`;
   if (item.type === "bulk")       return `${r.sku} · ${r.name}`;
   if (item.type === "consumable") return `${r.sku} · ${r.name}`;
   if (item.type === "labor")      return `${r.empId} · ${r.name}`;
@@ -170,7 +170,7 @@ const itemLabel = (item) => {
 const itemName = (item) => {
   const r = getResource(item);
   if (!r) return item.refId;
-  if (item.type === "serialized") return `${r.make} ${r.model}`;
+  if (item.type === "serialized") return `${IMS.metadata.mkName(r)}`;
   if (item.type === "bulk" || item.type === "consumable" || item.type === "labor") return r.name;
   if (item.type === "part") return r.description;
   if (item.type === "kit" || item.type === "attachment") return r.name;
