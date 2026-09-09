@@ -28,7 +28,7 @@ with findings are updated as passes land.
 | `js/grid.js` | PEND | — | shared table renderer (good) | — | column-profile persistence OK |
 | `js/metadata.js` | PEND | — | registry (good) | vertical registry is cross-module by design | — |
 | `js/store.js` | PEND | `update(idField…)` unused? check | repos are the write seam (good) | core-owned seam | — |
-| `js/router.js` | PEND | TITLES/RENDER/MODULE_* duplicated in one spot | target: one declarative registry (T2.2) | manifest + gating present | — |
+| `js/router.js` | PEND→done (T2.2) | legacy TITLES/RENDER/DESCRIPTIONS/MODULE_VIEW → **single `VIEWS` registry** (derived maps kept) | one declarative registry (done) | manifest + gating present | — |
 | `Pages/*` (ASP.NET Razor) | FIX→done (T1.2) | **removed** (default .NET scaffold "Welcome to ASP.NET" Index/Privacy) | none | — | moving to Angular + Wisej.net — scaffold stripped |
 | `Program.cs` | FIX→done (T1.2) | rewritten as minimal static host (no Razor); `/` redirects to `/ims-prototype/` | — | — | future Angular + Wisej.net replaces it (documented in header) |
 
@@ -37,7 +37,7 @@ with findings are updated as passes land.
 | File / layer | Route | Status | Dead / stale | Reuse | Module disconnect | UI / modal |
 |---|---|---|---|---|---|---|
 | `pages/dashboard.js` | dashboard (core) | PEND | check KPI gating | — | must gate telemetry KPI (already) | — |
-| `pages/inventory.js` | inventory (core) | PEND | — | grids near-identical (bulk/consumable/parts) | — | many modals; re-audit spec |
+| `pages/inventory.js` | inventory (core) | PEND | — | grids near-identical (bulk/consumable/parts) | referential reads of `workOrders`/`timesheets` for detail views — see finding 8 | many modals; re-audit spec |
 | `pages/healthcare.js` | inventory medical tab | PEND | — | registry-driven (good) | vertical-specific (by design) | — |
 | `pages/contracts.js` | orders (core) | PEND | — | — | — | party/order modals |
 | `pages/handoff.js` | handoff (core) | FIX→done (T1) | **legacy `openNewRentalModal`/`createRentalFromModal` + `rn*` modal removed** (was shadowed by handoff-wiz.js); `taxRate()` relocated to `common.js`; kept hoCheckOut/In + custody + day board | hoist needed helpers (done: taxRate) | custody is core (loan is one movement kind) | wizard owns New-Order modal |
@@ -86,4 +86,14 @@ with findings are updated as passes land.
 7. **Modal a11y contract check (T3.4):** `role="dialog"`/`aria-modal` present in
    the shared builders (`common.js`) but worth an automated assertion across every
    emitted modal; `.btn-ims` primary used ~29× (footer-consistency lint).
+8. **[T2.0] Cross-module referential reads (documented exception):** core `inventory.js`
+   reads `workOrders` (service) + `timesheets` (labor) to show related-item counts in
+   detail views; labor `timesheet.js` reads `workOrders` (service) for clock-in targets.
+   All module tables are seeded in core regardless of module toggle, so toggling a module
+   UI off never breaks these reads (proved by the T2.3 gate). For the future Angular/Wisej
+   backend these cross-feature references should be explicit model relationships (or moved
+   behind a declared `requires[]`), not implicit global-table reads.
+9. **[x] T2.2 + T2.3 (done):** single-source `VIEWS` registry in `router.js` (derives
+   RENDER/TITLES/DESCRIPTIONS/MODULE_VIEW); gate now proves each module off → nav hidden,
+   route falls back to dashboard, and every core view renders. Gates green.
 
