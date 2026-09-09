@@ -58,6 +58,10 @@ function renderConfig(){
     </div>`;
 
   delegate($("#content"), "change", ".mod-toggle", b => {
+    if (!b.checked){
+      const blockers = (typeof orphanedIfDisabled === "function") ? orphanedIfDisabled(b.dataset.mod, flags) : [];
+      if (blockers.length){ window.alert(blockers.join(", ") + " depend on this module — disable them first."); b.checked = true; return; }
+    }
     flags[b.dataset.mod] = b.checked;              // false = off
     if (typeof saveModuleFlags === "function") saveModuleFlags(flags);
     if (typeof applyModuleNav === "function") applyModuleNav();

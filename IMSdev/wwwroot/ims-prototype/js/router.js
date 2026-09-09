@@ -57,6 +57,17 @@ const MODULE_META = {
   rentals: "Rentals & Sub-Rentals",
   billing: "Billing & Invoicing"
 };
+/* Module -> modules it requires. All modules are core-only today (the cleanest
+   state); this map enforces that a module is never disabled while another
+   enabled module depends on it. */
+const MODULE_DEPS = {};
+function orphanedIfDisabled(name, flags){
+  const blockers = [];
+  Object.keys(MODULE_DEPS).forEach(m => {
+    if (MODULE_DEPS[m].indexOf(name) >= 0 && flags[m] !== false) blockers.push(MODULE_META[m] || m);
+  });
+  return blockers;
+}
 const viewModule = id => MODULE_VIEW[id] || null;
 const moduleEnabled = id => {
   const m = viewModule(id);
