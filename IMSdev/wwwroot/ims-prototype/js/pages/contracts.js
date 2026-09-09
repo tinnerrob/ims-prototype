@@ -7,7 +7,7 @@
 /* =========================================================
    CONTRACTS — HEADER MANAGEMENT (split out of Scheduler)
    ========================================================= */
-function renderCustomersContracts(){
+function renderOrdersParties(){
   const tabs = [
     { key:"customers", label:"Customers", icon:"bi-people", count: IMS.parties.length },
     { key:"orders", label:"Contracts", icon:"bi-folder2-open", count: IMS.orders.length }
@@ -24,7 +24,7 @@ function renderCustomersContracts(){
       </div>
       <div id="ccPanel"></div>
     </div></div>`;
-  delegate($("#content"), "click", "#ccTabs .subtab", b => { App.ccTab = b.dataset.tab; renderCustomersContracts(); });
+  delegate($("#content"), "click", "#ccTabs .subtab", b => { App.ccTab = b.dataset.tab; renderOrdersParties(); });
   $("#ccAddBtn").addEventListener("click", () => { App.ccTab === "customers" ? customerNewModal() : orderModal(); });
   renderCcPanel();
 }
@@ -185,7 +185,7 @@ function customerModal(cust, editable){
       const bc = root.querySelector("#cust-billingCycle");
       if (bc) cust.billingCycle = bc.value;
       cust.active = root.querySelector("#cust-active").checked;
-      renderCustomersContracts();
+      renderOrdersParties();
       dismissModal(root);
     });
   }

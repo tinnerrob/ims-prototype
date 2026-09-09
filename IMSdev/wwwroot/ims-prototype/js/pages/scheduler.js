@@ -9,7 +9,7 @@
    ========================================================= */
 
 /* Active orders sorted by order id (ascending). */
-const activeContracts = () =>
+const activeOrders = () =>
   IMS.orders.filter(c => c.status === "active")
     .sort((a, b) => (a.orderId < b.orderId ? -1 : a.orderId > b.orderId ? 1 : 0));
 
@@ -194,7 +194,7 @@ function resCard(type, ref, label, sub, avail){
 }
 
 /* Navigate the scheduler to a order's start period (day/week/month) and expand it. */
-function focusContract(id){
+function focusOrder(id){
   const c = getOrder(id);
   if (!c) return;
   App.orderId = id;
@@ -209,7 +209,7 @@ function focusContract(id){
 
 function renderSchedQueue(){
   const box = $("#schedQueue");
-  const orders = activeContracts();
+  const orders = activeOrders();
   const cList = orders.map(c => `<div class="queue-order ${c.orderId === App.orderId ? "active" : ""}" data-qcid="${c.orderId}">
     <div class="qc-head"><i class="bi bi-briefcase"></i><span class="strong" style="font-size:12px">${c.orderId}</span></div>
     <div class="text-muted2" style="font-size:11px">${c.party}</div>
@@ -222,7 +222,7 @@ function renderSchedQueue(){
       <div class="card-header"><span class="card-title"><i class="bi bi-stack"></i> Orders &amp; Allocations</span>
         <span class="badge-status st-onrent">${orders.length} active</span></div>
       <div class="card-body queue-scroll">${cList}</div>
-      <div class="card-body" style="padding-top:8px"><button class="btn btn-ims btn-sm2 w-100" id="addContractBtn" type="button"><i class="bi bi-plus-lg"></i> New Order</button></div>
+      <div class="card-body" style="padding-top:8px"><button class="btn btn-ims btn-sm2 w-100" id="addOrderBtn" type="button"><i class="bi bi-plus-lg"></i> New Order</button></div>
     </div>
     <div class="card">
       <div class="card-header"><span class="card-title"><i class="bi bi-box-seam"></i> Inventory Pool</span>
@@ -241,8 +241,8 @@ function renderSchedQueue(){
     const b = $("#addPoolResBtn");
     if (b) b.innerHTML = `<i class="bi bi-plus-lg"></i> ${poolAddLabel()}`;
   });
-  delegate($("#schedQueue"), "click", "[data-qcid]", b => focusContract(b.dataset.qcid));
-  $("#addContractBtn").addEventListener("click", () => orderModal());
+  delegate($("#schedQueue"), "click", "[data-qcid]", b => focusOrder(b.dataset.qcid));
+  $("#addOrderBtn").addEventListener("click", () => orderModal());
   $("#addPoolResBtn").addEventListener("click", addPoolResource);
   renderPoolList();
 }
@@ -316,7 +316,7 @@ function renderTimeline(){
   const isDay = App.schedView === "day";
   const anchor = schedAnchor();
   const days = isMonth ? monthDates(anchor) : (isDay ? dayDates(anchor) : weekDates(anchor));
-  const orders = activeContracts();
+  const orders = activeOrders();
   const conflictKeys = new Set(collectConflicts().map(f => f.type + "|" + f.refId));
   let gridCols, minWidth, head;
   if (isDay){
@@ -874,12 +874,12 @@ function startSchedDrag(blockEl, orderId, liId, mode, clientX){
   if (!c || !track) return;
   const cols = schedCols();
   const rect = track.getBoundingClientRect();
-  const isContract = !liId;
-  const li = isContract ? null : c.lineItems.find(x => x.id === liId);
-  const sD = isContract ? parseDT(c.startDate) : parseDT(liStart(li, c));
-  const eD = isContract ? parseDT(c.endDate)   : parseDT(liEnd(li, c));
+  const isOrder = !liId;
+  const li = isOrder ? null : c.lineItems.find(x => x.id === liId);
+  const sD = isOrder ? parseDT(c.startDate) : parseDT(liStart(li, c));
+  const eD = isOrder ? parseDT(c.endDate)   : parseDT(liEnd(li, c));
   schedDrag = {
-    blockEl, orderId, liId, isContract, mode,
+    blockEl, orderId, liId, isOrder, mode,
     sD: new Date(sD), eD: new Date(eD),
     grabClientX: clientX,          // pixel anchor for stable, monotonic snapping
     pxPerUnit: rect.width / cols   // px per day (week/month) or per 15-min block (day view)
@@ -972,7 +972,7 @@ function onSchedDragUp(){
   const c = getOrder(schedDrag.orderId);
   const changed = (() => {
     if (!c) return false;
-    if (schedDrag.isContract) return parseDT(c.startDate).getTime() !== schedDrag.sD.getTime() || parseDT(c.endDate).getTime() !== schedDrag.eD.getTime();
+    if (schedDrag.isOrder) return parseDT(c.startDate).getTime() !== schedDrag.sD.getTime() || parseDT(c.endDate).getTime() !== schedDrag.eD.getTime();
     const li = c.lineItems.find(x => x.id === schedDrag.liId);
     if (!li) return false;
     return parseDT(liStart(li, c)).getTime() !== schedDrag.sD.getTime() || parseDT(liEnd(li, c)).getTime() !== schedDrag.eD.getTime();
@@ -1043,9 +1043,9 @@ function openOrderModal(existing){
   const footer = `<button type="button" class="btn btn-ims-outline" data-bs-dismiss="modal">Cancel</button>
     <button type="button" class="btn btn-ims" id="c-save"><i class="bi bi-check2"></i> Save Order</button>`;
   const root = openRawModal({ id:"mdl-order", size:"lg", title:(isEdit ? "Edit" : "New") + " Order / Job", icon:"bi-file-earmark-text", body, footer });
-  const tmpContract = () => ({ startDate: combineDT(root.querySelector("#c-start-date").value, root.querySelector("#c-start-time").value), endDate: combineDT(root.querySelector("#c-end-date").value, root.querySelector("#c-end-time").value), lineItems: existing ? existing.lineItems || [] : [], overheads: ohs });
+  const tmpOrder = () => ({ startDate: combineDT(root.querySelector("#c-start-date").value, root.querySelector("#c-start-time").value), endDate: combineDT(root.querySelector("#c-end-date").value, root.querySelector("#c-end-time").value), lineItems: existing ? existing.lineItems || [] : [], overheads: ohs });
   renderOhList(root, ohs);
-  const renderFin = () => renderOhFinance(root, tmpContract());
+  const renderFin = () => renderOhFinance(root, tmpOrder());
   root.querySelector("#oh-add").addEventListener("click", () => {
     const id = root.querySelector("#oh-pick").value;
     if (!id) return;
@@ -1110,8 +1110,8 @@ function renderOhList(root, ohs){
   </div>`).join("") || `<p class="text-muted2 py-2">No overhead adjustments for this order.</p>`;
 }
 
-function renderOhFinance(root, tmpContract){
-  const t = orderTotals(tmpContract);
+function renderOhFinance(root, tmpOrder){
+  const t = orderTotals(tmpOrder);
   root.querySelector("#oh-fin").innerHTML = `
     <div class="label"><i class="bi bi-calculator"></i> Contract Financial Preview</div>
     <table class="totals-table">

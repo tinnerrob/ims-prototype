@@ -436,7 +436,7 @@ function rwRenderInvoice(){
     </div>`;
 }
 /* ---- party helpers ---- */
-function rwCustomerOptions(){
+function rwPartyOptions(){
   const opts = IMS.parties.map(c => `<option value="${c.id}">${c.name} · ${c.contact || ""} · ${c.billingCycle || ""}</option>`).join("");
   return `<option value="__new__" selected>— New party —</option>` + opts;
 }
@@ -448,7 +448,7 @@ function rwCustFieldsDisabled(off){
     const el = $("#rn-" + id); if (el) el.disabled = off;
   });
 }
-function rwSyncCustomer(){
+function rwSyncParty(){
   const cust = $("#rn-cust");
   if (!cust) return;
   if (cust.value === "__new__"){
@@ -483,7 +483,7 @@ function rwCustPane(){
       <div class="rw-pane-title"><i class="bi bi-person-lines-fill"></i> Customer &amp; Billing</div>
       <div class="row g-2 mb-2">
         <div class="col-md-12 field-group"><label class="form-label">Customer</label>
-          <select id="rn-cust" class="form-select">${rwCustomerOptions()}</select></div>
+          <select id="rn-cust" class="form-select">${rwPartyOptions()}</select></div>
       </div>
       <div id="rn-new">
         <div class="row g-2">
@@ -549,8 +549,8 @@ function openNewRentalModal(){
     id: "mdl-rental", size: "lg", title: "New Order / Check Out", icon: "bi-box-arrow-up-right",
     body, footer: ""
   });
-  rwSyncCustomer();
-  $("#rn-cust").addEventListener("change", rwSyncCustomer);
+  rwSyncParty();
+  $("#rn-cust").addEventListener("change", rwSyncParty);
   $("#rn-add").addEventListener("click", () => rwAddItem());
   rwAddItem("serialized"); // one starting equipment line
   $("#rn-back").addEventListener("click", () => rwGoto(rwStep - 1));

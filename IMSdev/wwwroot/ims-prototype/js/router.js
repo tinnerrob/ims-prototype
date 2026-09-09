@@ -13,7 +13,7 @@ const TITLES = {
   timesheet:"Labor & Timesheets", yard:"Receiving / Inspections", invoicing:"Billing & Invoicing", rerents:"Rentals / Sub-Rentals",
   branches:"Locations", pricing:"Pricing & Policies", categories:"Categories & Types"
 };
-const RENDER = { dashboard: renderDashboard, inventory: renderInventory, orders: renderCustomersContracts, scheduler: renderScheduler, handoff: renderHandoff, geo: renderGeo, logistics: renderLogistics, maintenance: renderMaintenance, timesheet: renderTimesheet, yard: renderYard, invoicing: renderInvoicing, rerents: renderRerents, branches: renderBranches, pricing: renderPricing, categories: renderCategories };
+const RENDER = { dashboard: renderDashboard, inventory: renderInventory, orders: renderOrdersParties, scheduler: renderScheduler, handoff: renderHandoff, geo: renderGeo, logistics: renderLogistics, maintenance: renderMaintenance, timesheet: renderTimesheet, yard: renderYard, invoicing: renderInvoicing, rerents: renderRerents, branches: renderBranches, pricing: renderPricing, categories: renderCategories };
 const DESCRIPTIONS = {
   dashboard:"Aggregated operational metrics from the inventory core and enabled modules.",
   inventory:"Core catalog: typed items, stock quantities, and on-hand levels across the inventory.",
