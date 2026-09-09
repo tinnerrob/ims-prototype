@@ -509,6 +509,9 @@ addScript(`(() => {
   assert(coreA.extended_attributes && typeof coreA.extended_attributes === "object", "serialized item has an extended_attributes JSONB bucket");
   const coreP = IMS.itemRegistry.getByType("consumable")[0];
   assert(coreP && coreP.name && coreP.id && coreP.extended_attributes && typeof coreP.extended_attributes === "object", "consumable item also has core + extended_attributes bucket");
+  assert(coreA.extended_attributes.fuel_type === "Diesel" && coreA.fuelType === undefined, "B3 field relocation: fuel_type lives in extended_attributes, flat removed");
+  const ser2 = IMS.itemRegistry.getByType("serialized")[1];
+  assert(ser2 && IMS.metadata.ext(ser2, "fuel_type") && ser2.fuelType === undefined, "fuel_type relocation applied across serialized seed");
 
   window.__gateFailures = failures;
   window.__gateLog = out;
