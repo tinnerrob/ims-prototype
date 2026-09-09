@@ -573,7 +573,8 @@ function rwCreate(root){
     custPhone = ($("#rn-phone").value || "").trim(); custEmail = ($("#rn-email").value || "").trim();
     custAddr = ($("#rn-address").value || "").trim(); custCycle = $("#rn-cycle").value || "walk-in";
     custId = nextPartyId();
-    IMS.parties.push({ id: custId, name: custName, contact: custContact, phone: custPhone, email: custEmail, billingAddress: custAddr, billingCycle: custCycle, notes: "Walk-in rental / checkout" });
+    const partyRec = { id: custId, name: custName, contact: custContact, phone: custPhone, email: custEmail, billingAddress: custAddr, billingCycle: custCycle, notes: "Walk-in rental / checkout" };
+    if (IMS.store) IMS.store.repo("parties").create(partyRec); else IMS.parties.push(partyRec);
   } else {
     const c = getParty(custVal);
     if (c){ custName = c.name; custContact = c.contact || c.name; custAddr = c.billingAddress || ""; }
@@ -617,7 +618,7 @@ function rwCreate(root){
     }
     return base;
   });
-  IMS.orders.push({
+  const orderRec = {
     orderId: cid, partyId: custId, party: custName,
     jobSite: site || custAddr || "Front counter pickup",
     projectName: "Rental / Check Out — " + custName,
@@ -626,7 +627,8 @@ function rwCreate(root){
     geofenceRadius: 300, overheads: [],
     siteLat: (IMS.yard && IMS.yard.lat) || 33.7490, siteLng: (IMS.yard && IMS.yard.lng) || -84.3880,
     lineItems
-  });
+  };
+  if (IMS.store) IMS.store.repo("orders").create(orderRec); else IMS.orders.push(orderRec);
   const order = getOrder(cid);
   items.forEach(it => {
     if (it.type === "serialized"){
