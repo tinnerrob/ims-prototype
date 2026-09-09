@@ -251,16 +251,24 @@ self-contained. Any static file server works too (e.g. `python3 -m http.server`)
 
 ## 10. Testing
 
-The prototype is validated with **jsdom** node scripts (not committed) that load
-`index.html` with all JS inlined and assert: all 14 views render, conflicted bookings are
-allowed and listed, weekly whole-unit billing advances correctly, per-customer cycle
-lengths resolve, seed invoices are cycle-scoped, and the CSV has no Total row.
-
-To lint/syntax-check the split files:
+The prototype ships a committed **jsdom** gate (`test/gate.js`) that loads
+`index.html`, inlines every local JS file in order as classic `<script>` nodes
+(shared global scope), stubs Bootstrap/timers, dispatches `DOMContentLoaded`,
+then asserts:
+- every view in `TITLES` renders without throwing,
+- the generic modal builders (`openFormModal`/`openRawModal`) emit the spec
+  structure (dialog semantics, footer actions, focus) and open/save/close,
+- each modal across every module opens/saves/closes (customer, order editor/detail,
+  rental wizard, check-in, allocations, inspection, punch clock, edit-time, work
+  order, invoice detail, and the admin/rerent config modals),
+- the `IMS.store` repository seam covers the item catalog + settings/rental
+  collections and its JSON snapshot round-trips.
 
 ```bash
 cd wwwroot/ims-prototype
-for f in js/common.js js/router.js js/pages/*.js; do node --check "$f"; done
+npm install        # installs the jsdom devDependency once
+npm run check      # node --check every JS file
+npm test           # run the jsdom gate
 ```
 
 ---
