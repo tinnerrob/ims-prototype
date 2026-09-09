@@ -5,49 +5,47 @@
 "use strict";
 
 /* =========================================================
-   NAVIGATION / ROUTER
+   VIEW / MODULE REGISTRY — single source of truth.
+   Each VIEWS entry: { id, title, render, module, group, desc }
+     module : module key when the view belongs to an opt-in module
+              (null for always-on views)
+     group  : 'core' | 'policies' | 'admin' | 'module'
+   Adding a feature = one entry here + its nav item in index.html.
+   The legacy consts (RENDER/TITLES/DESCRIPTIONS/MODULE_VIEW) are
+   DERIVED from VIEWS so existing callers keep working unchanged.
    ========================================================= */
-const TITLES = {
-  dashboard:"Operations Dashboard", inventory:"Items & Stock", orders:"Parties & Orders", scheduler:"Allocations",
-  handoff:"Item Hand-Off & Custody", geo:"Fleet Telemetry", logistics:"Logistics & Dispatch", maintenance:"Field Service & Maintenance",
-  timesheet:"Labor & Timesheets", yard:"Receiving / Inspections", invoicing:"Billing & Invoicing", rerents:"Rentals / Sub-Rentals",
-  branches:"Locations", pricing:"Pricing & Policies", categories:"Categories & Types", config:"Feature Modules"
-};
-const RENDER = { dashboard: renderDashboard, inventory: renderInventory, orders: renderOrdersParties, scheduler: renderScheduler, handoff: renderHandoff, geo: renderGeo, logistics: renderLogistics, maintenance: renderMaintenance, timesheet: renderTimesheet, yard: renderYard, invoicing: renderInvoicing, rerents: renderRerents, branches: renderBranches, pricing: renderPricing, categories: renderCategories, config: renderConfig };
-const DESCRIPTIONS = {
-  dashboard:"Aggregated operational metrics from the inventory core and enabled modules.",
-  inventory:"Core catalog: typed items, stock quantities, and on-hand levels across the inventory.",
-  orders:"Counterparties (customers, vendors, sites) and the orders placed against inventory.",
-  scheduler:"Module: planned availability and allocation of inventory over time.",
-  handoff:"Core: custody & movement of items — issue out, receive/return, and chain of custody.",
-  geo:"Module: live fleet telemetry and geofence monitoring for tracked items.",
-  logistics:"Module: dispatch board for deliveries, pickups, and route assignment.",
-  maintenance:"Module: field service and maintenance work orders against item instances.",
-  timesheet:"Module: labor time records against orders and work orders.",
-  yard:"Core: receiving, inspection, and check-in of items to locations.",
-  invoicing:"Module: billing derived from priced orders.",
-  rerents:"Module: rentals and sub-rental loans sourced from third-party vendors.",
-  branches:"Core: location hierarchy (yards, branches, warehouses, bins).",
-  pricing:"Policies: optional pricing, tax, and overhead rules applied to orders.",
-  categories:"Core: manage item type / category options across the catalog.",
-  config:"Administration: enable or disable industry modules layered on the inventory core."
-};
+const VIEWS = [
+  /* ---- Core (always on) ---- */
+  { id:"dashboard",  title:"Operations Dashboard",    render:renderDashboard,    module:null, group:"core",     desc:"Aggregated operational metrics from the inventory core and enabled modules." },
+  { id:"inventory",  title:"Items & Stock",           render:renderInventory,    module:null, group:"core",     desc:"Core catalog: typed items, stock quantities, and on-hand levels across the inventory." },
+  { id:"orders",     title:"Parties & Orders",        render:renderOrdersParties,module:null, group:"core",     desc:"Counterparties (customers, vendors, sites) and the orders placed against inventory." },
+  { id:"handoff",    title:"Item Hand-Off & Custody", render:renderHandoff,      module:null, group:"core",     desc:"Core: custody & movement of items — issue out, receive/return, and chain of custody." },
+  { id:"yard",       title:"Receiving / Inspections", render:renderYard,         module:null, group:"core",     desc:"Core: receiving, inspection, and check-in of items to locations." },
+  { id:"branches",   title:"Locations",               render:renderBranches,     module:null, group:"core",     desc:"Core: location hierarchy (yards, branches, warehouses, bins)." },
+  { id:"categories", title:"Categories & Types",      render:renderCategories,   module:null, group:"core",     desc:"Core: manage item type / category options across the catalog." },
+  /* ---- Policies (optional pricing) ---- */
+  { id:"pricing",    title:"Pricing & Policies",      render:renderPricing,      module:null, group:"policies", desc:"Policies: optional pricing, tax, and overhead rules applied to orders." },
+  /* ---- Administration ---- */
+  { id:"config",     title:"Feature Modules",         render:renderConfig,       module:null, group:"admin",    desc:"Administration: enable or disable industry modules layered on the inventory core." },
+  /* ---- Industry modules (opt-in, gated by IMS.settings.featureModules) ---- */
+  { id:"scheduler",  title:"Allocations",             render:renderScheduler,    module:"scheduling", group:"module", desc:"Module: planned availability and allocation of inventory over time." },
+  { id:"logistics",  title:"Logistics & Dispatch",    render:renderLogistics,    module:"dispatch",   group:"module", desc:"Module: dispatch board for deliveries, pickups, and route assignment." },
+  { id:"geo",        title:"Fleet Telemetry",         render:renderGeo,          module:"telemetry",  group:"module", desc:"Module: live fleet telemetry and geofence monitoring for tracked items." },
+  { id:"timesheet",  title:"Labor & Timesheets",      render:renderTimesheet,    module:"labor",      group:"module", desc:"Module: labor time records against orders and work orders." },
+  { id:"maintenance",title:"Field Service & Maintenance", render:renderMaintenance, module:"service", group:"module", desc:"Module: field service and maintenance work orders against item instances." },
+  { id:"rerents",    title:"Rentals / Sub-Rentals",   render:renderRerents,      module:"rentals",    group:"module", desc:"Module: rentals and sub-rental loans sourced from third-party vendors." },
+  { id:"invoicing",  title:"Billing & Invoicing",     render:renderInvoicing,    module:"billing",    group:"module", desc:"Module: billing derived from priced orders." }
+];
 
-/* =========================================================
-   MODULE MANIFEST (industry modules over the IMS core)
-   Core views are always on. Each optional module can be
-   disabled per tenant via IMS.settings.featureModules.
-   Default: every module is enabled.
-   ========================================================= */
-const MODULE_VIEW = {
-  scheduler: "scheduling",
-  logistics: "dispatch",
-  geo: "telemetry",
-  timesheet: "labor",
-  maintenance: "service",
-  rerents: "rentals",
-  invoicing: "billing"
-};
+/* Derived lookup maps (legacy public globals — used by showView, gating, config).
+   Single source of truth is VIEWS above. */
+const RENDER = {}; const TITLES = {}; const DESCRIPTIONS = {}; const MODULE_VIEW = {};
+VIEWS.forEach(v => {
+  RENDER[v.id] = v.render; TITLES[v.id] = v.title; DESCRIPTIONS[v.id] = v.desc;
+  if (v.module) MODULE_VIEW[v.id] = v.module;
+});
+
+/* Module display labels. Modules are core-only today (see MODULE_DEPS below). */
 const MODULE_META = {
   scheduling: "Scheduling / Allocations",
   dispatch: "Logistics & Dispatch",
