@@ -358,8 +358,7 @@ function partsModal(existing){
     fields: partsFields(existing),
     onSave: v => {
       const rec = { active:v.active !== false, partId:v.partId, description:v.description, category:v.category, bin:v.bin, qtyOnHand:v.qtyOnHand, reorderPoint:v.reorderPoint, costPrice:v.costPrice };
-      if (isEdit) Object.assign(existing, rec);
-      else IMS.itemRegistry.getByType("part").push(rec);
+      itemWrite("part", isEdit ? existing : null, rec);
       renderInventory();
     }
   });
@@ -442,16 +441,30 @@ function serializedFields(e){
   ];
 }
 
+/* Route an item-table create/update through the store repository seam.
+   Falls back to the direct registry array when the store is absent. */
+function itemWrite(type, existing, patch){
+  if (existing){
+    if (IMS.store){ const idKey = IMS.itemRegistry.idKey[type]; IMS.store.repo(type).update(idKey, existing[idKey], patch); }
+    else Object.assign(existing, patch);
+  } else if (IMS.store){
+    IMS.store.repo(type).create(patch);
+  } else {
+    IMS.itemRegistry.getByType(type).push(patch);
+  }
+}
+
 function serializedModal(existing){
   const isEdit = !!existing;
   openFormModal({
     id: "mdl-serial", title: (isEdit ? "Edit" : "New") + " Serialized / Equipment Asset", icon: "bi-truck-front", large: true,
     fields: serializedFields(existing),
     onSave: v => {
+      const patch = { active:v.active !== false, serial:v.serial, make:v.make, model:v.model, category:v.category, meterHours:v.meterHours, fuelType:v.fuelType, purchaseValue:v.purchaseValue, baseDaily:v.baseDaily, baseWeekly:v.baseWeekly, baseMonthly:v.baseMonthly, depositPct:v.depositPct, lat:v.lat, lng:v.lng, status:v.status };
       if (isEdit) {
-        Object.assign(existing, { active:v.active !== false, serial:v.serial, make:v.make, model:v.model, category:v.category, meterHours:v.meterHours, fuelType:v.fuelType, purchaseValue:v.purchaseValue, baseDaily:v.baseDaily, baseWeekly:v.baseWeekly, baseMonthly:v.baseMonthly, depositPct:v.depositPct, lat:v.lat, lng:v.lng, status:v.status });
+        itemWrite("serialized", existing, patch);
       } else {
-        IMS.itemRegistry.getByType("serialized").push({ id:v.id, active:v.active !== false, serial:v.serial, make:v.make, model:v.model, category:v.category, meterHours:v.meterHours, fuelType:v.fuelType, purchaseValue:v.purchaseValue, baseDaily:v.baseDaily, baseWeekly:v.baseWeekly, baseMonthly:v.baseMonthly, depositPct:v.depositPct, lat:v.lat, lng:v.lng, status:v.status, battery:100, lastReported: new Date().toISOString().slice(0,19), orderId:null });
+        itemWrite("serialized", null, Object.assign({ id:v.id, battery:100, lastReported: new Date().toISOString().slice(0,19), orderId:null }, patch));
       }
       renderInventory();
     }
@@ -479,10 +492,11 @@ function bulkModal(existing){
     id: "mdl-bulk", title: (isEdit ? "Edit" : "New") + " Bulk Resource", icon: "bi-boxes",
     fields: bulkFields(existing),
     onSave: v => {
+      const patch = { active:v.active !== false, sku:v.sku, name:v.name, category:v.category, totalOwned:v.totalOwned, baseDaily:v.baseDaily, baseWeekly:v.baseWeekly, baseMonthly:v.baseMonthly, depositPct:v.depositPct };
       if (isEdit) {
-        Object.assign(existing, { active:v.active !== false, sku:v.sku, name:v.name, category:v.category, totalOwned:v.totalOwned, baseDaily:v.baseDaily, baseWeekly:v.baseWeekly, baseMonthly:v.baseMonthly, depositPct:v.depositPct });
+        itemWrite("bulk", existing, patch);
       } else {
-        IMS.itemRegistry.getByType("bulk").push({ active:v.active !== false, sku:v.sku, name:v.name, category:v.category, totalOwned:v.totalOwned, qtyAvailable:v.totalOwned, qtyOut:0, baseDaily:v.baseDaily, baseWeekly:v.baseWeekly, baseMonthly:v.baseMonthly, depositPct:v.depositPct });
+        itemWrite("bulk", null, Object.assign({ qtyAvailable:v.totalOwned, qtyOut:0 }, patch));
       }
       renderInventory();
     }
@@ -510,8 +524,7 @@ function consumableModal(existing){
     fields: consumableFields(existing),
     onSave: v => {
       const rec = { active:v.active !== false, sku:v.sku, name:v.name, category:v.category, qtyOnHand:v.qtyOnHand, reorderPoint:v.reorderPoint, costPrice:v.costPrice, retailPrice:v.retailPrice };
-      if (isEdit) Object.assign(existing, rec);
-      else IMS.itemRegistry.getByType("consumable").push(rec);
+      itemWrite("consumable", isEdit ? existing : null, rec);
       renderInventory();
     }
   });
@@ -539,8 +552,8 @@ function laborModal(existing){
     onSave: v => {
       const certs = String(v.certs).split(",").map(s => s.trim()).filter(Boolean);
       const rec = { active:v.active !== false, empId:v.empId, name:v.name, role:v.role, category:v.category, certs, hourlyCost:v.hourlyCost, hourlyBillable:v.hourlyBillable };
-      if (isEdit) Object.assign(existing, rec);
-      else IMS.labor.push(rec);
+      if (isEdit){ if (IMS.store) IMS.store.repo("labor").update("empId", existing.empId, rec); else Object.assign(existing, rec); }
+      else { if (IMS.store) IMS.store.repo("labor").create(rec); else IMS.labor.push(rec); }
       renderInventory();
     }
   });
@@ -663,7 +676,8 @@ function kitModal(existing){
     const kdep = parseFloat(root.querySelector("#k-dep").value);
     kit.depositPct = isNaN(kdep) ? 25 : Math.min(100, Math.max(0, kdep));
     kit.active = root.querySelector("#k-active").checked;
-    if (!isEdit) IMS.itemRegistry.getByType("kit").push(kit);
+    if (IMS.store){ if (isEdit) IMS.store.repo("kit").update("kitId", kit.kitId, {}); else IMS.store.repo("kit").create(kit); }
+    else if (!isEdit) IMS.itemRegistry.getByType("kit").push(kit);
     renderInventory();
     dismissModal(root);
   });
@@ -752,8 +766,7 @@ function attachmentModal(existing){
       active: root.querySelector("#a-active").checked,
       fits: Array.from(root.querySelectorAll("#a-ids input:checked")).map(i => i.value)
     };
-    if (isEdit) Object.assign(existing, rec);
-    else IMS.itemRegistry.getByType("attachment").push(rec);
+    itemWrite("attachment", isEdit ? existing : null, rec);
     renderInventory();
     dismissModal(root);
   });

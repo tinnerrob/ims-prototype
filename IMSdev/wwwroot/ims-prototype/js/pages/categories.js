@@ -72,7 +72,7 @@ function bindCategoryManager(){
     const r = e.target.closest("[data-cate]");
     if (!r) return;
     const type = App.catType, name = r.dataset.name;
-    if (r.dataset.cate === "del") { IMS.settings.categories[type] = IMS.settings.categories[type].filter(c => c.name !== name); renderCategories(); }
+    if (r.dataset.cate === "del") { if (IMS.store) IMS.store.repo("categories." + type).remove("name", name); else IMS.settings.categories[type] = IMS.settings.categories[type].filter(c => c.name !== name); renderCategories(); }
     else if (r.dataset.cate === "rename") renameCategoryModal(type, name);
   });
 }
@@ -87,7 +87,9 @@ function addCategoryModal(){
     ],
     onSave: v => {
       const name = v.name.trim();
-      if (name && !IMS.settings.categories[type].some(c => c.name === name)) IMS.settings.categories[type].push({ name, active: v.active !== false });
+      if (!name || IMS.settings.categories[type].some(c => c.name === name)) { renderCategories(); return; }
+      const rec = { name, active: v.active !== false };
+      if (IMS.store) IMS.store.repo("categories." + type).create(rec); else IMS.settings.categories[type].push(rec);
       renderCategories();
     }
   });
@@ -111,7 +113,11 @@ function renameCategoryModal(type, oldName){
     onSave: v => {
       const arr = IMS.settings.categories[type];
       const idx = arr.findIndex(c => c.name === oldName);
-      if (idx >= 0) { arr[idx].name = v.name; arr[idx].active = v.active !== false; renameRecords(type, oldName, v.name); }
+      if (idx >= 0) {
+        if (IMS.store) IMS.store.repo("categories." + type).update("name", oldName, { name:v.name, active:v.active !== false });
+        else { arr[idx].name = v.name; arr[idx].active = v.active !== false; }
+        renameRecords(type, oldName, v.name);
+      }
       renderCategories();
     }
   });

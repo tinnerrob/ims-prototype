@@ -23,7 +23,13 @@ function renderBranches(){
       <div class="card-body">${cards}</div></div>`;
   $("#brAdd").addEventListener("click", () => branchConfigModal(null));
   $$("[data-bed]").forEach(b => b.addEventListener("click", () => branchConfigModal(IMS.settings.branches[parseInt(b.dataset.bed, 10)])));
-  $$("[data-bdel]").forEach(b => b.addEventListener("click", () => { IMS.settings.branches.splice(parseInt(b.dataset.bdel, 10), 1); renderBranches(); }));
+  $$("[data-bdel]").forEach(b => b.addEventListener("click", () => {
+    const bi = parseInt(b.dataset.bdel, 10);
+    const rec = IMS.settings.branches[bi];
+    if (IMS.store && rec) IMS.store.repo("branches").remove("branchId", rec.branchId);
+    else IMS.settings.branches.splice(bi, 1);
+    renderBranches();
+  }));
 }
 
 function branchConfigModal(existing){
@@ -40,8 +46,8 @@ function branchConfigModal(existing){
     ],
     onSave: v => {
       const rec = { branchId:v.branchId, name:v.name, address:v.address, phone:v.phone, tz:v.tz };
-      if (isEdit) Object.assign(existing, rec);
-      else IMS.settings.branches.push(rec);
+      if (IMS.store){ if (isEdit) IMS.store.repo("branches").update("branchId", existing.branchId, rec); else IMS.store.repo("branches").create(rec); }
+      else { if (isEdit) Object.assign(existing, rec); else IMS.settings.branches.push(rec); }
       renderBranches();
     }
   });

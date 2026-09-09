@@ -49,7 +49,8 @@ function rerentModal(){
       { key:"qty", label:"Qty", type:"number", value:1 }
     ],
     onSave: v => {
-      IMS.rentals.push({ rrId:"RR-" + String(IMS.rentals.length + 1).padStart(3, "0"), assetId:null, assetName:v.assetName, orderId:v.orderId, vendor:v.vendor, vendorCost:v.vendorCost, retailRate:v.retailRate, qty:v.qty });
+      const rec = { rrId:"RR-" + String(IMS.rentals.length + 1).padStart(3, "0"), assetId:null, assetName:v.assetName, orderId:v.orderId, vendor:v.vendor, vendorCost:v.vendorCost, retailRate:v.retailRate, qty:v.qty };
+      if (IMS.store) IMS.store.repo("rentals").create(rec); else IMS.rentals.push(rec);
       renderRerents();
     }
   });

@@ -198,8 +198,8 @@ function taxConfigModal(existing){
       rate: (parseFloat(root.querySelector("#t-rate").value) || 0) / 100,
       note: root.querySelector("#t-note").value
     };
-    if (isEdit) Object.assign(existing, rec);
-    else IMS.settings.taxSchedules.push(rec);
+    if (IMS.store){ if (isEdit) IMS.store.repo("taxSchedules").update("code", existing.code, rec); else IMS.store.repo("taxSchedules").create(rec); }
+    else { if (isEdit) Object.assign(existing, rec); else IMS.settings.taxSchedules.push(rec); }
     renderPricing();
     dismissModal(root);
   });
@@ -230,7 +230,7 @@ function bindOverheadManager(){
     const i = parseInt(b.dataset.i, 10);
     const cfg = IMS.settings.overheads[i];
     if (!cfg) return;
-    if (b.dataset.ohcfg === "del") { IMS.settings.overheads.splice(i, 1); renderPricing(); }
+    if (b.dataset.ohcfg === "del") { if (IMS.store && cfg) IMS.store.repo("overheads").remove("ohId", cfg.ohId); else IMS.settings.overheads.splice(i, 1); renderPricing(); }
     else if (b.dataset.ohcfg === "edit") overheadConfigModal(cfg);
   }));
 }
@@ -252,8 +252,8 @@ function overheadConfigModal(existing){
     onSave: v => {
       const rec = { ohId: e.ohId || "OH-" + String(IMS.settings.overheads.length + 1).padStart(3, "0"),
         name:v.name, category:v.category, chargeType:v.chargeType, pct:v.pct, cost:v.cost, retail:v.retail, locked: !!v.locked };
-      if (isEdit) Object.assign(existing, rec);
-      else IMS.settings.overheads.push(rec);
+      if (IMS.store){ if (isEdit) IMS.store.repo("overheads").update("ohId", existing.ohId, rec); else IMS.store.repo("overheads").create(rec); }
+      else { if (isEdit) Object.assign(existing, rec); else IMS.settings.overheads.push(rec); }
       renderPricing();
     }
   });
