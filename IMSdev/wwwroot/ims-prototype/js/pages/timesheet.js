@@ -412,7 +412,7 @@ function openPunch(empId){
   const body = `
     <div class="lab-punch-head"><div><span class="strong">${emp.name}</span><div class="text-muted2">${emp.role} · ${empId}</div></div>
       <span class="badge-status ${open ? (onLunch ? "st-staged" : "st-reorder") : "st-out"}">${open ? (onLunch ? "On lunch" : "Clocked in on " + segLabel(open)) : "Clocked out"}</span></div>
-    <div class="text-muted2 mb-2" style="font-size:12px">${onLunch
+    <div class="text-muted2 text-12 mb-2">${onLunch
       ? "You're on lunch. Set the time above (lunch-in), then use the lunch button or pick a target to resume."
       : (open ? `On <strong>${segLabel(open)}</strong> since ${open.clockIn}. Choosing below switches jobs (closing it at the time above).` : "Clock into a job, work order, shop, overhead or idle at the time above.")}</div>
     <div class="row g-2 mb-2">
@@ -423,7 +423,7 @@ function openPunch(empId){
     </div>
     ${lunchBtns}
     <div class="punch-label">Job</div><div class="punch-grid">${active.map(c => tgt("order", c.orderId, `${c.orderId} · ${c.projectName}`, "ts-order")).join("")}</div>
-    <div class="punch-label">Work order</div><div class="punch-grid">${wos.length ? wos.map(w => tgt("workorder", w.woId, `${w.woId} · ${w.assetId}`, "ts-wo")).join("") : `<span class="text-muted2" style="font-size:12px">None open.</span>`}</div>
+    <div class="punch-label">Work order</div><div class="punch-grid">${wos.length ? wos.map(w => tgt("workorder", w.woId, `${w.woId} · ${w.assetId}`, "ts-wo")).join("") : `<span class="text-muted2 text-12">None open.</span>`}</div>
     <div class="punch-label">Other</div><div class="punch-grid">${tgt("shop", "", "Shop", "ts-shop")}${tgt("overhead", "", "Overhead", "ts-overhead")}${tgt("idle", "", "Idle", "ts-idle")}</div>`;
   const footer = `
     ${open ? `<button type="button" class="btn btn-outline-danger me-auto" id="pp-clockout"><i class="bi bi-stop-circle"></i> Clock Out</button>` : ""}
