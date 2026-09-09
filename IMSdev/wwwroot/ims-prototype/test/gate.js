@@ -438,6 +438,36 @@ addScript(`(() => {
   assert(rrHeads.length === 7 && rrHeads[0] === "Asset" && rrHeads[6] === "Net Spread", "rerents grid renders default columns");
   assert(doc.querySelectorAll("#content .card-body .table tbody tr").length > 0, "rerents grid has rows");
 
+  /* 20. Column-profile grids (Geo fleet + Pricing tax/overhead) */
+  showView("geo");
+  renderGeoTable();
+  const geofHeads = () => Array.from(doc.querySelectorAll("#geoGridWrap .table thead th")).map(t => t.textContent.trim());
+  let geofh = geofHeads();
+  assert(geofh.length === 5 && geofh[0] === "Asset" && geofh[4] === "Meter Hrs", "geo fleet grid renders default columns");
+  assert(doc.querySelectorAll("#geoGridWrap tbody tr").length > 0, "geo fleet grid has rows");
+  localStorage.setItem("ims.cols.geo-fleet", JSON.stringify({ reported: false }));
+  renderGeoTable();
+  geofh = geofHeads();
+  assert(geofh.length === 4 && !geofh.includes("Last Reported"), "geo fleet grid honors hidden column");
+  localStorage.removeItem("ims.cols.geo-fleet");
+  renderGeoTable();
+
+  showView("pricing");
+  renderPricing();
+  const taxHeads = () => Array.from(doc.querySelectorAll("#taxGridWrap .table thead th")).map(t => t.textContent.trim());
+  let taxh = taxHeads();
+  assert(taxh.length === 7 && taxh[0] === "Code" && taxh[6] === "Actions", "pricing tax grid renders default columns");
+  assert(doc.querySelectorAll("#taxGridWrap tbody tr").length > 0, "pricing tax grid has rows");
+  localStorage.setItem("ims.cols.tax-grid", JSON.stringify({ note: false }));
+  renderPricing();
+  taxh = taxHeads();
+  assert(taxh.length === 6 && !taxh.includes("Note"), "pricing tax grid honors hidden column");
+  localStorage.removeItem("ims.cols.tax-grid");
+  renderPricing();
+  const ohHeads = Array.from(doc.querySelectorAll("#ohGridWrap .table thead th")).map(t => t.textContent.trim());
+  assert(ohHeads.length === 7 && ohHeads[0] === "Fee / Asset Name" && ohHeads[6] === "Actions", "pricing overhead grid renders default columns");
+  assert(doc.querySelectorAll("#ohGridWrap tbody tr").length > 0, "pricing overhead grid has rows");
+
   window.__gateFailures = failures;
   window.__gateLog = out;
 })();

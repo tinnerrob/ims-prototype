@@ -41,10 +41,7 @@ function renderGeo(){
             <span class="text-muted2" style="font-weight:500">${IMS.itemRegistry.getByType("serialized").length} serialized units</span></div>
           <div class="card-body">
             <input class="filter-input mb-2" id="geoFilter" value="${App.geoFilter || ""}" placeholder="Search asset ID, make, model, serial...">
-            <div class="table-wrap" style="max-height:280px;overflow-y:auto">
-              <table class="table"><thead><tr><th>Asset</th><th>Status</th><th>Last Reported</th><th>Batt</th><th class="num">Meter Hrs</th></tr></thead>
-              <tbody id="geoTbody"></tbody></table>
-            </div>
+            <div id="geoGridWrap"></div>
           </div>
         </div>
         <div class="card">
@@ -74,18 +71,20 @@ function renderGeo(){
 }
 
 function renderGeoTable(){
+  const wrap = $("#geoGridWrap");
+  if (!wrap) return;
   const q = (App.geoFilter || "").toLowerCase();
-  const rows = IMS.itemRegistry.getByType("serialized").filter(a => !q || (a.id + " " + a.make + " " + a.model + " " + a.serial).toLowerCase().includes(q)).map(a => {
-    const battCls = a.battery > 60 ? "var(--success)" : (a.battery > 30 ? "var(--warning)" : "var(--danger)");
-    return `<tr>
-      <td class="strong mono">${a.id}</td>
-      <td>${statusBadge(a.status)}${a._breached ? " <span class=\"badge-status st-out\">Breach</span>" : ""}</td>
-      <td class="mono text-muted2" style="font-size:11.5px">${fmtDT(a.lastReported)}</td>
-      <td><div class="batt-bar"><div style="width:${a.battery}%;background:${battCls}"></div></div><span class="text-muted2" style="font-size:10.5px">${a.battery}%</span></td>
-      <td class="num">${fmtInt(a.meterHours)}</td>
-    </tr>`;
-  }).join("");
-  $("#geoTbody").innerHTML = rows || `<tr><td colspan="5" class="text-center text-muted2 py-3">No matching assets</td></tr>`;
+  const filtered = IMS.itemRegistry.getByType("serialized").filter(a => !q || (a.id + " " + a.make + " " + a.model + " " + a.serial).toLowerCase().includes(q));
+  const battCls = a => a.battery > 60 ? "var(--success)" : (a.battery > 30 ? "var(--warning)" : "var(--danger)");
+  const cols = [
+    { key:"id", header:"Asset", td:"strong mono", always:true, render: a => a.id },
+    { key:"status", header:"Status", render: a => statusBadge(a.status) + (a._breached ? ' <span class="badge-status st-out">Breach</span>' : '') },
+    { key:"reported", header:"Last Reported", td:"mono text-muted2 text-xs2", render: a => fmtDT(a.lastReported) },
+    { key:"batt", header:"Batt", render: a => `<div class="batt-bar"><div style="width:${a.battery}%;background:${battCls(a)}"></div></div><span class="text-muted2" style="font-size:10.5px">${a.battery}%</span>` },
+    { key:"meter", header:"Meter Hrs", td:"num", render: a => fmtInt(a.meterHours) }
+  ];
+  wrap.innerHTML = IMSGrid.render("geo-fleet", cols, filtered, { empty:"No matching assets" });
+  IMSGrid.ensure("geo-fleet", renderGeoTable);
 }
 
 function renderGeoMap(){

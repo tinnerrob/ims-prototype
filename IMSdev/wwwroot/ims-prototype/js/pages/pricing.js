@@ -4,13 +4,25 @@
    ========================================================= */
 "use strict";
 
+function taxGrid(){
+  const cols = [
+    { key:"code", header:"Code", td:"strong mono", always:true, render: t => t.code || "—" },
+    { key:"state", header:"State", render: t => t.state || "—" },
+    { key:"county", header:"County", render: t => t.county || "—" },
+    { key:"city", header:"City", render: t => t.city || "—" },
+    { key:"rate", header:"Rate", td:"num", render: t => (t.rate * 100).toFixed(3) + "%" },
+    { key:"note", header:"Note", td:"text-muted2", render: t => t.note || "" },
+    { key:"actions", header:"Actions", th:"text-end", td:"text-end text-nowrap", always:true, render: t => {
+        const i = IMS.settings.taxSchedules.indexOf(t);
+        return `<button class="btn btn-ims-outline btn-sm2" data-tedit="${i}"><i class="bi bi-pencil"></i></button><button class="btn btn-ims-outline btn-sm2" data-tdel="${i}"><i class="bi bi-x-lg"></i></button>`;
+      } }
+  ];
+  return IMSGrid.render("tax-grid", cols, IMS.settings.taxSchedules, { empty:"No tax schedules." });
+}
+
 function renderPricing(){
   const P = IMS.settings.pricing;
   const riskRows = Object.entries(P.riskPremiums).map(([k, v]) => `<div class="list-line"><span class="l">${k.charAt(0).toUpperCase() + k.slice(1)}</span><span class="r">+${Math.round(v * 100)}%</span></div>`).join("");
-  const taxRows = IMS.settings.taxSchedules.map((t, i) => `<tr>
-    <td class="strong mono">${t.code || "—"}</td><td>${t.state || "—"}</td><td>${t.county || "—"}</td><td>${t.city || "—"}</td><td class="num">${(t.rate * 100).toFixed(3)}%</td><td class="text-muted2">${t.note || ""}</td>
-    <td class="text-end text-nowrap"><button class="btn btn-ims-outline btn-sm2" data-tedit="${i}"><i class="bi bi-pencil"></i></button><button class="btn btn-ims-outline btn-sm2" data-tdel="${i}"><i class="bi bi-x-lg"></i></button></td>
-  </tr>`).join("");
   $("#content").innerHTML = `
     <div class="page-head"></div>
     <div class="dash-grid">
@@ -33,16 +45,17 @@ function renderPricing(){
         <div class="card" style="margin-top:16px">
           <div class="card-header"><span class="card-title"><i class="bi bi-layers"></i> Global Overhead &amp; Service Fee Configurations</span>
             <button class="btn btn-ims" id="ohCfgAdd"><i class="bi bi-plus-lg"></i> Add Overhead</button></div>
-          <div class="card-body">${overheadConfigsHTML()}</div></div>
+          <div class="card-body" id="ohGridWrap">${overheadConfigsHTML()}</div></div>
       </div>
       <div>
         <div class="card"><div class="card-header"><span class="card-title"><i class="bi bi-percent"></i> Localized Tax Schedule</span>
           <button class="btn btn-ims" id="taxAdd"><i class="bi bi-plus-lg"></i> Add Tax</button></div>
-          <div class="card-body table-wrap"><table class="table"><thead><tr><th>Code</th><th>State</th><th>County</th><th>City</th><th class="num">Rate</th><th>Note</th><th class="text-end">Actions</th></tr></thead>
-            <tbody>${taxRows || emptyRow(7)}</tbody></table></div></div>
+          <div class="card-body" id="taxGridWrap">${taxGrid()}</div></div>
       </div>
     </div>`;
   bindOverheadManager();
+  IMSGrid.ensure("tax-grid", renderPricing);
+  IMSGrid.ensure("oh-grid", renderPricing);
   $("#setSave").addEventListener("click", () => {
     const P2 = IMS.settings.pricing;
     P2.dailyMinHours = parseInt($("#set-daily").value, 10) || 8;
@@ -206,21 +219,22 @@ function taxConfigModal(existing){
 }
 
 function overheadConfigsHTML(){
-  const rows = IMS.settings.overheads.map((o, i) => `<tr>
-    <td class="strong">${o.name}</td>
-    <td>${o.category}</td>
-    <td>${o.chargeType}${o.chargeType === "Percent of Equipment Total" ? ` <span class="text-muted2">${o.pct}%</span>` : ""}</td>
-    <td class="num">${fmtMoney(o.cost)}</td>
-    <td class="num">${fmtMoney(o.retail)}</td>
-    <td>${o.locked ? `<span class="badge-status st-active"><i class="bi bi-bolt"></i>Auto-inject</span>` : `<span class="badge-status st-closed"><i class="bi bi-slash-circle"></i>Optional</span>`}</td>
-    <td class="text-end text-nowrap">
-      <button class="btn btn-ims-outline btn-sm2" data-ohcfg="edit" data-i="${i}"><i class="bi bi-pencil"></i></button>
-      <button class="btn btn-ims-outline btn-sm2" data-ohcfg="del" data-i="${i}"><i class="bi bi-x-lg"></i></button>
-    </td>
-  </tr>`).join("");
-  return `<div class="table-wrap"><table class="table"><thead><tr>
-    <th>Fee / Asset Name</th><th>Category</th><th>Charge Type</th><th class="num">Default Cost</th><th class="num">Default Retail</th><th>Auto-Inject</th><th class="text-end">Actions</th>
-  </tr></thead><tbody>${rows || emptyRow(7)}</tbody></table></div>`;
+  const lockedBadge = o => o.locked
+    ? `<span class="badge-status st-active"><i class="bi bi-bolt"></i>Auto-inject</span>`
+    : `<span class="badge-status st-closed"><i class="bi bi-slash-circle"></i>Optional</span>`;
+  const cols = [
+    { key:"name", header:"Fee / Asset Name", td:"strong", always:true, render: o => o.name },
+    { key:"category", header:"Category", render: o => o.category },
+    { key:"charge", header:"Charge Type", render: o => o.chargeType + (o.chargeType === "Percent of Equipment Total" ? ` <span class="text-muted2">${o.pct}%</span>` : "") },
+    { key:"cost", header:"Default Cost", td:"num", render: o => fmtMoney(o.cost) },
+    { key:"retail", header:"Default Retail", td:"num", render: o => fmtMoney(o.retail) },
+    { key:"locked", header:"Auto-Inject", render: o => lockedBadge(o) },
+    { key:"actions", header:"Actions", th:"text-end", td:"text-end text-nowrap", always:true, render: o => {
+        const i = IMS.settings.overheads.indexOf(o);
+        return `<button class="btn btn-ims-outline btn-sm2" data-ohcfg="edit" data-i="${i}"><i class="bi bi-pencil"></i></button><button class="btn btn-ims-outline btn-sm2" data-ohcfg="del" data-i="${i}"><i class="bi bi-x-lg"></i></button>`;
+      } }
+  ];
+  return IMSGrid.render("oh-grid", cols, IMS.settings.overheads, { empty:"No overhead / service fees." });
 }
 
 function bindOverheadManager(){
