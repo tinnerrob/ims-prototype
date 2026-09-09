@@ -29,8 +29,8 @@ with findings are updated as passes land.
 | `js/metadata.js` | PEND | — | registry (good) | vertical registry is cross-module by design | — |
 | `js/store.js` | PEND | `update(idField…)` unused? check | repos are the write seam (good) | core-owned seam | — |
 | `js/router.js` | PEND | TITLES/RENDER/MODULE_* duplicated in one spot | target: one declarative registry (T2.2) | manifest + gating present | — |
-| `Pages/*` (ASP.NET Razor) | FIX | default .NET scaffold ("Welcome to ASP.NET" Index/Privacy) | none | — | decide strip vs future host (T1.2) |
-| `Program.cs` | FIX | only `UseFileServer()` | — | — | trim if scaffold stripped |
+| `Pages/*` (ASP.NET Razor) | FIX→done (T1.2) | **removed** (default .NET scaffold "Welcome to ASP.NET" Index/Privacy) | none | — | moving to Angular + Wisej.net — scaffold stripped |
+| `Program.cs` | FIX→done (T1.2) | rewritten as minimal static host (no Razor); `/` redirects to `/ims-prototype/` | — | — | future Angular + Wisej.net replaces it (documented in header) |
 
 ## Page files (views)
 
@@ -75,14 +75,15 @@ with findings are updated as passes land.
    else (whole-corpus scan): `blockMs` + `globalBookedQty` (scheduler.js),
    `hoScheduledIds` + `mvKindLabel` (handoff.js), `labInspectorHTML` (timesheet.js),
    `getMedical` (healthcare.js). Re-scan = 0 candidates. Gates green.
-2. **ASP.NET Razor scaffold (FIX):** default template dead weight vs the static SPA;
-   owner decision on strip-vs-keep.
-3. **CSS consolidation (FIX):** `dashboard.css` (and overlaps in `styles.css`) → token
+3. **[x] ASP.NET Razor scaffold (FIXED, T1.2):** `Pages/*` removed + `Program.cs` reduced
+   to a minimal static host (`/` redirects to `/ims-prototype/`). Product moves to
+   Angular + Wisej.net, so the .NET host is preview-only. Build + runtime smoke OK.
+4. **CSS consolidation (FIX):** `dashboard.css` (and overlaps in `styles.css`) → token
    consolidation into one theme.
-4. **Inline `style=` audit (FIX):** **75** occurrences across 14 page files —
+5. **Inline `style=` audit (FIX):** **75** occurrences across 14 page files —
    worst: scheduler.js (21), timesheet.js (11), geo.js (11), inventory.js (8).
    Each is a candidate for a token/utility class (T3.1/T3.4.2).
-5. **Modal a11y contract check (T3.4):** `role="dialog"`/`aria-modal` present in
+6. **Modal a11y contract check (T3.4):** `role="dialog"`/`aria-modal` present in
    the shared builders (`common.js`) but worth an automated assertion across every
    emitted modal; `.btn-ims` primary used ~29× (footer-consistency lint).
 
