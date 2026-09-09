@@ -404,6 +404,20 @@ addScript(`(() => {
   localStorage.removeItem("ims.cols.yard-insp");
   renderInspLog();
 
+  /* 18. Column-profile grid (Invoicing ledger) */
+  showView("invoicing");
+  App.invFilter = "all"; renderInvoicing();
+  const ilHeads = () => Array.from(doc.querySelectorAll("#invLedgerWrap .table thead th")).map(t => t.textContent.trim());
+  let ilh = ilHeads();
+  assert(ilh.length === 9 && ilh[0] === "Invoice" && ilh[7] === "Total" && ilh[8] === "Status", "invoicing ledger renders default columns");
+  assert(doc.querySelectorAll("#invLedgerWrap tbody tr").length > 0, "invoicing ledger has rows");
+  localStorage.setItem("ims.cols.inv-ledger", JSON.stringify({ waiver: false }));
+  renderInvoicing();
+  ilh = ilHeads();
+  assert(ilh.length === 8 && !ilh.includes("Waiver"), "invoicing ledger honors hidden column");
+  localStorage.removeItem("ims.cols.inv-ledger");
+  renderInvoicing();
+
   window.__gateFailures = failures;
   window.__gateLog = out;
 })();
@@ -412,5 +426,6 @@ addScript(`(() => {
 const log = window.__gateLog || ["(no test log captured)"];
 log.forEach(l => console.log(l));
 const f = window.__gateFailures;
+if (f === undefined) { console.error("\nGATE ABORTED: the page test did not complete (see errors above)"); process.exit(2); }
 console.log(f ? "\nGATE FAILED with " + f + " failure(s)" : "\nGATE PASSED");
 process.exit(f ? 1 : 0);

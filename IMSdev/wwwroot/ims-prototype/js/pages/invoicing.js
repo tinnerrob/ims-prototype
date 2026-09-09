@@ -115,22 +115,24 @@ function invoiceCompute(inv){
   return { base, envFee, waiver, fuel, tax, total };
 }
 
+function invoicesGrid(filtered){
+  const cols = [
+    { key:"invoice", header:"Invoice", td:"strong mono", always:true, render: inv => inv.invId },
+    { key:"contract", header:"Contract", td:"strong mono", render: inv => inv.orderId },
+    { key:"cycle", header:"Cycle", render: inv => `Cycle ${inv.cycle}<div class="text-muted2 text-xs">${fmtDate(inv.cycleStart)} — ${fmtDate(inv.cycleEnd)}</div>` },
+    { key:"base", header:"Base Hire", td:"num", render: inv => fmtMoney(invoiceCompute(inv).base) },
+    { key:"envfee", header:"Env Fee", td:"num", render: inv => fmtMoney(invoiceCompute(inv).envFee) },
+    { key:"fuel", header:"Fuel", td:"num", render: inv => fmtMoney(invoiceCompute(inv).fuel) },
+    { key:"waiver", header:"Waiver", td:"num", render: inv => invoiceCompute(inv).waiver ? fmtMoney(invoiceCompute(inv).waiver) : "—" },
+    { key:"total", header:"Total", td:"num strong", render: inv => fmtMoney(invoiceCompute(inv).total) },
+    { key:"status", header:"Status", render: inv => invStatusBadge(inv) }
+  ];
+  return IMSGrid.render("inv-ledger", cols, filtered,
+    { empty:"No invoices in this filter.", trAttrs: inv => `data-edit="${inv.invId}"` });
+}
+
 function renderInvoicing(){
   const filtered = App.invFilter === "pending" ? IMS.invoices.filter(i => invStatus(i) === "pending") : App.invFilter === "invoiced" ? IMS.invoices.filter(i => invStatus(i) === "invoiced") : App.invFilter === "paid" ? IMS.invoices.filter(i => invStatus(i) === "paid") : IMS.invoices;
-  const rows = filtered.map(inv => {
-    const t = invoiceCompute(inv);
-    return `<tr data-edit="${inv.invId}">
-      <td class="strong mono">${inv.invId}</td>
-      <td class="strong mono">${inv.orderId}</td>
-      <td>Cycle ${inv.cycle}<div class="text-muted2" style="font-size:11px">${fmtDate(inv.cycleStart)} — ${fmtDate(inv.cycleEnd)}</div></td>
-      <td class="num">${fmtMoney(t.base)}</td>
-      <td class="num">${fmtMoney(t.envFee)}</td>
-      <td class="num">${fmtMoney(t.fuel)}</td>
-      <td class="num">${t.waiver ? fmtMoney(t.waiver) : "—"}</td>
-      <td class="num strong">${fmtMoney(t.total)}</td>
-      <td>${invStatusBadge(inv)}</td>
-    </tr>`;
-  }).join("");
   const totInvoiced = IMS.invoices.reduce((s, inv) => s + invoiceCompute(inv).total, 0);
   const totCollected = IMS.invoices.filter(i => invStatus(i) !== "pending").reduce((s, inv) => s + invoiceCompute(inv).total, 0);
   const pending = IMS.invoices.filter(i => invStatus(i) === "pending").reduce((s, inv) => s + invoiceCompute(inv).total, 0);
@@ -153,10 +155,9 @@ function renderInvoicing(){
         <button class="btn btn-ims-outline btn-sm2" id="invExport" title="Download invoice details (CSV)"><i class="bi bi-download"></i></button>
         <button class="btn btn-ims btn-sm2" id="invCycle"><i class="bi bi-plus-lg"></i> Run Next Cycle</button>
       </div></div>
-      <div class="card-body table-wrap">
-        <table class="table"><thead><tr><th>Invoice</th><th>Contract</th><th>Cycle</th><th class="num">Base Hire</th><th class="num">Env Fee</th><th class="num">Fuel</th><th class="num">Waiver</th><th class="num">Total</th><th>Status</th></tr></thead>
-        <tbody>${rows || emptyRow(9)}</tbody></table>
-      </div></div>`;
+      <div class="card-body" id="invLedgerWrap">${invoicesGrid(filtered)}</div>
+      </div>`;
+  IMSGrid.ensure("inv-ledger", renderInvoicing);
   $("#invFilter").addEventListener("change", e => { App.invFilter = e.target.value; renderInvoicing(); });
   $("#invExport").addEventListener("click", () => downloadCSV("invoice-details.csv", invoiceDetailCSV(filtered)));
   $("#invCycle").addEventListener("click", () => {
