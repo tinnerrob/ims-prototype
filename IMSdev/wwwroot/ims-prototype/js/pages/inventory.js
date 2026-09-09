@@ -79,6 +79,7 @@ function receivingLogModal(){
   const logs = (IMS.receivings || []).slice().reverse();
   const escHtml = s => String(s == null ? "" : s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
   const typeName = { consumable: "Consumable", bulk: "Bulk", part: "Part" };
+  const deletable = deletableReceiptIds();
   const rows = logs.length
     ? logs.map(r => `<tr>
         <td class="text-nowrap">${escHtml(r.at)}</td>
@@ -87,17 +88,21 @@ function receivingLogModal(){
         <td>${escHtml(r.source || "—")}</td>
         <td>${escHtml(r.by || "—")}</td>
         <td>${escHtml(r.note || "")}</td>
+        <td class="text-end text-nowrap">${deletable.has(r.id)
+          ? `<button class="btn btn-ims-outline btn-sm2 text-danger" data-delrcv="${escHtml(r.id)}" title="Remove this receipt and undo its +qty"><i class="bi bi-x-lg"></i> Remove</button>`
+          : `<span class="text-muted2 text-11" title="A newer receipt exists for this item — remove that first"><i class="bi bi-lock"></i> Newer first</span>`}</td>
       </tr>`).join("")
-    : `<tr><td colspan="6" class="text-center text-muted2 py-4">No goods received yet — use <b>Recv</b> on a consumable, bulk, or parts row.</td></tr>`;
+    : `<tr><td colspan="7" class="text-center text-muted2 py-4">No goods received yet — use <b>Recv</b> on a consumable, bulk, or parts row.</td></tr>`;
   const body = `<div class="table-wrap" style="max-height:420px;overflow:auto">
       <table class="table table-ims table-sm">
-        <thead><tr><th>Received</th><th>Item</th><th class="text-center">Before → Qty → After</th><th>PO / Source</th><th>By</th><th>Note</th></tr></thead>
+        <thead><tr><th>Received</th><th>Item</th><th class="text-center">Before → Qty → After</th><th>PO / Source</th><th>By</th><th>Note</th><th class="text-end">Action</th></tr></thead>
         <tbody>${rows}</tbody>
       </table></div>`;
-  openRawModal({
+  const root = openRawModal({
     id: "mdl-recvlog", size: "lg", title: "Receiving Log", icon: "bi-journal-arrow-down", body,
     footer: `<button type="button" class="btn btn-ims" data-bs-dismiss="modal">Close</button>`
   });
+  wireReceiptDelete(root, () => receivingLogModal());
 }
 
 /* Escape helper for arbitrary text interpolated into HTML. */
@@ -191,6 +196,69 @@ function bulkReceiveModal(){
   });
 }
 
+/* Latest-receipt tooltip text for an item ("" when none received yet). */
+function lastRecvTitle(type, ref){
+  const arr = IMS.receivings || [];
+  for (let i = arr.length - 1; i >= 0; i--){
+    const r = arr[i];
+    if (r.type === type && r.refId === ref)
+      return "Last received " + fmtDT(r.at) + " · +" + r.qtyAdded + (r.source ? " · " + r.source : "") + (r.by ? " · by " + r.by : "");
+  }
+  return "";
+}
+/* Optional data-* + title attributes for a stock qty cell (only when a receipt exists). */
+function recvTipAttrs(type, ref){
+  const t = lastRecvTitle(type, ref);
+  return t ? ` data-lastrecv="1" title="${escVal(t)}"` : "";
+}
+/* ids of each item's most recent receipt (the only ones safe to remove/undo). */
+function deletableReceiptIds(){
+  const arr = IMS.receivings || [], seen = new Set(), out = new Set();
+  for (let i = arr.length - 1; i >= 0; i--){
+    const k = arr[i].type + "|" + arr[i].refId;
+    if (!seen.has(k)){ seen.add(k); out.add(arr[i].id); }
+  }
+  return out;
+}
+/* Undo a receipt: remove it and revert the qty it added. Only allowed when it is
+   the item's most recent receipt, so stacked before/after history stays consistent. */
+function removeReceipt(id){
+  const arr = IMS.receivings || [];
+  const idx = arr.findIndex(r => r.id === id);
+  if (idx < 0) return false;
+  const r = arr[idx];
+  const later = arr.some((x, i) => i > idx && x.type === r.type && x.refId === r.refId);
+  if (later) return false;
+  const rec = r.type === "bulk" ? getBulk(r.refId) : (r.type === "consumable" ? getConsumable(r.refId) : getPart(r.refId));
+  const cur = r.type === "bulk" ? (rec ? (rec.qtyAvailable || 0) : 0) : (rec ? (rec.qtyOnHand || 0) : 0);
+  const nv = Math.max(0, cur - (r.qtyAdded || 0));
+  const patch = r.type === "bulk" ? { qtyAvailable: nv } : { qtyOnHand: nv };
+  if (rec && IMS.store) IMS.store.repo(r.type).update(IMS.itemRegistry.idKey[r.type], r.refId, patch);
+  else if (rec) Object.assign(rec, patch);
+  arr.splice(idx, 1);
+  if (IMS.store) IMS.store.save();
+  return true;
+}
+/* Bind per-row receipt-delete buttons inside a modal; reopen after a successful undo. */
+function wireReceiptDelete(root, reopen){
+  if (!root) return;
+  root.querySelectorAll("[data-delrcv]").forEach(btn => btn.addEventListener("click", () => {
+    if (removeReceipt(btn.dataset.delrcv)){
+      renderInventory();
+      dismissModal(root);
+      if (reopen) reopen();
+    } else if (window.alert) {
+      window.alert("Only the most recent receipt for an item can be removed.");
+    }
+  }));
+}
+/* Initialise stock-qty tooltips after a grid render (dispose previous instances). */
+function initStockTooltips(){
+  if (!(window.bootstrap && bootstrap.Tooltip)) return;
+  if (window.__stockTips){ window.__stockTips.forEach(t => { try { t.dispose(); } catch(_){} }); window.__stockTips = null; }
+  window.__stockTips = $$("#invPanel [data-lastrecv]").map(el => { try { return new bootstrap.Tooltip(el, { trigger: "hover", container: "body", placement: "top" }); } catch(_) { return null; } }).filter(Boolean);
+}
+
 /* Catalog search across core text + the active vertical's is_searchable attrs. */
 function invFiltered(list){
   const q = (App.invSearch || "").trim().toLowerCase();
@@ -257,6 +325,7 @@ function renderInvPanel(){
   else if (App.invTab === "kits") { renderInvKitsPanel(); return; }
   else if (App.invTab === "attachments") { renderInvAttachmentsPanel(); return; }
   bindInvActions();
+  initStockTooltips();
 }
 
 function renderInvMedicalPanel(){
@@ -314,7 +383,7 @@ function bulkTable(list){
     { key:"name", header:"Name", render: b => b.name },
     { key:"category", header:"Category", render: b => b.category },
     { key:"owned", header:"Total Owned", td:"num", render: b => fmtInt(b.totalOwned) },
-    { key:"avail", header:"Avail / Out", td:"num", render: b => `<span class="strong">${fmtInt(b.qtyAvailable)}</span> / ${fmtInt(b.qtyOut)}` },
+    { key:"avail", header:"Avail / Out", td:"num", render: b => `<span class="strong"${recvTipAttrs("bulk", b.sku)}>${fmtInt(b.qtyAvailable)}</span> / ${fmtInt(b.qtyOut)}` },
     { key:"daily", header:"Daily", td:"num", render: b => fmtMoney(b.baseDaily) },
     { key:"weekly", header:"Weekly", td:"num", render: b => fmtMoney(b.baseWeekly) },
     { key:"monthly", header:"Monthly", td:"num", render: b => fmtMoney(b.baseMonthly) },
@@ -334,7 +403,7 @@ function consumableTable(list){
     { key:"sku", header:"SKU", td:"strong mono", always:true, render: c => c.sku },
     { key:"name", header:"Name", render: c => c.name },
     { key:"category", header:"Category", render: c => c.category },
-    { key:"onhand", header:"On Hand", td:"num", render: c => `<span class="${lowOf(c) ? "text-danger strong" : ""}">${fmtInt(c.qtyOnHand)}</span>` },
+    { key:"onhand", header:"On Hand", td:"num", render: c => `<span class="${lowOf(c) ? "text-danger strong" : ""}"${recvTipAttrs("consumable", c.sku)}>${fmtInt(c.qtyOnHand)}</span>` },
     { key:"reorder", header:"Reorder Pt", td:"num text-muted2", render: c => fmtInt(c.reorderPoint) },
     { key:"cost", header:"Cost Price", td:"num", render: c => fmtMoney(c.costPrice) },
     { key:"retail", header:"Retail Price", td:"num", render: c => fmtMoney(c.retailPrice) },
@@ -431,11 +500,18 @@ function chainOfCustodyHTML(assetId){
 function receivingHistoryHTML(type, refId){
   const evs = (IMS.receivings || []).filter(r => r.type === type && r.refId === refId).slice().reverse();
   if (!evs.length) return "";
-  const rows = evs.map(r => `<div class="list-line">
-      <span class="l"><span class="mono strong">${r.id}</span> · <strong>+${r.qtyAdded}</strong> → on hand ${r.qtyAfter}</span>
+  const deletable = deletableReceiptIds();
+  const rows = evs.map(r => {
+    const can = deletable.has(r.id);
+    return `<div class="list-line">
+      <span class="l"><span class="mono strong">${r.id}</span> · <strong>+${r.qtyAdded}</strong> → on hand ${r.qtyAfter}
+        ${can
+          ? `<button class="btn btn-ims-outline btn-sm2 text-danger ms-2" data-delrcv="${escVal(r.id)}" title="Remove this receipt and undo its +qty"><i class="bi bi-x-lg"></i> Remove</button>`
+          : `<span class="text-muted2 text-11" title="A newer receipt exists for this item — remove that first"><i class="bi bi-lock"></i></span>`}</span>
       <span class="r mono">${fmtDT(r.at)}</span>
       <div class="text-muted2" style="grid-column:1/-1">Before ${r.qtyBefore} → After ${r.qtyAfter}${r.source ? " · Source: " + escVal(r.source) : ""} · by ${escVal(r.by)}${r.note ? " · " + escVal(r.note) : ""}</div>
-    </div>`).join("");
+    </div>`;
+  }).join("");
   return section("Receiving History (" + evs.length + ")", rows);
 }
 
@@ -473,7 +549,7 @@ function bulkView(b){
   const cons = contractRefs("bulk", b.sku);
   const consList = cons.map(({order, lines}) => lines.map(li =>
     `<div class="list-line"><span class="l"><span class="strong mono">${order.orderId}</span> — ${order.projectName} ${statusBadge(order.status)}</span><span class="r">${fmtInt(li.qty)} units · ${fmtMoney(computeLineTotal(li, order))}</span></div>`).join("")).join("");
-  openRawModal({
+  const root = openRawModal({
     id: "mdl-bview", size: "lg", title: "Bulk Resource — " + b.sku, icon: "bi-boxes",
     body: detailGrid([
       ["SKU", b.sku], ["Name", b.name], ["Category", b.category],
@@ -484,6 +560,7 @@ function bulkView(b){
       + receivingHistoryHTML("bulk", b.sku),
     footer: closeBtn
   });
+  wireReceiptDelete(root, () => bulkView(b));
 }
 
 function consumableView(c){
@@ -492,7 +569,7 @@ function consumableView(c){
     `<div class="list-line"><span class="l"><span class="strong mono">${order.orderId}</span> — ${order.projectName} ${statusBadge(order.status)}</span><span class="r">${fmtInt(li.qty)} × ${fmtMoney(computeLineTotal(li, order))}</span></div>`).join("")).join("");
   const wos = IMS.workOrders.filter(w => (w.parts || []).some(p => p.sku === c.sku));
   const woList = wos.map(w => { const x = woComputed(w); return `<div class="list-line"><span class="l"><span class="strong mono">${w.woId}</span> — ${w.assetId} ${statusBadge(w.status)}</span><span class="r">${fmtMoney(x.total)}</span></div>`; }).join("");
-  openRawModal({
+  const root = openRawModal({
     id: "mdl-coview", size: "lg", title: "Consumable — " + c.sku, icon: "bi-capsule",
     body: detailGrid([
       ["SKU", c.sku], ["Name", c.name], ["Category", "Consumable"],
@@ -504,6 +581,7 @@ function consumableView(c){
       + receivingHistoryHTML("consumable", c.sku),
     footer: closeBtn
   });
+  wireReceiptDelete(root, () => consumableView(c));
 }
 
 function laborView(e){
@@ -540,7 +618,7 @@ function partsTable(list){
     { key:"description", header:"Description", render: p => p.description },
     { key:"category", header:"Category", render: p => p.category },
     { key:"bin", header:"Bin / Aisle", td:"mono text-muted2", render: p => p.bin },
-    { key:"onhand", header:"On Hand", td:"num", render: p => `<span class="${lowOf(p) ? "text-danger strong" : ""}">${fmtInt(p.qtyOnHand)}</span>` },
+    { key:"onhand", header:"On Hand", td:"num", render: p => `<span class="${lowOf(p) ? "text-danger strong" : ""}"${recvTipAttrs("part", p.partId)}>${fmtInt(p.qtyOnHand)}</span>` },
     { key:"reorder", header:"Reorder Pt", td:"num text-muted2", render: p => fmtInt(p.reorderPoint) },
     { key:"cost", header:"Cost Price", td:"num", render: p => fmtMoney(p.costPrice) },
     { key:"status", header:"Status", render: p => stockBadge(p) },
@@ -581,7 +659,7 @@ function partsModal(existing){
 function partsView(p){
   const wos = IMS.workOrders.filter(w => (w.parts || []).some(x => x.kind === "part" && x.refId === p.partId));
   const woList = wos.map(w => { const c = woComputed(w); return `<div class="list-line"><span class="l"><span class="strong mono">${w.woId}</span> — ${w.assetId} ${statusBadge(w.status)}</span><span class="r">${fmtMoney(c.total)}</span></div>`; }).join("");
-  openRawModal({
+  const root = openRawModal({
     id: "mdl-pview", size: "lg", title: "Service Part — " + p.partId, icon: "bi-wrench-adjustable",
     body: detailGrid([
       ["Part ID", p.partId], ["Description", p.description], ["Bin / Aisle", p.bin],
@@ -591,6 +669,7 @@ function partsView(p){
       + receivingHistoryHTML("part", p.partId),
     footer: closeBtn
   });
+  wireReceiptDelete(root, () => partsView(p));
 }
 
 /* ---------- inventory record lookup + detail-modal helpers ---------- */

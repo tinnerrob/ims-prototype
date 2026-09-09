@@ -674,6 +674,22 @@ addScript(`(() => {
     assert(consRec.qtyOnHand === brBefore + 3 && (IMS.receivings || []).length === rcb + 1, "bulk receive adds each qty and logs a receipt per line");
   } catch (e) { failures++; out.push("  FAIL: bulk receive: " + (e && e.message)); }
 
+  /* 33. Last-received tooltip + per-line delete (undo the newest receipt) */
+  try {
+    renderInventory();
+    const tipEl = doc.querySelector("#invPanel span[data-lastrecv]");
+    assert(!!tipEl && (tipEl.getAttribute("title") || "").indexOf("Last received") === 0, "on-hand cell exposes a last-received tooltip");
+    receivingLogModal();
+    const rmBtn = doc.querySelector("#mdl-recvlog [data-delrcv]");
+    assert(!!rmBtn, "newest receipt has a Remove action in the log");
+    const last = (IMS.receivings || [])[(IMS.receivings || []).length - 1];
+    const beforeDel = consRec.qtyOnHand, rcBeforeDel = (IMS.receivings || []).length;
+    assert(!!last && last.refId === consRec.sku, "newest receipt targets the tested consumable");
+    rmBtn.click();
+    assert(!(IMS.receivings || []).some(r => r.id === last.id) && (IMS.receivings || []).length === rcBeforeDel - 1, "receipt removed from the log");
+    assert(consRec.qtyOnHand === beforeDel - last.qtyAdded, "removing a receipt reverts its added quantity");
+  } catch (e) { failures++; out.push("  FAIL: tooltip + receipt delete: " + (e && e.message)); }
+
   window.__gateFailures = failures;
   window.__gateLog = out;
 })();
