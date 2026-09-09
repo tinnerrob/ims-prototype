@@ -348,6 +348,34 @@ addScript(`(() => {
     assert(Array.isArray(parsed.orders) && Array.isArray(parsed.movements) && Array.isArray(parsed.labor), "snapshot still covers orders/movements/labor");
   }
 
+  /* 15. Column-profile grids (Inventory) */
+  showView("inventory");
+  App.invTab = "serialized";
+  renderInvPanel();
+  let invHeads = () => Array.from(doc.querySelectorAll("#invPanel .table thead th")).map(t => t.textContent.trim());
+  let heads0 = invHeads();
+  assert(heads0.length === 10 && heads0[0] === "Asset ID" && heads0.includes("Meter Hrs") && heads0[heads0.length - 1] === "Actions", "inventory serialized grid renders default columns");
+  const gridRows = doc.querySelectorAll("#invPanel tbody tr");
+  assert(gridRows.length > 0 && gridRows[0].querySelectorAll("td").length === 10, "grid rows align with visible columns");
+  localStorage.setItem("ims.cols.inv-serialized", JSON.stringify({ meter: false }));
+  renderInvPanel();
+  const heads1 = invHeads();
+  assert(!heads1.includes("Meter Hrs") && heads1.length === 9, "hiding a column removes it and re-renders");
+  assert(doc.querySelectorAll("#invPanel tbody tr")[0].querySelectorAll("td").length === 9, "row cells follow hidden column");
+  localStorage.removeItem("ims.cols.inv-serialized");
+  renderInvPanel();
+  assert(invHeads().length === 10, "reset restores default columns");
+
+  ["bulk", "consumable", "parts", "labor", "attachments"].forEach(tb => {
+    App.invTab = tb;
+    try {
+      renderInvPanel();
+      const hasBody = !!doc.querySelector("#invPanel .table tbody tr");
+      assert(hasBody, "inventory '" + tb + "' grid renders rows");
+    } catch (e) { failures++; out.push("  FAIL: inv tab '" + tb + "': " + (e && e.message)); }
+  });
+  App.invTab = "serialized"; renderInvPanel();
+
   window.__gateFailures = failures;
   window.__gateLog = out;
 })();

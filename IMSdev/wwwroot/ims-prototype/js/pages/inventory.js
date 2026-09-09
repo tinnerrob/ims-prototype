@@ -53,11 +53,11 @@ function renderInventory(){
 
 function renderInvPanel(){
   const p = $("#invPanel");
-  if (App.invTab === "serialized") p.innerHTML = serializedTable();
-  else if (App.invTab === "bulk") p.innerHTML = bulkTable();
-  else if (App.invTab === "consumable") p.innerHTML = consumableTable();
-  else if (App.invTab === "parts") p.innerHTML = partsTable();
-  else if (App.invTab === "labor") p.innerHTML = laborTable();
+  if (App.invTab === "serialized"){ p.innerHTML = serializedTable(); IMSGrid.ensure("inv-serialized", renderInvPanel); }
+  else if (App.invTab === "bulk"){ p.innerHTML = bulkTable(); IMSGrid.ensure("inv-bulk", renderInvPanel); }
+  else if (App.invTab === "consumable"){ p.innerHTML = consumableTable(); IMSGrid.ensure("inv-consumable", renderInvPanel); }
+  else if (App.invTab === "parts"){ p.innerHTML = partsTable(); IMSGrid.ensure("inv-parts", renderInvPanel); }
+  else if (App.invTab === "labor"){ p.innerHTML = laborTable(); IMSGrid.ensure("inv-labor", renderInvPanel); }
   else if (App.invTab === "kits") { renderInvKitsPanel(); return; }
   else if (App.invTab === "attachments") { renderInvAttachmentsPanel(); return; }
   bindInvActions();
@@ -76,6 +76,7 @@ function renderInvKitsPanel(){
 function renderInvAttachmentsPanel(){
   const p = $("#invPanel");
   p.innerHTML = attachmentsTable();
+  IMSGrid.ensure("inv-attachments", renderInvAttachmentsPanel);
   $$("[data-aedit]").forEach(b => b.addEventListener("click", () => attachmentModal(IMS.itemRegistry.getByType("attachment").find(x => x.accId === b.dataset.aedit))));
   delegate(p, "click", "[data-edit]", (el, e) => {
     if (e.target.closest("button, a, input, select, label, .form-check")) return;
@@ -84,93 +85,75 @@ function renderInvAttachmentsPanel(){
 }
 
 function serializedTable(){
-  const rows = IMS.itemRegistry.getByType("serialized").map(a => `
-    <tr data-edit="${a.id}">
-      <td class="strong mono">${a.id}</td>
-      <td class="mono text-muted2">${a.serial}</td>
-      <td>${a.make} ${a.model}</td>
-      <td>${a.category}</td>
-      <td class="num">${fmtInt(a.meterHours)}</td>
-      <td>${a.fuelType}</td>
-      <td class="num">${fmtMoney(a.purchaseValue)}</td>
-      <td class="num"><span class="text-muted2">${fmtMoney(a.baseDaily)}</span> / <span class="text-muted2">${fmtMoney(a.baseWeekly)}</span> / <span class="text-muted2">${fmtMoney(a.baseMonthly)}</span></td>
-      <td>${activeBadge(a)}${statusBadge(a.status)}</td>
-      <td class="text-end text-nowrap">
-        <button class="btn btn-ims-outline btn-sm2" data-iview="${a.id}"><i class="bi bi-eye"></i> View</button>
-        <button class="btn btn-ims-outline btn-sm2" data-iedit="${a.id}"><i class="bi bi-pencil"></i> Edit</button>
-      </td>
-    </tr>`).join("");
-  return `<div class="table-wrap"><table class="table"><thead><tr>
-    <th>Asset ID</th><th>Serial / VIN</th><th>Make / Model</th><th>Category</th><th class="num">Meter Hrs</th>
-    <th>Fuel</th><th class="num">Purchase Value</th><th class="num">Daily / Weekly / Monthly</th><th>Status</th><th class="text-end">Actions</th>
-  </tr></thead><tbody>${rows || emptyRow(10)}</tbody></table></div>`;
+  const cols = [
+    { key:"id", header:"Asset ID", td:"strong mono", always:true, render: a => a.id },
+    { key:"serial", header:"Serial / VIN", td:"mono text-muted2", render: a => a.serial },
+    { key:"mkmod", header:"Make / Model", render: a => `${a.make} ${a.model}` },
+    { key:"category", header:"Category", render: a => a.category },
+    { key:"meter", header:"Meter Hrs", td:"num", render: a => fmtInt(a.meterHours) },
+    { key:"fuel", header:"Fuel", render: a => a.fuelType },
+    { key:"pval", header:"Purchase Value", td:"num", render: a => fmtMoney(a.purchaseValue) },
+    { key:"rates", header:"Daily / Weekly / Monthly", td:"num", render: a => `<span class="text-muted2">${fmtMoney(a.baseDaily)}</span> / <span class="text-muted2">${fmtMoney(a.baseWeekly)}</span> / <span class="text-muted2">${fmtMoney(a.baseMonthly)}</span>` },
+    { key:"status", header:"Status", render: a => activeBadge(a) + statusBadge(a.status) },
+    { key:"actions", header:"Actions", th:"text-end", td:"text-end text-nowrap", always:true, render: a => `<button class="btn btn-ims-outline btn-sm2" data-iview="${a.id}"><i class="bi bi-eye"></i> View</button><button class="btn btn-ims-outline btn-sm2" data-iedit="${a.id}"><i class="bi bi-pencil"></i> Edit</button>` }
+  ];
+  return IMSGrid.render("inv-serialized", cols, IMS.itemRegistry.getByType("serialized"),
+    { empty:"No serialized assets.", trAttrs: a => `data-edit="${a.id}"` });
 }
 
 function bulkTable(){
-  const rows = IMS.itemRegistry.getByType("bulk").map(b => `
-    <tr data-edit="${b.sku}">
-      <td class="strong mono">${b.sku}</td>
-      <td>${b.name}</td>
-      <td>${b.category}</td>
-      <td class="num">${fmtInt(b.totalOwned)}</td>
-      <td class="num"><span class="strong">${fmtInt(b.qtyAvailable)}</span> / ${fmtInt(b.qtyOut)}</td>
-      <td class="num">${fmtMoney(b.baseDaily)}</td>
-      <td class="num">${fmtMoney(b.baseWeekly)}</td>
-      <td class="num">${fmtMoney(b.baseMonthly)}</td>
-      <td>${activeCell(b)}</td>
-      <td class="text-end text-nowrap">
-        <button class="btn btn-ims-outline btn-sm2" data-iview="${b.sku}"><i class="bi bi-eye"></i> View</button>
-        <button class="btn btn-ims-outline btn-sm2" data-iedit="${b.sku}"><i class="bi bi-pencil"></i> Edit</button>
-      </td>
-    </tr>`).join("");
-  return `<div class="table-wrap"><table class="table"><thead><tr>
-    <th>SKU</th><th>Name</th><th>Category</th><th class="num">Total Owned</th><th class="num">Avail / Out</th><th class="num">Daily</th><th class="num">Weekly</th><th class="num">Monthly</th><th>Status</th><th class="text-end">Actions</th>
-  </tr></thead><tbody>${rows || emptyRow(10)}</tbody></table></div>`;
+  const cols = [
+    { key:"sku", header:"SKU", td:"strong mono", always:true, render: b => b.sku },
+    { key:"name", header:"Name", render: b => b.name },
+    { key:"category", header:"Category", render: b => b.category },
+    { key:"owned", header:"Total Owned", td:"num", render: b => fmtInt(b.totalOwned) },
+    { key:"avail", header:"Avail / Out", td:"num", render: b => `<span class="strong">${fmtInt(b.qtyAvailable)}</span> / ${fmtInt(b.qtyOut)}` },
+    { key:"daily", header:"Daily", td:"num", render: b => fmtMoney(b.baseDaily) },
+    { key:"weekly", header:"Weekly", td:"num", render: b => fmtMoney(b.baseWeekly) },
+    { key:"monthly", header:"Monthly", td:"num", render: b => fmtMoney(b.baseMonthly) },
+    { key:"status", header:"Status", render: b => activeCell(b) },
+    { key:"actions", header:"Actions", th:"text-end", td:"text-end text-nowrap", always:true, render: b => `<button class="btn btn-ims-outline btn-sm2" data-iview="${b.sku}"><i class="bi bi-eye"></i> View</button><button class="btn btn-ims-outline btn-sm2" data-iedit="${b.sku}"><i class="bi bi-pencil"></i> Edit</button>` }
+  ];
+  return IMSGrid.render("inv-bulk", cols, IMS.itemRegistry.getByType("bulk"),
+    { empty:"No bulk resources.", trAttrs: b => `data-edit="${b.sku}"` });
 }
 
 function consumableTable(){
-  const rows = IMS.itemRegistry.getByType("consumable").map(c => {
-    const low = c.qtyOnHand <= c.reorderPoint;
-    return `<tr data-edit="${c.sku}">
-      <td class="strong mono">${c.sku}</td>
-      <td>${c.name}</td>
-      <td>${c.category}</td>
-      <td class="num"><span class="${low ? "text-danger strong" : ""}">${fmtInt(c.qtyOnHand)}</span></td>
-      <td class="num text-muted2">${fmtInt(c.reorderPoint)}</td>
-      <td class="num">${fmtMoney(c.costPrice)}</td>
-      <td class="num">${fmtMoney(c.retailPrice)}</td>
-      <td>${c.active === false ? `<span class="badge-status st-out"><i class="bi bi-circle-fill"></i>Inactive</span>` : (low ? `<span class="badge-status st-reorder"><i class="bi bi-exclamation-triangle"></i>Reorder</span>` : `<span class="badge-status st-available"><i class="bi bi-circle-fill"></i>Stocked</span>`)}</td>
-      <td class="text-end text-nowrap">
-        <button class="btn btn-ims-outline btn-sm2" data-iview="${c.sku}"><i class="bi bi-eye"></i> View</button>
-        <button class="btn btn-ims-outline btn-sm2" data-iedit="${c.sku}"><i class="bi bi-pencil"></i> Edit</button>
-      </td>
-    </tr>`;
-  }).join("");
-  return `<div class="table-wrap"><table class="table"><thead><tr>
-    <th>SKU</th><th>Name</th><th>Category</th><th class="num">On Hand</th><th class="num">Reorder Pt</th><th class="num">Cost Price</th><th class="num">Retail Price</th><th>Status</th><th class="text-end">Actions</th>
-  </tr></thead><tbody>${rows || emptyRow(9)}</tbody></table></div>`;
+  const lowOf = c => c.qtyOnHand <= c.reorderPoint;
+  const stockBadge = c => c.active === false
+    ? `<span class="badge-status st-out"><i class="bi bi-circle-fill"></i>Inactive</span>`
+    : (lowOf(c) ? `<span class="badge-status st-reorder"><i class="bi bi-exclamation-triangle"></i>Reorder</span>` : `<span class="badge-status st-available"><i class="bi bi-circle-fill"></i>Stocked</span>`);
+  const cols = [
+    { key:"sku", header:"SKU", td:"strong mono", always:true, render: c => c.sku },
+    { key:"name", header:"Name", render: c => c.name },
+    { key:"category", header:"Category", render: c => c.category },
+    { key:"onhand", header:"On Hand", td:"num", render: c => `<span class="${lowOf(c) ? "text-danger strong" : ""}">${fmtInt(c.qtyOnHand)}</span>` },
+    { key:"reorder", header:"Reorder Pt", td:"num text-muted2", render: c => fmtInt(c.reorderPoint) },
+    { key:"cost", header:"Cost Price", td:"num", render: c => fmtMoney(c.costPrice) },
+    { key:"retail", header:"Retail Price", td:"num", render: c => fmtMoney(c.retailPrice) },
+    { key:"status", header:"Status", render: c => stockBadge(c) },
+    { key:"actions", header:"Actions", th:"text-end", td:"text-end text-nowrap", always:true, render: c => `<button class="btn btn-ims-outline btn-sm2" data-iview="${c.sku}"><i class="bi bi-eye"></i> View</button><button class="btn btn-ims-outline btn-sm2" data-iedit="${c.sku}"><i class="bi bi-pencil"></i> Edit</button>` }
+  ];
+  return IMSGrid.render("inv-consumable", cols, IMS.itemRegistry.getByType("consumable"),
+    { empty:"No consumables.", trAttrs: c => `data-edit="${c.sku}"` });
 }
 
 function laborTable(){
-  const rows = IMS.labor.map(e => `
-    <tr data-edit="${e.empId}">
-      <td class="strong mono">${e.empId}</td>
-      <td>${e.name}</td>
-      <td>${e.role}</td>
-      <td>${e.category}</td>
-      <td>${e.certs.map(c => `<span class="badge-status st-staged">${c}</span>`).join(" ")}</td>
-      <td class="num">${fmtMoney(e.hourlyCost)}</td>
-      <td class="num">${fmtMoney(e.hourlyBillable)}</td>
-      <td class="num text-muted2">${fmtMoney(e.hourlyBillable - e.hourlyCost)}</td>
-      <td>${activeCell(e)}</td>
-      <td class="text-end text-nowrap">
-        <button class="btn btn-ims-outline btn-sm2" data-iview="${e.empId}"><i class="bi bi-eye"></i> View</button>
-        <button class="btn btn-ims-outline btn-sm2" data-iedit="${e.empId}"><i class="bi bi-pencil"></i> Edit</button>
-      </td>
-    </tr>`).join("");
-  return `<div class="table-wrap"><table class="table"><thead><tr>
-    <th>Emp ID</th><th>Full Name</th><th>Role</th><th>Category</th><th>Certifications</th><th class="num">Cost / hr</th><th class="num">Billable / hr</th><th class="num">Spread / hr</th><th>Status</th><th class="text-end">Actions</th>
-  </tr></thead><tbody>${rows || emptyRow(10)}</tbody></table></div>`;
+  const certsHTML = e => (e.certs || []).map(c => `<span class="badge-status st-staged">${c}</span>`).join(" ");
+  const cols = [
+    { key:"empId", header:"Emp ID", td:"strong mono", always:true, render: e => e.empId },
+    { key:"name", header:"Full Name", render: e => e.name },
+    { key:"role", header:"Role", render: e => e.role },
+    { key:"category", header:"Category", render: e => e.category },
+    { key:"certs", header:"Certifications", render: e => certsHTML(e) },
+    { key:"cost", header:"Cost / hr", td:"num", render: e => fmtMoney(e.hourlyCost) },
+    { key:"billable", header:"Billable / hr", td:"num", render: e => fmtMoney(e.hourlyBillable) },
+    { key:"spread", header:"Spread / hr", td:"num text-muted2", render: e => fmtMoney(e.hourlyBillable - e.hourlyCost) },
+    { key:"status", header:"Status", render: e => activeCell(e) },
+    { key:"actions", header:"Actions", th:"text-end", td:"text-end text-nowrap", always:true, render: e => `<button class="btn btn-ims-outline btn-sm2" data-iview="${e.empId}"><i class="bi bi-eye"></i> View</button><button class="btn btn-ims-outline btn-sm2" data-iedit="${e.empId}"><i class="bi bi-pencil"></i> Edit</button>` }
+  ];
+  return IMSGrid.render("inv-labor", cols, IMS.labor,
+    { empty:"No labor / employees.", trAttrs: e => `data-edit="${e.empId}"` });
 }
 
 function bindInvActions(){
@@ -315,26 +298,23 @@ function laborView(e){
 }
 
 function partsTable(){
-  const rows = IMS.itemRegistry.getByType("part").map(p => {
-    const low = p.qtyOnHand <= p.reorderPoint;
-    return `<tr data-edit="${p.partId}">
-      <td class="strong mono">${p.partId}</td>
-      <td>${p.description}</td>
-      <td>${p.category}</td>
-      <td class="mono text-muted2">${p.bin}</td>
-      <td class="num"><span class="${low ? "text-danger strong" : ""}">${fmtInt(p.qtyOnHand)}</span></td>
-      <td class="num text-muted2">${fmtInt(p.reorderPoint)}</td>
-      <td class="num">${fmtMoney(p.costPrice)}</td>
-      <td>${p.active === false ? `<span class="badge-status st-out"><i class="bi bi-circle-fill"></i>Inactive</span>` : (low ? `<span class="badge-status st-reorder"><i class="bi bi-exclamation-triangle"></i>Reorder</span>` : `<span class="badge-status st-available"><i class="bi bi-circle-fill"></i>Stocked</span>`)}</td>
-      <td class="text-end text-nowrap">
-        <button class="btn btn-ims-outline btn-sm2" data-iview="${p.partId}"><i class="bi bi-eye"></i> View</button>
-        <button class="btn btn-ims-outline btn-sm2" data-iedit="${p.partId}"><i class="bi bi-pencil"></i> Edit</button>
-      </td>
-    </tr>`;
-  }).join("");
-  return `<div class="table-wrap"><table class="table"><thead><tr>
-    <th>Part ID</th><th>Description</th><th>Category</th><th>Bin / Aisle</th><th class="num">On Hand</th><th class="num">Reorder Pt</th><th class="num">Cost Price</th><th>Status</th><th class="text-end">Actions</th>
-  </tr></thead><tbody>${rows || emptyRow(9)}</tbody></table></div>`;
+  const lowOf = p => p.qtyOnHand <= p.reorderPoint;
+  const stockBadge = p => p.active === false
+    ? `<span class="badge-status st-out"><i class="bi bi-circle-fill"></i>Inactive</span>`
+    : (lowOf(p) ? `<span class="badge-status st-reorder"><i class="bi bi-exclamation-triangle"></i>Reorder</span>` : `<span class="badge-status st-available"><i class="bi bi-circle-fill"></i>Stocked</span>`);
+  const cols = [
+    { key:"partId", header:"Part ID", td:"strong mono", always:true, render: p => p.partId },
+    { key:"description", header:"Description", render: p => p.description },
+    { key:"category", header:"Category", render: p => p.category },
+    { key:"bin", header:"Bin / Aisle", td:"mono text-muted2", render: p => p.bin },
+    { key:"onhand", header:"On Hand", td:"num", render: p => `<span class="${lowOf(p) ? "text-danger strong" : ""}">${fmtInt(p.qtyOnHand)}</span>` },
+    { key:"reorder", header:"Reorder Pt", td:"num text-muted2", render: p => fmtInt(p.reorderPoint) },
+    { key:"cost", header:"Cost Price", td:"num", render: p => fmtMoney(p.costPrice) },
+    { key:"status", header:"Status", render: p => stockBadge(p) },
+    { key:"actions", header:"Actions", th:"text-end", td:"text-end text-nowrap", always:true, render: p => `<button class="btn btn-ims-outline btn-sm2" data-iview="${p.partId}"><i class="bi bi-eye"></i> View</button><button class="btn btn-ims-outline btn-sm2" data-iedit="${p.partId}"><i class="bi bi-pencil"></i> Edit</button>` }
+  ];
+  return IMSGrid.render("inv-parts", cols, IMS.itemRegistry.getByType("part"),
+    { empty:"No stock parts.", trAttrs: p => `data-edit="${p.partId}"` });
 }
 
 function partsFields(e){
@@ -582,23 +562,23 @@ function kitsList(){
 }
 
 function attachmentsTable(){
-  const rows = IMS.itemRegistry.getByType("attachment").map(a => {
-    const links = IMS.assetAttachments.filter(x => x.accId === a.accId).map(x => x.assetId).join(", ") || "—";
-    return `<tr data-edit="${a.accId}">
-      <td class="strong mono">${a.accId}</td>
-      <td>${a.name}</td>
-      <td>${a.category}</td>
-      <td class="num">${a.qtyOwned}</td>
-      <td class="num">${fmtMoney(a.daily)}</td>
-      <td class="mono">${(a.fits || []).join(", ")}</td>
-      <td class="mono">${links}</td>
-      <td>${activeCell(a)}</td>
-      <td class="text-end"><button class="btn btn-ims-outline btn-sm2" data-aedit="${a.accId}"><i class="bi bi-pencil"></i></button></td>
-    </tr>`;
-  }).join("");
-  return `<div class="table-wrap"><table class="table"><thead><tr>
-    <th>Acc ID</th><th>Name</th><th>Category</th><th class="num">Qty Owned</th><th class="num">Daily</th><th>Fits</th><th>Linked Assets</th><th>Status</th><th class="text-end">Actions</th>
-  </tr></thead><tbody>${rows || emptyRow(9)}</tbody></table></div>`;
+  const linkList = a => {
+    const links = IMS.assetAttachments.filter(x => x.accId === a.accId).map(x => x.assetId).join(", ");
+    return links || "—";
+  };
+  const cols = [
+    { key:"accId", header:"Acc ID", td:"strong mono", always:true, render: a => a.accId },
+    { key:"name", header:"Name", render: a => a.name },
+    { key:"category", header:"Category", render: a => a.category },
+    { key:"qty", header:"Qty Owned", td:"num", render: a => fmtInt(a.qtyOwned) },
+    { key:"daily", header:"Daily", td:"num", render: a => fmtMoney(a.daily) },
+    { key:"fits", header:"Fits", td:"mono", render: a => (a.fits || []).join(", ") },
+    { key:"linked", header:"Linked Assets", td:"mono", render: a => linkList(a) },
+    { key:"status", header:"Status", render: a => activeCell(a) },
+    { key:"actions", header:"Actions", th:"text-end", td:"text-end text-nowrap", always:true, render: a => `<button class="btn btn-ims-outline btn-sm2" data-aedit="${a.accId}"><i class="bi bi-pencil"></i></button>` }
+  ];
+  return IMSGrid.render("inv-attachments", cols, IMS.itemRegistry.getByType("attachment"),
+    { empty:"No attachments.", trAttrs: a => `data-edit="${a.accId}"` });
 }
 
 function resOptions(){

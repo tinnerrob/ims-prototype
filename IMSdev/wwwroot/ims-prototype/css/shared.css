@@ -393,6 +393,21 @@ a { color: var(--brand); }
 .muted { color: var(--muted); }
 .accent-text { color: var(--brand); }
 
+/* ---- Column-profile grid (grid.js) ---- */
+.grid-head { position: relative; display: flex; justify-content: flex-end; margin-bottom: 10px; }
+.grid-cols-menu {
+  position: absolute; right: 0; top: 32px; z-index: 40; min-width: 210px;
+  background: var(--card); border: 1px solid var(--line); border-radius: var(--r-md);
+  box-shadow: var(--shadow-lg); padding: 10px;
+}
+.grid-cols-head { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .4px; color: var(--muted); margin-bottom: 6px; }
+.grid-col-opt {
+  display: flex; align-items: center; gap: 8px; padding: 5px 4px; border-radius: 6px;
+  font-size: 13px; color: var(--ink-2); cursor: pointer; white-space: nowrap;
+}
+.grid-col-opt:hover { background: rgba(79, 70, 229, .05); }
+.grid-col-opt input { accent-color: var(--brand); }
+
 /* Tiny muted captions (drop inline font-size hints) */
 .text-xs { font-size: 11px; }
 .text-xs2 { font-size: 11.5px; }
