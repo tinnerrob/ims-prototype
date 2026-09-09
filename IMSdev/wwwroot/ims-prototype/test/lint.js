@@ -5,7 +5,7 @@ const path = require("path");
 
 const ROOT = path.resolve(__dirname, "..");
 const files = [
-  "js/common.js", "js/router.js", "js/store.js", "js/data.js",
+  "js/common.js", "js/router.js", "js/store.js", "js/data.js", "js/metadata.js", "js/grid.js",
   ...fs.readdirSync(path.join(ROOT, "js/pages")).filter(f => f.endsWith(".js")).map(f => "js/pages/" + f)
 ];
 let failed = 0;

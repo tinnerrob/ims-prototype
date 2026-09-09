@@ -482,6 +482,17 @@ addScript(`(() => {
   localStorage.removeItem("ims.cols.log-dispatch");
   renderLogistics();
 
+  /* 22. Track B: metadata registry + ext accessor (additive) */
+  assert(!!IMS.metadata && IMS.metadata.version === 1, "IMS.metadata registry module present");
+  assert(IMS.metadata.registry.length >= 10, "metadata registry has core vertical entries");
+  assert(IMS.metadata.verticals.HeavyEquipment && IMS.metadata.verticals.Healthcare, "metadata defines HeavyEquipment + Healthcare verticals");
+  assert(IMS.metadata.vertical() === "HeavyEquipment", "default active vertical is HeavyEquipment");
+  assert(IMS.metadata.registryFor("Healthcare").length > 0, "Healthcare vertical exposes extended attributes");
+  const metA = getAsset("BL-118");
+  assert(IMS.metadata.ext(metA, "meter_hours") === metA.meterHours, "ext() reads flat field via registry path (no extended_attributes)");
+  assert(IMS.metadata.ext({ extended_attributes: { meter_hours: 999 } }, "meter_hours") === 999, "ext() prefers extended_attributes over flat path");
+  assert(IMS.metadata.getPath({ extended_attributes: { expiration_date: "2029-04-12" } }, "extended_attributes.expiration_date") === "2029-04-12", "getPath reads nested JSONB-style path");
+
   window.__gateFailures = failures;
   window.__gateLog = out;
 })();
