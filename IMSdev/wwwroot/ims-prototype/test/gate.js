@@ -376,6 +376,20 @@ addScript(`(() => {
   });
   App.invTab = "serialized"; renderInvPanel();
 
+  /* 16. Column-profile grids (Parties & Orders) */
+  showView("orders");
+  App.ccTab = "customers"; renderCcPanel();
+  const custHeads = Array.from(doc.querySelectorAll("#ccPanel .table thead th")).map(t => t.textContent.trim());
+  assert(custHeads.length === 6 && custHeads[0] === "Customer" && custHeads[custHeads.length - 1] === "Actions", "customers grid renders default columns");
+  assert(doc.querySelectorAll("#ccPanel tbody tr").length > 0, "customers grid has rows");
+  localStorage.setItem("ims.cols.cc-contracts", JSON.stringify({ project: false }));
+  App.ccTab = "orders"; App.contractFilter = "active"; renderCcPanel();
+  const oHeads = Array.from(doc.querySelectorAll("#ccPanel .table thead th")).map(t => t.textContent.trim());
+  assert(oHeads.length === 7 && !oHeads.includes("Project") && oHeads[0] === "Contract", "contracts grid honors hidden column");
+  assert(doc.querySelectorAll("#ccPanel tbody tr")[0].querySelectorAll("td").length === 7, "contracts rows follow visible columns");
+  localStorage.removeItem("ims.cols.cc-contracts");
+  App.ccTab = "customers"; renderCcPanel();
+
   window.__gateFailures = failures;
   window.__gateLog = out;
 })();

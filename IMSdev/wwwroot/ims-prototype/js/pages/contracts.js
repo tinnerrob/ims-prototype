@@ -33,6 +33,7 @@ function renderCcPanel(){
   const p = $("#ccPanel");
   if (App.ccTab === "customers") {
     p.innerHTML = customersTable();
+    IMSGrid.ensure("cc-customers", renderCcPanel);
   } else {
     const filtered = IMS.orders.filter(c => c.status === App.contractFilter);
     p.innerHTML = `
@@ -43,55 +44,52 @@ function renderCcPanel(){
           <button class="btn btn-sm2 ${App.contractFilter === "closed" ? "btn-ims" : "btn-ims-outline"}" data-f="closed">Closed</button>
         </div>
       </div>` + contractsTable(filtered);
+    IMSGrid.ensure("cc-contracts", renderCcPanel);
   }
   bindCcActions();
 }
 
 function customersTable(){
-  const rows = IMS.parties.map(c => {
-    const cons = IMS.orders.filter(x => x.partyId === c.id);
-    const active = cons.filter(x => x.status === "active").length;
-    return `<tr data-edit="${c.id}">
-      <td class="strong">${c.name} ${activeBadge(c)}<div class="text-muted2" style="font-size:11px">${c.email}</div></td>
-      <td>${c.contact}</td>
-      <td class="mono text-muted2">${c.phone}</td>
-      <td class="num"><span class="badge-status st-active">${active} active</span></td>
-      <td class="num">${cons.length}</td>
-      <td class="text-end text-nowrap">
-        <button class="btn btn-ims-outline btn-sm2" data-cview="${c.id}"><i class="bi bi-eye"></i> View</button>
-        <button class="btn btn-ims-outline btn-sm2" data-cedit="${c.id}"><i class="bi bi-pencil"></i> Edit</button>
-      </td>
-    </tr>`;
-  }).join("");
-  return `<div class="table-wrap"><table class="table"><thead><tr>
-    <th>Customer</th><th>Contact</th><th>Phone</th><th class="num">Active</th><th class="num">Contracts</th><th class="text-end">Actions</th>
-  </tr></thead><tbody>${rows || emptyRow(6)}</tbody></table></div>`;
+  const cols = [
+    { key:"name", header:"Customer", always:true, render: c => {
+        const cons = IMS.orders.filter(x => x.partyId === c.id);
+        const active = cons.filter(x => x.status === "active").length;
+        return `<span class="strong">${c.name}</span> ${activeBadge(c)}<div class="text-muted2 text-xs">${c.email}</div>`;
+      } },
+    { key:"contact", header:"Contact", render: c => c.contact },
+    { key:"phone", header:"Phone", td:"mono text-muted2", render: c => c.phone },
+    { key:"active", header:"Active", td:"num", render: c => {
+        const active = IMS.orders.filter(x => x.partyId === c.id && x.status === "active").length;
+        return `<span class="badge-status st-active">${active} active</span>`;
+      } },
+    { key:"contracts", header:"Contracts", td:"num", render: c => IMS.orders.filter(x => x.partyId === c.id).length },
+    { key:"actions", header:"Actions", th:"text-end", td:"text-end text-nowrap", always:true, render: c => `<button class="btn btn-ims-outline btn-sm2" data-cview="${c.id}"><i class="bi bi-eye"></i> View</button><button class="btn btn-ims-outline btn-sm2" data-cedit="${c.id}"><i class="bi bi-pencil"></i> Edit</button>` }
+  ];
+  return IMSGrid.render("cc-customers", cols, IMS.parties,
+    { empty:"No customers.", trAttrs: c => `data-edit="${c.id}"` });
 }
 
 function contractsTable(filtered){
-  const rows = filtered.map(c => {
-    const t = orderTotals(c);
-    const on = c.status === "active";
-    return `<tr data-edit="${c.orderId}">
-      <td class="strong mono">${c.orderId}</td>
-      <td>${partyName(c.partyId)}</td>
-      <td>${c.projectName}</td>
-      <td class="mono text-muted2" style="font-size:11.5px">${fmtDate(c.startDate)}</td>
-      <td class="mono text-muted2" style="font-size:11.5px">${fmtDate(c.endDate)}</td>
-      <td class="num">${fmtMoney(t.gross)}</td>
-      <td>${statusBadge(c.status)}</td>
-      <td class="text-end text-nowrap">
-        <label class="form-check form-switch mb-0 d-inline-block me-1" title="${on ? "Slide to close order" : "Slide to activate order"}">
+  const onOf = c => c.status === "active";
+  const cols = [
+    { key:"orderId", header:"Contract", td:"strong mono", always:true, render: c => c.orderId },
+    { key:"customer", header:"Customer", render: c => partyName(c.partyId) },
+    { key:"project", header:"Project", render: c => c.projectName },
+    { key:"start", header:"Start", td:"mono text-muted2 text-xs2", render: c => fmtDate(c.startDate) },
+    { key:"end", header:"End", td:"mono text-muted2 text-xs2", render: c => fmtDate(c.endDate) },
+    { key:"gross", header:"Gross", td:"num", render: c => fmtMoney(orderTotals(c).gross) },
+    { key:"status", header:"Status", render: c => statusBadge(c.status) },
+    { key:"actions", header:"Active / Actions", th:"text-end", td:"text-end text-nowrap", always:true, render: c => {
+        const on = onOf(c);
+        return `<label class="form-check form-switch mb-0 d-inline-block me-1" title="${on ? "Slide to close order" : "Slide to activate order"}">
           <input class="form-check-input" type="checkbox" data-cstatus="${c.orderId}" ${on ? "checked" : ""} style="cursor:pointer">
         </label>
         <button class="btn btn-ims-outline btn-sm2" data-cview="${c.orderId}" title="View"><i class="bi bi-eye"></i></button>
-        <button class="btn btn-ims-outline btn-sm2" data-cedit="${c.orderId}" title="Edit"><i class="bi bi-pencil"></i></button>
-      </td>
-    </tr>`;
-  }).join("");
-  return `<div class="table-wrap"><table class="table"><thead><tr>
-    <th>Contract</th><th>Customer</th><th>Project</th><th>Start</th><th>End</th><th class="num">Gross</th><th>Status</th><th class="text-end">Active / Actions</th>
-  </tr></thead><tbody>${rows || emptyRow(8)}</tbody></table></div>`;
+        <button class="btn btn-ims-outline btn-sm2" data-cedit="${c.orderId}" title="Edit"><i class="bi bi-pencil"></i></button>`;
+      } }
+  ];
+  return IMSGrid.render("cc-contracts", cols, filtered,
+    { empty:"No orders in this filter.", trAttrs: c => `data-edit="${c.orderId}"` });
 }
 
 function bindCcActions(){
