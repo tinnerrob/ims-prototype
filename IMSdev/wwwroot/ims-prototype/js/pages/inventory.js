@@ -100,13 +100,32 @@ function receivingLogModal(){
   });
 }
 
-/* Receive goods (consumable / bulk / part) after ordering: a form to add
-   quantity, which bumps on-hand/available and logs the receipt to `receivings`. */
+/* Escape helper for arbitrary text interpolated into HTML. */
+const escVal = s => String(s == null ? "" : s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+
+/* Core stock movement: bump an item's quantity and log the receipt to `receivings`. */
+function applyReceive(type, refId, qty, source, note){
+  const rec = type === "bulk" ? getBulk(refId) : (type === "consumable" ? getConsumable(refId) : getPart(refId));
+  if (!rec) return false;
+  const label = rec.name || rec.description || refId;
+  const qtyBefore = type === "bulk" ? (rec.qtyAvailable || 0) : (rec.qtyOnHand || 0);
+  const patch = type === "bulk" ? { qtyAvailable: qtyBefore + qty } : { qtyOnHand: qtyBefore + qty };
+  if (IMS.store) IMS.store.repo(type).update(IMS.itemRegistry.idKey[type], refId, patch); else Object.assign(rec, patch);
+  const recv = {
+    id: "RCV-" + String((IMS.receivings || []).length + 1).padStart(3, "0"),
+    type, refId, label, qtyBefore, qtyAdded: qty, qtyAfter: qtyBefore + qty,
+    source: (source || "").trim() || null, note: (note || "").trim() || null,
+    at: new Date().toISOString().slice(0, 19), by: "D. Reynolds"
+  };
+  if (IMS.store) IMS.store.repo("receivings").create(recv); else (IMS.receivings || (IMS.receivings = [])).push(recv);
+  return true;
+}
+
+/* Receive a single item via a form. */
 function receiveGoods(type, refId){
   const rec = type === "bulk" ? getBulk(refId) : (type === "consumable" ? getConsumable(refId) : getPart(refId));
   if (!rec) return;
   const label = rec.name || rec.description || refId;
-  const qtyBefore = type === "bulk" ? (rec.qtyAvailable || 0) : (rec.qtyOnHand || 0);
   const fields = [
     { key: "qty", label: "Quantity received", type: "number", value: 1, required: true },
     { key: "source", label: "PO / Source", type: "text", value: "", placeholder: "e.g. PO-1023 or vendor" },
@@ -114,19 +133,61 @@ function receiveGoods(type, refId){
   ];
   openFormModal({
     id: "mdl-recv", title: "Receive Goods — " + label, icon: "bi-box-arrow-in-down", fields,
-    onSave: v => {
-      const qty = Math.max(1, parseInt(v.qty, 10) || 1);
-      const patch = type === "bulk" ? { qtyAvailable: qtyBefore + qty } : { qtyOnHand: qtyBefore + qty };
-      if (IMS.store) IMS.store.repo(type).update(IMS.itemRegistry.idKey[type], refId, patch); else Object.assign(rec, patch);
-      const recv = {
-        id: "RCV-" + String((IMS.receivings || []).length + 1).padStart(3, "0"),
-        type, refId, label, qtyBefore, qtyAdded: qty, qtyAfter: qtyBefore + qty,
-        source: (v.source || "").trim() || null, note: (v.note || "").trim() || null,
-        at: new Date().toISOString().slice(0, 19), by: "D. Reynolds"
-      };
-      if (IMS.store) IMS.store.repo("receivings").create(recv); else (IMS.receivings || (IMS.receivings = [])).push(recv);
-      renderInventory();
-    }
+    onSave: v => { applyReceive(type, refId, Math.max(1, parseInt(v.qty, 10) || 1), v.source, v.note); renderInventory(); }
+  });
+}
+
+/* Stock catalogs usable for bulk-receive (current vertical applies). */
+const RCV_CATS = {
+  consumable: { label: "Consumables", items: () => IMS.itemRegistry.getByType("consumable"), idOf: c => c.sku, nameOf: c => c.name, qtyOf: c => c.qtyOnHand || 0 },
+  bulk: { label: "Bulk Resources", items: () => IMS.itemRegistry.getByType("bulk"), idOf: b => b.sku, nameOf: b => b.name, qtyOf: b => b.qtyAvailable || 0 },
+  part: { label: "Parts & Accessories", items: () => IMS.itemRegistry.getByType("part"), idOf: p => p.partId, nameOf: p => p.description, qtyOf: p => p.qtyOnHand || 0 }
+};
+
+/* Complete several line items from one PO: enter a qty per row, apply once. */
+function bulkReceiveRows(type){
+  const cat = RCV_CATS[type];
+  const items = cat.items();
+  if (!items.length) return `<div class="text-muted2 py-3 text-center">No ${cat.label.toLowerCase()} in the catalog.</div>`;
+  return `<div class="table-wrap" style="max-height:340px;overflow:auto"><table class="table table-ims table-sm">
+    <thead><tr><th>Item</th><th class="num">On Hand</th><th class="text-end">Qty to receive</th></tr></thead>
+    <tbody>${items.map(it => `<tr>
+        <td><span class="strong">${escVal(cat.nameOf(it))}</span><div class="text-muted2 text-11">${cat.idOf(it)}</div></td>
+        <td class="num text-muted2">${fmtInt(cat.qtyOf(it))}</td>
+        <td class="text-end"><input class="form-control form-control-sm w-70 ms-auto br-qty" data-ref="${escVal(cat.idOf(it))}" type="number" min="0" step="1" value="0"></td>
+      </tr>`).join("")}</tbody></table></div>`;
+}
+
+function bulkReceiveModal(){
+  let type = (App.invTab === "parts" ? "part" : (App.invTab === "consumable" || App.invTab === "bulk" ? App.invTab : "consumable"));
+  const body = `<div class="row g-3 mb-2">
+      <div class="col-md-4 field-group"><label class="form-label">Catalog</label>
+        <select class="form-select" id="br-type">
+          ${Object.keys(RCV_CATS).map(k => `<option value="${k}" ${k === type ? "selected" : ""}>${RCV_CATS[k].label}</option>`).join("")}
+        </select></div>
+      <div class="col-md-4 field-group"><label class="form-label">PO / Source</label>
+        <input class="form-control" id="br-source" placeholder="e.g. PO-1023 or vendor"></div>
+      <div class="col-md-4 field-group"><label class="form-label">Note (optional)</label>
+        <input class="form-control" id="br-note" placeholder="Receiving note…"></div>
+    </div>
+    <div id="br-rows"></div>`;
+  const root = openRawModal({
+    id: "mdl-brecv", size: "lg", title: "Bulk Receive — one PO, many lines", icon: "bi-journal-plus",
+    body, footer: `<button type="button" class="btn btn-ims-outline" data-bs-dismiss="modal">Cancel</button>
+      <button type="button" class="btn btn-ims" id="br-save"><i class="bi bi-check2"></i> Receive Selected</button>`
+  });
+  const redraw = () => { root.querySelector("#br-rows").innerHTML = bulkReceiveRows(root.querySelector("#br-type").value); };
+  root.querySelector("#br-type").addEventListener("change", redraw);
+  redraw();
+  root.querySelector("#br-save").addEventListener("click", () => {
+    const source = root.querySelector("#br-source").value, note = root.querySelector("#br-note").value;
+    const type2 = root.querySelector("#br-type").value;
+    const chosen = Array.from(root.querySelectorAll(".br-qty"))
+      .map(inp => ({ ref: inp.dataset.ref, qty: Math.max(0, parseInt(inp.value, 10) || 0) }))
+      .filter(x => x.qty > 0);
+    chosen.forEach(x => applyReceive(type2, x.ref, x.qty, source, note));
+    renderInventory();
+    dismissModal(root);
   });
 }
 
@@ -166,6 +227,7 @@ function renderInventory(){
     <div class="card">
       <div class="card-header"><span class="card-title"><i class="bi bi-box-seam"></i> Resource Master Lists</span>
         <span class="ms-auto text-muted2 text-12">Vertical: ${vertLabel}</span>
+        <button class="btn btn-ims-outline ms-2" id="invBulkRecvBtn" title="Receive several line items from one PO"><i class="bi bi-journal-plus"></i> Bulk Receive</button>
         <button class="btn btn-ims-outline ms-2" id="invRecvLogBtn" title="View all received goods"><i class="bi bi-journal-arrow-down"></i> Receiving Log</button>
         <button class="btn btn-ims ms-2" id="invAddBtn"><i class="bi bi-plus-lg"></i> ${invAddLabel()}</button></div>
       <div class="card-body">
@@ -179,6 +241,7 @@ function renderInventory(){
   delegate($("#content"), "click", "#invTabs .subtab", b => { App.invTab = b.dataset.tab; renderInventory(); });
   $("#invAddBtn").addEventListener("click", () => openAddModal(App.invTab));
   $("#invRecvLogBtn").addEventListener("click", () => receivingLogModal());
+  $("#invBulkRecvBtn").addEventListener("click", () => bulkReceiveModal());
   $("#invSearch").addEventListener("input", e => { App.invSearch = e.target.value; renderInvPanel(); });
   renderInvPanel();
 }
@@ -364,6 +427,18 @@ function chainOfCustodyHTML(assetId){
   return status + section("Movement History (" + evs.length + ")", rows);
 }
 
+/* Receiving history shown inside a stock item view modal (receipt log). */
+function receivingHistoryHTML(type, refId){
+  const evs = (IMS.receivings || []).filter(r => r.type === type && r.refId === refId).slice().reverse();
+  if (!evs.length) return "";
+  const rows = evs.map(r => `<div class="list-line">
+      <span class="l"><span class="mono strong">${r.id}</span> · <strong>+${r.qtyAdded}</strong> → on hand ${r.qtyAfter}</span>
+      <span class="r mono">${fmtDT(r.at)}</span>
+      <div class="text-muted2" style="grid-column:1/-1">Before ${r.qtyBefore} → After ${r.qtyAfter}${r.source ? " · Source: " + escVal(r.source) : ""} · by ${escVal(r.by)}${r.note ? " · " + escVal(r.note) : ""}</div>
+    </div>`).join("");
+  return section("Receiving History (" + evs.length + ")", rows);
+}
+
 function serializedView(a){
   const cons = contractRefs("serialized", a.id);
   const wos = IMS.workOrders.filter(w => w.assetId === a.id);
@@ -405,7 +480,8 @@ function bulkView(b){
       ["Total Owned", fmtInt(b.totalOwned)], ["Available", fmtInt(b.qtyAvailable)], ["Out", fmtInt(b.qtyOut)],
       ["Daily", fmtMoney(b.baseDaily)], ["Weekly", fmtMoney(b.baseWeekly)], ["Monthly", fmtMoney(b.baseMonthly)],
       ["Default Deposit", (b.depositPct != null ? b.depositPct : 25) + "% of rental"]
-    ]) + section("Assigned to Contracts (" + cons.length + ")", consList),
+    ]) + section("Assigned to Contracts (" + cons.length + ")", consList)
+      + receivingHistoryHTML("bulk", b.sku),
     footer: closeBtn
   });
 }
@@ -424,7 +500,8 @@ function consumableView(c){
       ["Reorder Point", fmtInt(c.reorderPoint)], ["Cost Price", fmtMoney(c.costPrice)], ["Retail Price", fmtMoney(c.retailPrice)]
     ])
       + section("Used on Contracts (" + cons.length + ")", consList)
-      + section("Used in Work Orders (" + wos.length + ")", woList),
+      + section("Used in Work Orders (" + wos.length + ")", woList)
+      + receivingHistoryHTML("consumable", c.sku),
     footer: closeBtn
   });
 }
@@ -510,7 +587,8 @@ function partsView(p){
       ["Part ID", p.partId], ["Description", p.description], ["Bin / Aisle", p.bin],
       ["Qty on Hand", fmtInt(p.qtyOnHand) + (p.qtyOnHand <= p.reorderPoint ? " <span class=\"badge-status st-reorder\">Reorder</span>" : "")],
       ["Reorder Point", fmtInt(p.reorderPoint)], ["Cost Price", fmtMoney(p.costPrice)], ["Status", p.active === false ? "Inactive" : "Active"]
-    ]) + section("Used in Work Orders (" + wos.length + ")", woList),
+    ]) + section("Used in Work Orders (" + wos.length + ")", woList)
+      + receivingHistoryHTML("part", p.partId),
     footer: closeBtn
   });
 }

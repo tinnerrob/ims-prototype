@@ -651,6 +651,29 @@ addScript(`(() => {
     assert(rtxt.indexOf(consRec.sku) !== -1 && rtxt.indexOf("+5") !== -1, "receiving log shows the item and the quantity added");
   } catch (e) { failures++; out.push("  FAIL: receiving log view: " + (e && e.message)); }
 
+  /* 31. Per-item receiving history inside the stock item View */
+  try {
+    consumableView(consRec);
+    const mv = doc.querySelector("#mdl-coview");
+    const mvText = mv ? mv.textContent : "";
+    assert(!!mv && mvText.indexOf("Receiving History") !== -1 && mvText.indexOf("+5") !== -1, "item view shows per-item receiving history");
+  } catch (e) { failures++; out.push("  FAIL: per-item receiving history: " + (e && e.message)); }
+
+  /* 32. Bulk receive: several line items from one PO */
+  try {
+    App.invTab = "consumable"; renderInventory();
+    bulkReceiveModal();
+    const bm = doc.getElementById("mdl-brecv");
+    assert(!!bm && bm.textContent.indexOf("Consumables") !== -1, "bulk receive modal opens with the current catalog");
+    const tgt = Array.from(bm.querySelectorAll(".br-qty")).find(i => i.dataset.ref === consRec.sku);
+    assert(!!tgt, "bulk receive lists the consumable for qty entry");
+    const brBefore = consRec.qtyOnHand, rcb = (IMS.receivings || []).length;
+    tgt.value = 3;
+    bm.querySelector("#br-source").value = "PO-2026-02";
+    bm.querySelector("#br-save").click();
+    assert(consRec.qtyOnHand === brBefore + 3 && (IMS.receivings || []).length === rcb + 1, "bulk receive adds each qty and logs a receipt per line");
+  } catch (e) { failures++; out.push("  FAIL: bulk receive: " + (e && e.message)); }
+
   window.__gateFailures = failures;
   window.__gateLog = out;
 })();
