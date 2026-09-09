@@ -380,11 +380,13 @@ function partsView(p){
 }
 
 /* ---------- inventory record lookup + detail-modal helpers ---------- */
-const getAsset = id => IMS.itemInstances.find(a => a.id === id);
-const getBulk = id => IMS.bulkResources.find(b => b.sku === id);
-const getConsumable = id => IMS.consumables.find(c => c.sku === id);
+/* Item records resolve through the unified item registry; labor is a crew/party resource. */
+const regFind = (type, id) => (IMS.itemRegistry ? IMS.itemRegistry.find(type, id) : null);
+const getAsset = id => regFind("serialized", id) || IMS.itemInstances.find(a => a.id === id);
+const getBulk = id => regFind("bulk", id) || IMS.bulkResources.find(b => b.sku === id);
+const getConsumable = id => regFind("consumable", id) || IMS.consumables.find(c => c.sku === id);
 const getLabor = id => IMS.labor.find(e => e.empId === id);
-const getPart = id => IMS.parts.find(p => p.partId === id);
+const getPart = id => regFind("part", id) || IMS.parts.find(p => p.partId === id);
 const contractRefs = (type, ref) => IMS.orders
   .map(c => ({ order: c, lines: (c.lineItems || []).filter(li => li.type === type && li.refId === ref) }))
   .filter(x => x.lines.length);
