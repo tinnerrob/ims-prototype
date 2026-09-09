@@ -373,3 +373,24 @@ IMS.movements = [
   { id:"MV-004", refType:"serialized", refId:"TL-605", kind:"issue", orderId:"CT-2024-002", party:"L. Bishop",  location:"Main Yard — Buckhead Hub", at:"2026-09-01T07:10", by:"D. Reynolds", note:"Telehandler staged for Riverside Bridge." },
   { id:"MV-005", refType:"serialized", refId:"GN-511", kind:"issue", orderId:"CT-2024-003", party:"R. Vance",   location:"Main Yard — Buckhead Hub", at:"2026-09-02T06:30", by:"D. Reynolds", note:"Generator placed at refinery skid." }
 ];
+
+/* ---------------------------------------------------------
+   ITEM REGISTRY (canonical unified catalog read-path)
+   Typed item records (serialized instances, bulk, consumables,
+   stock parts, kits, attachments) are exposed as one catalog
+   with an itemType discriminator + stable lookup by type/ref.
+   Readers migrate to this registry; per-type tables remain the
+   backing store until all readers are migrated. Labor is a
+   party/crew resource and stays outside the item catalog.
+   --------------------------------------------------------- */
+IMS.itemRegistry = {
+  typeKey: { serialized:"itemInstances", bulk:"bulkResources", consumable:"consumables", part:"parts", kit:"kits", attachment:"attachments" },
+  idKey: { serialized:"id", bulk:"sku", consumable:"sku", part:"partId", kit:"kitId", attachment:"accId" },
+  getByType(type){ return IMS[this.typeKey[type]] || []; },
+  all(){
+    let out = [];
+    ["serialized","bulk","consumable","part","kit","attachment"].forEach(t => { out = out.concat(this.getByType(t)); });
+    return out;
+  },
+  find(type, ref){ const key = this.idKey[type]; return this.getByType(type).find(r => r[key] === ref) || null; }
+};
