@@ -40,7 +40,7 @@ with findings are updated as passes land.
 | `pages/inventory.js` | inventory (core) | PEND | — | grids near-identical (bulk/consumable/parts) | — | many modals; re-audit spec |
 | `pages/healthcare.js` | inventory medical tab | PEND | — | registry-driven (good) | vertical-specific (by design) | — |
 | `pages/contracts.js` | orders (core) | PEND | — | — | — | party/order modals |
-| `pages/handoff.js` | handoff (core) | FIX | **legacy `openNewRentalModal`/`createRentalFromModal` shadowed by handoff-wiz.js**; hoCheckIn/check-out retained | hoist needed helpers | custody is core (loan is one movement kind) | wizard owns New-Order modal |
+| `pages/handoff.js` | handoff (core) | FIX→done (T1) | **legacy `openNewRentalModal`/`createRentalFromModal` + `rn*` modal removed** (was shadowed by handoff-wiz.js); `taxRate()` relocated to `common.js`; kept hoCheckOut/In + custody + day board | hoist needed helpers (done: taxRate) | custody is core (loan is one movement kind) | wizard owns New-Order modal |
 | `pages/handoff-wiz.js` | handoff (core) | PEND | overrides handoff.js entry (by design) | multi-step wizard (good) | — | wizard modals conform |
 | `pages/scheduler.js` | scheduler (module: scheduling) | PEND | — | — | must be module-gated (yes) | board layout |
 | `pages/geo.js` | geo (module: telemetry) | PEND | — | — | sim loop + badge gated | — |
@@ -68,9 +68,9 @@ with findings are updated as passes land.
 ---
 
 ## Known findings (highest-confidence, queued)
-1. **`handoff.js` dead entry (FIX):** legacy single-scroll New-Order modal
-   (`openNewRentalModal`, `createRentalFromModal` + `rn*` helpers) is shadowed by
-   `handoff-wiz.js`. Verify what handoff.js still needs and remove the dead path.
+1. **[x] `handoff.js` dead entry (FIXED, T1):** legacy single-scroll New-Order modal
+   (`openNewRentalModal`, `createRentalFromModal` + `rn*` helpers) removed — it was
+   shadowed by `handoff-wiz.js`. Shared `taxRate()` relocated to `common.js`. Gates green.
 2. **ASP.NET Razor scaffold (FIX):** default template dead weight vs the static SPA;
    owner decision on strip-vs-keep.
 3. **CSS consolidation (FIX):** `dashboard.css` (and overlaps in `styles.css`) → token

@@ -123,6 +123,10 @@ const RISK_PREMIUM = { standard: 0, coastal: 0.15, hazmat: 0.25 };
 /* Per-party billing cadence -> cycle length in days. */
 const BILLING_CYCLES = { daily: 1, weekly: 7, "bi-weekly": 14, monthly: 28, quarterly: 84 };
 const BILLING_CYCLE_LABEL = { daily: "Daily", weekly: "Weekly", "bi-weekly": "Bi-Weekly", monthly: "Monthly", quarterly: "Quarterly" };
+/* Sales tax rate for the default (GA) jurisdiction. Shared by order flows
+   (e.g. the hand-off wizard) for instant pickup/shop sales tax. */
+function taxRate(){ const g = (IMS.settings.taxSchedules || []).find(t => t.code === "GA"); return g ? g.rate : 0.08; }
+
 /* Billing cycle length in days for a order (from its party), defaulting to the
    global pricing.cycleDays (28) for customers without an explicit cadence.
    @param {Object|string} contractOrId - a order object (uses .partyId) or a party id
