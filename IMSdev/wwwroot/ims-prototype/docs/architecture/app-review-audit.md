@@ -78,11 +78,12 @@ with findings are updated as passes land.
 3. **[x] ASP.NET Razor scaffold (FIXED, T1.2):** `Pages/*` removed + `Program.cs` reduced
    to a minimal static host (`/` redirects to `/ims-prototype/`). Product moves to
    Angular + Wisej.net, so the .NET host is preview-only. Build + runtime smoke OK.
-4. **CSS consolidation (PARTIAL, T1.4):** `dashboard.css` **folded into `styles.css`** (bento page layer) — single file for tokens/layout. Remaining: styles.css `.kpi*` block vs shared.css `.kpi*` gradient re-definitions overlap → needs **browser visual QA** before dedup (T3 candidate, flagged in shared.css row).
-5. **Inline `style=` audit (FIX):** **75** occurrences across 14 page files —
+4. **[x] CSS consolidation — dashboard.css folded into `styles.css` (FIXED, T1.4):** single file for tokens/layout; shared.css kept as component-chrome home. Remaining: styles.css `.kpi*` block vs shared.css `.kpi*` gradient re-definitions overlap → needs **browser visual QA** before dedup (T3 candidate, flagged in shared.css row).
+5. **[x] Reuse: option-builder consolidation (FIXED, T1.3):** duplicate `opt` (inventory.js) / `_op` (healthcare.js) select-option builders → single shared `opt` in `common.js`. Gates green. Further builder extraction deferred to T3 (settled UI).
+6. **Inline `style=` audit (FIX):** **75** occurrences across 14 page files —
    worst: scheduler.js (21), timesheet.js (11), geo.js (11), inventory.js (8).
    Each is a candidate for a token/utility class (T3.1/T3.4.2).
-6. **Modal a11y contract check (T3.4):** `role="dialog"`/`aria-modal` present in
+7. **Modal a11y contract check (T3.4):** `role="dialog"`/`aria-modal` present in
    the shared builders (`common.js`) but worth an automated assertion across every
    emitted modal; `.btn-ims` primary used ~29× (footer-consistency lint).
 

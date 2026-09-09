@@ -701,8 +701,6 @@ function nextAssetId(cat){
   });
   return code + "-" + (max + 1);
 }
-const opt = arr => arr.map(v => ({ value: v, label: v }));
-
 function openAddModal(tab){
   if (tab === "serialized") serializedModal();
   else if (tab === "medical") healthcareModal(null);

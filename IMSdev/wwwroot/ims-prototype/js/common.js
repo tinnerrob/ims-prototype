@@ -22,6 +22,9 @@ const delegate = (parent, eventType, selector, handler) =>
 const fmtMoney = n => "$" + Number(n || 0).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 const fmtInt = n => Number(n || 0).toLocaleString("en-US");
 const fmtPct = n => (Number(n) || 0).toFixed(1) + "%";
+/* Build openFormModal `select` field `options` from a flat string array.
+   Shared by every page that renders a dropdown (status, category, role, …). */
+const opt = arr => arr.map(v => ({ value: v, label: v }));
 const pad2 = n => String(n).padStart(2, "0");
 /* Round to 2 decimal places (money). @param {number} n @returns {number} */
 const round2 = n => Math.round(n * 100) / 100;

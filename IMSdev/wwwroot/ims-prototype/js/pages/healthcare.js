@@ -9,8 +9,6 @@
    ========================================================= */
 "use strict";
 
-const _op = arr => arr.map(v => ({ value: v, label: v }));
-
 /* Columns = shared core + Healthcare registry extended attributes. */
 function healthcareCols(){
   const cols = [
@@ -42,12 +40,12 @@ function healthcareModal(existing){
   const fields = [
     { key:"id", label:"Item ID", type:"text", value: idVal, required:true },
     { key:"name", label:"Name", type:"text", value: (existing && existing.name) || "" },
-    { key:"status", label:"Status", type:"select", value: (existing && existing.status) || "Available", options: _op(["Available","In Use","Quarantined","Disposed"]) },
+    { key:"status", label:"Status", type:"select", value: (existing && existing.status) || "Available", options: opt(["Available","In Use","Quarantined","Disposed"]) },
     { key:"purchaseValue", label:"Purchase Value ($)", type:"number", value: (existing && existing.purchaseValue) || 0 },
     { key:"locationId", label:"Location ID", type:"text", value: (existing && existing.locationId) || "BR-ATL" },
     { key:"lot_number", label:"Lot Number", type:"text", value: IMS.metadata.ext(existing, "lot_number") || "", bucket:"extended_attributes", section:"Extended Attributes (Healthcare)" },
     { key:"expiration_date", label:"Expiration Date", type:"date", value: IMS.metadata.ext(existing, "expiration_date") || "", bucket:"extended_attributes" },
-    { key:"sterilization_status", label:"Sterilization Status", type:"select", value: IMS.metadata.ext(existing, "sterilization_status") || "Pending", options: _op(["Passed","Pending","Failed"]), bucket:"extended_attributes" },
+    { key:"sterilization_status", label:"Sterilization Status", type:"select", value: IMS.metadata.ext(existing, "sterilization_status") || "Pending", options: opt(["Passed","Pending","Failed"]), bucket:"extended_attributes" },
     { key:"fda_class", label:"FDA Class", type:"text", value: IMS.metadata.ext(existing, "fda_class") || "", bucket:"extended_attributes" }
   ];
   openFormModal({
