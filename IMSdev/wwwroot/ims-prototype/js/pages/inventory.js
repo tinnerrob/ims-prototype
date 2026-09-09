@@ -203,20 +203,26 @@ function bindInvActions(){
 }
 
 
-/* Chain of custody shown inside an asset's view modal (from the immutable hand-off log). */
+/* Movement history shown inside an item view modal (immutable movement log). */
 function chainOfCustodyHTML(assetId){
-  const evs = (IMS.handoffs || []).filter(h => h.assetId === assetId);
+  const evs = (IMS.movements || []).filter(m => m.refType === "serialized" && m.refId === assetId);
   if (!evs.length) return "";
   const last = evs[evs.length - 1];
-  const status = last.direction === "Check-Out"
-    ? `<div class="alert-line breach"><span class="ts">OUT</span><span>On site with <strong>${last.contractId}</strong> · custodian ${last.custodian} since ${fmtDT(last.at)}</span></div>`
-    : `<div class="alert-line info"><span class="ts">IN</span><span>In yard — returned ${fmtDT(last.at)}</span></div>`;
-  const rows = evs.map(h => `<div class="list-line">
-      <span class="l"><span class="mono strong">${h.id}</span> · <span class="badge-status ${h.direction === "Check-Out" ? "st-out" : "st-available"}">${h.direction}</span> ${h.contractId || ""}</span>
-      <span class="r mono">${fmtDT(h.at)}</span>
-      <div class="text-muted2" style="grid-column:1/-1">Custodian: <strong>${h.custodian}</strong> · by ${h.by}${h.note ? " · " + h.note : ""}</div>
-    </div>`).join("");
-  return status + section("Chain of Custody (" + evs.length + ")", rows);
+  const isOut = last.kind === "issue";
+  const status = isOut
+    ? `<div class="alert-line breach"><span class="ts">OUT</span><span>On issue to <strong>${last.party}</strong> · ${last.orderId || "no order"} · ${last.location || ""} since ${fmtDT(last.at)}</span></div>`
+    : `<div class="alert-line info"><span class="ts">IN</span><span>In stock — returned ${fmtDT(last.at)}</span></div>`;
+  const rows = evs.map(m => {
+    const k = m.kind;
+    const label = ({ issue:"Issue", return:"Return", receive:"Receive", transfer:"Transfer", adjust:"Adjust" })[k] || k;
+    const isIssue = k === "issue";
+    return `<div class="list-line">
+      <span class="l"><span class="mono strong">${m.id}</span> · <span class="badge-status ${isIssue ? "st-out" : "st-available"}">${label}</span> ${m.orderId || ""}</span>
+      <span class="r mono">${fmtDT(m.at)}</span>
+      <div class="text-muted2" style="grid-column:1/-1">Party: <strong>${m.party}</strong>${m.location ? " · Location: " + m.location : ""} · by ${m.by}${m.note ? " · " + m.note : ""}</div>
+    </div>`;
+  }).join("");
+  return status + section("Movement History (" + evs.length + ")", rows);
 }
 
 function serializedView(a){

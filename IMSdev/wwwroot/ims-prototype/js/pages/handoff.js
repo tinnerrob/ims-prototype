@@ -9,22 +9,27 @@
    ========================================================= */
 "use strict";
 
-/* ---- chain-of-custody helpers ---- */
-const hoEvents = assetId => (IMS.handoffs || []).filter(h => h.assetId === assetId);
-function hoLatest(assetId){
-  const evs = hoEvents(assetId);
+/* ---- movement (audit) model ----
+   The append-only movement log generalizes the former "hand-off" log: every
+   physical movement of an item — issue (custody to a party/order), return,
+   receive, transfer, adjust — is one immutable movement record. Serialized /
+   rental / loan workflows are one consumer of this generic model. */
+const mvKindLabel = k => ({ issue:"Issue", return:"Return", receive:"Receive", transfer:"Transfer", adjust:"Adjust" })[k] || k;
+const hoEvents = itemId => (IMS.movements || []).filter(m => m.refType === "serialized" && m.refId === itemId);
+function hoLatest(itemId){
+  const evs = hoEvents(itemId);
   return evs.length ? evs[evs.length - 1] : null;
 }
-/* True while an asset is physically out with a customer (last event = Check-Out). */
+/* A serialized item is out (in a party's custody) while its latest movement is an issue. */
 function assetOutInfo(assetId){
   const last = hoLatest(assetId);
-  if (!last || last.direction !== "Check-Out") return null;
+  if (!last || last.kind !== "issue") return null;
   return {
     assetId,
     asset: getResource({ type: "serialized", refId: assetId }),
-    contractId: last.contractId,
-    contract: getContract(last.contractId),
-    custodian: last.custodian,
+    contractId: last.orderId,
+    contract: getContract(last.orderId),
+    custodian: last.party,
     at: last.at,
     by: last.by
   };
@@ -44,13 +49,25 @@ function hoStamp(){
 }
 function hoNext(){
   let n = 0;
-  (IMS.handoffs || []).forEach(h => { const m = parseInt(String(h.id).split("-")[1], 10); if (m > n) n = m; });
-  return "HO-" + pad2(n + 1);
+  (IMS.movements || []).forEach(m => { const p = String(m.id).split("-").pop(); const v = parseInt(p, 10); if (v > n) n = v; });
+  return "MV-" + String(n + 1).padStart(3, "0");
 }
-/* Immutable write: append an event (never mutate an existing record). */
-function hoLog(assetId, contractId, direction, custodian, note){
-  IMS.handoffs = IMS.handoffs || [];
-  IMS.handoffs.push({ id: hoNext(), assetId, contractId, direction, custodian, at: hoStamp(), by: "D. Reynolds", note: note || "" });
+/* Map legacy hand-off direction copy onto generic movement kinds. */
+const mvFromAction = a => (a === "Check-Out" || a === "issue") ? "issue" : (a === "Check-In" || a === "return") ? "return" : a;
+/* Immutable write: append a movement record (never mutate an existing one). */
+function hoLog(refId, orderId, action, party, note){
+  IMS.movements = IMS.movements || [];
+  const kind = mvFromAction(action);
+  IMS.movements.push({
+    id: hoNext(), refType: "serialized", refId,
+    kind,
+    orderId: orderId || null,
+    party: party || "Unknown",
+    location: (kind === "return" || kind === "receive")
+      ? ((IMS.yard && IMS.yard.name) || "Main yard")
+      : ((IMS.yard && IMS.yard.name) || "Main yard"),
+    at: hoStamp(), by: "D. Reynolds", note: note || ""
+  });
 }
 function hoCheckOut(assetId, contractId, note){
   if (assetOutInfo(assetId)) return;                       // already out — no double hand-off

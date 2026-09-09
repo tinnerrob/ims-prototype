@@ -360,15 +360,16 @@ IMS.settings = {
 };
 
 /* ---------------------------------------------------------
-   TABLE: handoffs (Equipment Hand-Off / Chain of Custody)
+   TABLE: movements (Inventory Movement / Chain of Custody)
    Append-only audit log: one immutable record per physical
-   Check-Out / Check-In of a serialized asset to a customer
-   contract. Never edited or deleted once written.
+   movement of an item — issue (custody to a party/order),
+   return, receive, transfer, adjust. Never edited/deleted.
+   Rentals/loans are one consumer of this generic model.
    --------------------------------------------------------- */
-IMS.handoffs = [
-  { id:"HO-001", assetId:"BL-119", contractId:"CT-2024-001", direction:"Check-Out", custodian:"M. Halstead", at:"2026-08-20T07:15", by:"D. Reynolds", note:"Delivered to Downtown Plaza site." },
-  { id:"HO-002", assetId:"FL-401", contractId:"CT-2024-001", direction:"Check-Out", custodian:"M. Halstead", at:"2026-08-20T08:05", by:"D. Reynolds", note:"Forklift offloaded with operator handoff." },
-  { id:"HO-003", assetId:"SS-204", contractId:"CT-2024-002", direction:"Check-Out", custodian:"L. Bishop",  at:"2026-09-01T06:45", by:"D. Reynolds", note:"Skid steer delivered to bridge site." },
-  { id:"HO-004", assetId:"TL-605", contractId:"CT-2024-002", direction:"Check-Out", custodian:"L. Bishop",  at:"2026-09-01T07:10", by:"D. Reynolds", note:"Telehandler staged for Riverside Bridge." },
-  { id:"HO-005", assetId:"GN-511", contractId:"CT-2024-003", direction:"Check-Out", custodian:"R. Vance",   at:"2026-09-02T06:30", by:"D. Reynolds", note:"Generator placed at refinery skid." }
+IMS.movements = [
+  { id:"MV-001", refType:"serialized", refId:"BL-119", kind:"issue", orderId:"CT-2024-001", party:"M. Halstead", location:"Main Yard — Buckhead Hub", at:"2026-08-20T07:15", by:"D. Reynolds", note:"Delivered to Downtown Plaza site." },
+  { id:"MV-002", refType:"serialized", refId:"FL-401", kind:"issue", orderId:"CT-2024-001", party:"M. Halstead", location:"Main Yard — Buckhead Hub", at:"2026-08-20T08:05", by:"D. Reynolds", note:"Forklift offloaded with operator handoff." },
+  { id:"MV-003", refType:"serialized", refId:"SS-204", kind:"issue", orderId:"CT-2024-002", party:"L. Bishop",  location:"Main Yard — Buckhead Hub", at:"2026-09-01T06:45", by:"D. Reynolds", note:"Skid steer delivered to bridge site." },
+  { id:"MV-004", refType:"serialized", refId:"TL-605", kind:"issue", orderId:"CT-2024-002", party:"L. Bishop",  location:"Main Yard — Buckhead Hub", at:"2026-09-01T07:10", by:"D. Reynolds", note:"Telehandler staged for Riverside Bridge." },
+  { id:"MV-005", refType:"serialized", refId:"GN-511", kind:"issue", orderId:"CT-2024-003", party:"R. Vance",   location:"Main Yard — Buckhead Hub", at:"2026-09-02T06:30", by:"D. Reynolds", note:"Generator placed at refinery skid." }
 ];
