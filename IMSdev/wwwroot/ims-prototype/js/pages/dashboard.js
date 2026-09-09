@@ -152,7 +152,7 @@ function triggerReorder(type, ref){
     : IMS.itemRegistry.getByType("consumable").find(c => c.sku === ref);
   if (!r) return;
   const restock = Math.max((r.reorderPoint || 0) * 2, 1);
-  r.qtyOnHand = restock;
+  storeUpdateItem(type, ref, { qtyOnHand: restock });
   renderDashboard();
   updateBadges();
 }

@@ -100,21 +100,25 @@ function workOrderModal(existing){
     fields,
     onSave: v => {
       if (isEdit){
-        Object.assign(existing, { assetId:v.assetId, type:v.type, meterReading:v.meterReading, status:v.status, laborHours:v.laborHours });
+        const patch = { assetId:v.assetId, type:v.type, meterReading:v.meterReading, status:v.status, laborHours:v.laborHours };
+        if (IMS.store) IMS.store.repo("workOrders").update("woId", existing.woId, patch); else Object.assign(existing, patch);
         renderMaintenance(); updateBadges();
         return;
       }
-      const tech = IMS.labor.find(x => x.empId === v.techId) || IMS.labor[0];
-      const asset = IMS.itemRegistry.getByType("serialized").find(a => a.id === v.assetId);
       const parts = [];
       if (v.partsQty > 0) parts.push({ kind:"consumable", sku:v.partsSku, qty:v.partsQty });
       if (v.partQty > 0) parts.push({ kind:"part", refId:v.partId, qty:v.partQty });
-      IMS.workOrders.push({ woId: nextWoId(), assetId:v.assetId, type:v.type, meterReading:v.meterReading, status:v.status || "In Progress", parts, laborHours:v.laborHours, date: new Date().toISOString().slice(0,10) });
-      if (asset) { asset.status = "In Shop"; asset.lastReported = new Date().toISOString().slice(0,19); }
-      const cons = IMS.itemRegistry.getByType("consumable").find(c => c.sku === v.partsSku);
-      if (cons && v.partsQty > 0) cons.qtyOnHand = Math.max(0, cons.qtyOnHand - v.partsQty);
-      const prt = IMS.itemRegistry.getByType("part").find(p => p.partId === v.partId);
-      if (prt && v.partQty > 0) prt.qtyOnHand = Math.max(0, prt.qtyOnHand - v.partQty);
+      const wo = { woId: nextWoId(), assetId:v.assetId, type:v.type, meterReading:v.meterReading, status:v.status || "In Progress", parts, laborHours:v.laborHours, date: new Date().toISOString().slice(0,10) };
+      if (IMS.store) IMS.store.repo("workOrders").create(wo); else IMS.workOrders.push(wo);
+      storeUpdateItem("serialized", v.assetId, { status: "In Shop", lastReported: new Date().toISOString().slice(0,19) });
+      if (v.partsQty > 0) {
+        const cons = IMS.itemRegistry.getByType("consumable").find(c => c.sku === v.partsSku);
+        if (cons) storeUpdateItem("consumable", v.partsSku, { qtyOnHand: Math.max(0, cons.qtyOnHand - v.partsQty) });
+      }
+      if (v.partQty > 0) {
+        const prt = IMS.itemRegistry.getByType("part").find(p => p.partId === v.partId);
+        if (prt) storeUpdateItem("part", v.partId, { qtyOnHand: Math.max(0, prt.qtyOnHand - v.partQty) });
+      }
       renderMaintenance();
       updateBadges();
     }

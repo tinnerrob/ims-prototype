@@ -72,16 +72,14 @@ function hoCheckOut(assetId, orderId, note){
   if (assetOutInfo(assetId)) return;                       // already out — no double hand-off
   const c = getOrder(orderId);
   hoLog(assetId, orderId, "Check-Out", hoCustodian(c), note || ("Checked out to " + (c ? c.orderId : orderId)));
-  const a = getResource({ type: "serialized", refId: assetId });
-  if (a){ a.status = "On Rent"; a.orderId = orderId; }
+  storeUpdateItem("serialized", assetId, { status: "On Rent", orderId, lastReported: new Date().toISOString().slice(0, 19) });
   renderHandoff();
 }
 function hoCheckIn(assetId, note){
   const info = assetOutInfo(assetId);
   if (!info) return;
   hoLog(assetId, info.orderId, "Check-In", info.custodian, note || "Returned to yard / available.");
-  const a = getResource({ type: "serialized", refId: assetId });
-  if (a){ a.status = "Available"; a.orderId = null; }
+  storeUpdateItem("serialized", assetId, { status: "Available", orderId: null, lastReported: new Date().toISOString().slice(0, 19) });
   /* Check-in must NOT remove the order from the scheduler. If the unit is
      returned before its scheduled end, tighten the order window so the
      scheduler reflects the actual (early) check-in timeframe. */
@@ -494,8 +492,7 @@ function createRentalFromModal(root){
     lineItems
   });
   items.forEach(it => {
-    const a = getResource({ type: "serialized", refId: it.assetId });
-    if (a){ a.status = "On Rent"; a.orderId = cid; }
+    storeUpdateItem("serialized", it.assetId, { status: "On Rent", orderId: cid, lastReported: new Date().toISOString().slice(0, 19) });
     hoLog(it.assetId, cid, "Check-Out", custContact, "Rental checked out at the front desk.");
   });
   dismissModal(root);

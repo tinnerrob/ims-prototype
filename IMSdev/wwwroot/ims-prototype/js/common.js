@@ -536,22 +536,34 @@ function resourceCapacity(type, r){
   return 1;
 }
 
+/* Route an item field/status update through the store repository (emits a change
+   event + auto-save); falls back to a direct in-place assign when the store is
+   absent. @param {string} type @param {string} ref @param {Object} patch */
+function storeUpdateItem(type, ref, patch){
+  if (IMS.store){
+    const idKey = (IMS.itemRegistry && IMS.itemRegistry.idKey[type]) || (type === "labor" ? "empId" : "id");
+    return IMS.store.repo(type).update(idKey, ref, patch);
+  }
+  const r = getResource({ type, refId: ref });
+  if (r) Object.assign(r, patch);
+  return r;
+}
+
 /* Update inventory/stock when a resource is staged (add=true) or unstaged (add=false).
    @param {string} type @param {string} ref @param {number} qty @param {boolean} add @param {Object} order */
 function syncInventoryOnStage(type, ref, qty, add, order){
   const r = getResource({ type, refId: ref });
   if (!r) return;
   if (type === "serialized") {
-    r.status = order.status === "draft" ? "Staged" : "On Rent";
-    r.orderId = order.orderId;
-    r.lastReported = new Date().toISOString().slice(0, 19);
+    storeUpdateItem("serialized", ref, { status: order.status === "draft" ? "Staged" : "On Rent", orderId: order.orderId, lastReported: new Date().toISOString().slice(0, 19) });
   } else if (type === "bulk") {
-    if (add) { r.qtyOut += qty; r.qtyAvailable = Math.max(0, r.qtyAvailable - qty); }
-    else { r.qtyOut = Math.max(0, r.qtyOut - qty); r.qtyAvailable += qty; }
+    storeUpdateItem("bulk", ref, add
+      ? { qtyOut: r.qtyOut + qty, qtyAvailable: Math.max(0, r.qtyAvailable - qty) }
+      : { qtyOut: Math.max(0, r.qtyOut - qty), qtyAvailable: r.qtyAvailable + qty });
   } else if (type === "consumable") {
-    r.qtyOnHand = Math.max(0, add ? r.qtyOnHand - qty : r.qtyOnHand + qty);
+    storeUpdateItem("consumable", ref, { qtyOnHand: Math.max(0, add ? r.qtyOnHand - qty : r.qtyOnHand + qty) });
   } else if (type === "part") {
-    r.qtyOnHand = Math.max(0, add ? r.qtyOnHand - qty : r.qtyOnHand + qty);
+    storeUpdateItem("part", ref, { qtyOnHand: Math.max(0, add ? r.qtyOnHand - qty : r.qtyOnHand + qty) });
   }
 }
 /* Count consumables/parts at or below their reorder point. @returns {number} */

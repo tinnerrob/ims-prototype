@@ -108,9 +108,10 @@ Status key: `[x]` = shipped, `[~]` = partial, `[ ]` = not started.
 Phase B‑1 (audit + Config UX) → Phase A (data service + API seam) →
 Phase C (modal spec + per‑modal restyle) → B‑3..B‑6 (Config build/gating).
 
-> Executed as suggested above (B1 → A → C → B3‑B6), and Phase A‑3/A‑4 closed
-> out (2026‑09‑09) with item catalog + settings/rental writers routed through
-> repositories and full‑set JSON persistence with auto‑save. Open/optional next:
-> commit the jsdom gate as a `package.json` harness, and migrate any remaining
-> in‑place stock/status field updates onto `repo.update` if a change event is
-> required.
+> Executed as suggested above (B1 → A → C → B3‑B6), Phase A‑3/A‑4 closed out
+> (2026‑09‑09): item catalog + settings/rental writers route through repositories,
+> full‑set JSON persistence auto‑saves, and the jsdom gate is committed as a
+> first‑class harness (`test/gate.js` via `npm test`, `node --check` via
+> `npm run check`). Remaining in‑place stock/status bookkeeping now routes through
+> `repo.update` (`storeUpdateItem`); telemetry sim field writes intentionally stay
+> direct (they are a live loop, not persisted business state).
