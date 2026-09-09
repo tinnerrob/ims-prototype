@@ -8,7 +8,7 @@
    NAVIGATION / ROUTER
    ========================================================= */
 const TITLES = {
-  dashboard:"Operations Dashboard", inventory:"Items & Stock", contracts:"Parties & Orders", scheduler:"Scheduling",
+  dashboard:"Operations Dashboard", inventory:"Items & Stock", contracts:"Parties & Orders", scheduler:"Allocations",
   handoff:"Item Hand-Off & Custody", geo:"Fleet Telemetry", logistics:"Logistics & Dispatch", maintenance:"Field Service & Maintenance",
   timesheet:"Labor & Timesheets", yard:"Receiving / Inspections", invoicing:"Billing & Invoicing", rerents:"Rentals / Sub-Rentals",
   branches:"Locations", pricing:"Pricing & Policies", categories:"Categories & Types"

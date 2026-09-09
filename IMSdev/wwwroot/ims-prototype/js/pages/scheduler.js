@@ -215,17 +215,17 @@ function renderSchedQueue(){
     <div class="text-muted2" style="font-size:11px">${c.customer}</div>
     <div class="text-muted2" style="font-size:10.5px">${fmtDate(c.startDate)} → ${fmtDate(c.endDate)}</div>
   </div>`).join("") || `<p class="text-muted2 py-2">No active contracts.</p>`;
-  const poolLabels = { serialized:"Serialized Equipment", bulk:"Bulk Resources", consumable:"Consumables", parts:"Stock Inventory", labor:"Labor / Employees", attachments:"Attachments", kits:"Kits" };
+  const poolLabels = { serialized:"Items (Serialized)", bulk:"Items (Bulk)", consumable:"Stock (Consumable)", parts:"Stock (Parts)", labor:"Labor / Crew", attachments:"Attachments", kits:"Kits" };
   const poolTabs = RESOURCE_TYPE_ORDER.map(k => ({ key:k, label: poolLabels[k] }));
   box.innerHTML = `
     <div class="card mb-3">
-      <div class="card-header"><span class="card-title"><i class="bi bi-briefcase"></i> Active Contracts</span>
+      <div class="card-header"><span class="card-title"><i class="bi bi-stack"></i> Orders &amp; Allocations</span>
         <span class="badge-status st-onrent">${contracts.length} active</span></div>
       <div class="card-body queue-scroll">${cList}</div>
-      <div class="card-body" style="padding-top:8px"><button class="btn btn-ims btn-sm2 w-100" id="addContractBtn" type="button"><i class="bi bi-plus-lg"></i> New Contract</button></div>
+      <div class="card-body" style="padding-top:8px"><button class="btn btn-ims btn-sm2 w-100" id="addContractBtn" type="button"><i class="bi bi-plus-lg"></i> New Order</button></div>
     </div>
     <div class="card">
-      <div class="card-header"><span class="card-title"><i class="bi bi-box-seam"></i> Resource Pool</span>
+      <div class="card-header"><span class="card-title"><i class="bi bi-box-seam"></i> Inventory Pool</span>
         <span class="text-muted2" style="font-size:11px">drag to a block</span></div>
       <div class="card-body">
         <select class="form-select mb-2" id="poolFilter">${poolTabs.map(t => `<option value="${t.key}" ${App.schedPoolTab === t.key ? "selected" : ""}>${t.label}</option>`).join("")}</select>
@@ -249,11 +249,11 @@ function renderSchedQueue(){
 
 function poolAddLabel(){
   switch (App.schedPoolTab) {
-    case "serialized": return "New Equipment";
-    case "bulk": return "New Bulk Resource";
+    case "serialized": return "New Item (Serialized)";
+    case "bulk": return "New Bulk Item";
     case "consumable": return "New Consumable";
-    case "labor": return "New Labor Item";
-    case "parts": return "New Part";
+    case "labor": return "New Labor / Crew";
+    case "parts": return "New Stock Part";
     case "kits": return "New Kit";
     case "attachments": return "New Attachment";
     default: return "New Resource";
